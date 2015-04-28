@@ -30,3 +30,7 @@
 
 # Debug files
 *.dSYM/
+
+# Project files
+*.cproject
+*.project
