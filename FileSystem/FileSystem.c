@@ -5,10 +5,7 @@
  *      Author: utnso
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <commons/config.h>
-#include <commons/log.h>
+#include "FileSystem.h"
 
 int PUERTO_LISTEN;
 char** LISTA_NODOS;
@@ -36,10 +33,10 @@ int main(void) {
 	STATUS = false;
 	crear_logger();
 	log_info(LOGGER,"Puerto listen: %d\n",PUERTO_LISTEN);
-	printf("Lista: %s\n",&LISTA_NODOS);
-	printf("Lista: %s\n",LISTA_NODOS);
 
-
+	int socket;
+	socket = obtener_socket();
+	printf("Socket: %d\n",socket);
 	log_destroy(LOGGER);
 	return EXIT_SUCCESS;
 }
