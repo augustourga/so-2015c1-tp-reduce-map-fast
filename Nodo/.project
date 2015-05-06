@@ -3,8 +3,8 @@
 	<name>Nodo</name>
 	<comment></comment>
 	<projects>
-		<project>Commons</project>
 		<project>MilanesaLibrary</project>
+		<project>commons</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

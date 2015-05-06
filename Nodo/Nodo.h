@@ -14,7 +14,7 @@
 #include <libio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <sockets.h>
+#include "sockets.h"
 #include <commons/config.h>
 #define PATH "/home/utnso/workspace/NODO_CONFIG.config"
 
@@ -37,6 +37,6 @@ typedef struct{
 
 void levantarConfiguracionNodo();
 void conectarFileSystem();
- getBloque(unNumero);
-
+ //getBloque(unNumero);
+int levantarServer();
 #endif /* NODO_NODO_H_ */
