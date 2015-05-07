@@ -3,8 +3,8 @@
 	<name>FileSystem</name>
 	<comment></comment>
 	<projects>
-		<project>commons</project>
 		<project>MilanesaLibrary</project>
+		<project>commons</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

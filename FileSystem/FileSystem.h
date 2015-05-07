@@ -13,6 +13,7 @@
 #include <commons/config.h>
 #include <commons/log.h>
 #include <sockets.h>
+#include <pthread.h>
 
 int main(void);
 
