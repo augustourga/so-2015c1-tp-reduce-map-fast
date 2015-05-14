@@ -15,6 +15,14 @@
 #include <sockets.h>
 #include <pthread.h>
 
+typedef struct {
+	char *nombre_archivo;
+	int tamanio;
+	int directorio_padre;
+	bool estado;
+	t_dictionary bloques;
+} t_archivo;
+
 int main(void);
 
 #endif /* FILESYSTEM_H_ */

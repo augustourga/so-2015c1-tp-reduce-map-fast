@@ -117,26 +117,84 @@ void consola_file_system() {
 	}
 }
 
+void resend_msg(int new_fd, char *msg, int len, int flag, int bytes_sent) {
+	int i = 0;
+	while (len != bytes_sent && i < 6) {
+		bytes_sent = send(new_fd, msg, len, 0);
+		i++;
+	}
+	if (len != bytes_sent) {
+		log_error(LOGGER, "No pudo ser enviado el mensaje por send():%s", msg);
+	}
+}
+
+void manejar_conexiones_nuevas(int socket) {
+	int length, bytes_recv;
+	char *buffer;
+	length = 1024;
+	bytes_recv = recv(socket, buffer, length, 0);
+
+	// guardar el new_fd dependiendo de lo que responda
+	// puede ser nodo nuevo o viejo
+	// o puede ser Marta
+
+}
+
+void conexiones_file_system() {
+// Abre su puerto de escucha
+	int backLog = 20; // Número de conexiones permitidas en la cola de entrada (hasta que se aceptan)
+	int socketEscucha;
+	socketEscucha = crear_socket_listen(PUERTO_LISTEN);
+	printf("Socket: %d\n", socketEscucha);
+	listen(socketEscucha, backLog);
+
+	int sin_size;
+	struct sockaddr_in their_addr; // Información sobre la dirección remota
+	sin_size = sizeof(struct sockaddr_in);
+// Acepta nuevas conexiones
+	while (1) {
+		int new_fd, len, length, rcx;
+		new_fd = accept(socketEscucha, (struct sockaddr *) &their_addr,
+				&sin_size);
+		pthread_t thr_aceptar_conexiones;
+		rcx = pthread_create(&thr_aceptar_conexiones, NULL,
+				(void *) manejar_conexiones_nuevas, &new_fd);
+		if (rcx != 0) {
+			log_error(LOGGER,
+					"El thread que acepta las conexiones entrantes no pudo ser creado.");
+		}
+	}
+}
+
 int main(void) {
 	levantar_configuracion();
 	STATUS = false;
 	crear_logger();
 	log_info(LOGGER, "Puerto listen: %d\n", PUERTO_LISTEN);
 
-	int socket;
-	socket = obtener_socket();
-	printf("Socket: %d\n", socket);
+// Crea el hilo que se encarga de las conexiones entrantes
+	pthread_t thr_conexiones;
+	int rcx;
+	rcx = pthread_create(&thr_conexiones, NULL, (void *) conexiones_file_system,
+	NULL);
+	if (rcx != 0) {
+		log_error(LOGGER,
+				"El thread que maneja las conexiones no pudo ser creado.");
+		return EXIT_FAILURE;
+	}
 
-	// Crea el hilo que se encarga de la consola
+// Crea el hilo que se encarga de la consola
 	pthread_t thr_consola;
 	int rc1;
-	rc1 = pthread_create(&thr_consola, NULL, (void *)consola_file_system, NULL);
-	if (rc1!=0) {
+	rc1 = pthread_create(&thr_consola, NULL, (void *) consola_file_system,
+	NULL);
+	if (rc1 != 0) {
 		log_error(LOGGER, "El thread de la consola no pudo ser creado.");
 		return EXIT_FAILURE;
 	}
 
-	// Termina su ejecucion
+// Termina su ejecucion
+	pthread_join(thr_conexiones, NULL);
 	pthread_join(thr_consola, NULL);
 	log_destroy(LOGGER);
 	return EXIT_SUCCESS;
