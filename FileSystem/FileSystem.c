@@ -128,6 +128,28 @@ void resend_msg(int new_fd, char *msg, int len, int flag, int bytes_sent) {
 	}
 }
 
+void agregar_nodo_nuevo(char* nombre, int socket) {
+
+}
+
+void agregar_nodo_viejo(char* nombre, int socket) {
+
+}
+
+void deserializar_aceptacion_nodo(t_bloque* bloque, int socket) {
+	t_aceptacion_nodo* msg = malloc(sizeof(t_aceptacion_nodo));
+
+	if (msg->nodo_nuevo) {
+		agregar_nodo_nuevo(msg->nombre, socket);
+	} else {
+		agregar_nodo_viejo(msg->nombre, socket);
+	}
+}
+
+void guardar_socket_marta(int socket) {
+
+}
+
 void manejar_conexiones_nuevas(int socket) {
 	int length = 1024, bytes_recv;
 	char *buffer;
@@ -142,13 +164,7 @@ void manejar_conexiones_nuevas(int socket) {
 		bloque->size = strlen(bloque->data);
 		switch (code) {
 		case 100:
-			t_aceptacion_nodo* msg = malloc(sizeof(t_aceptacion_nodo));
-			msg = deserializar_aceptacion_nodo(&bloque);
-			if (msg->nodo_nuevo) {
-				agregar_nodo_nuevo(msg->nombre, socket);
-			} else {
-				agregar_nodo_viejo(msg->nombre, socket);
-			}
+			deserializar_aceptacion_nodo(&bloque, socket);
 			break;
 		case 200:
 			guardar_socket_marta(socket);
