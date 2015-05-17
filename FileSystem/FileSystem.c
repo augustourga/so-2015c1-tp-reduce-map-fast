@@ -129,17 +129,33 @@ void resend_msg(int new_fd, char *msg, int len, int flag, int bytes_sent) {
 }
 
 void manejar_conexiones_nuevas(int socket) {
-	int length, bytes_recv;
+	int length = 1024, bytes_recv;
 	char *buffer;
-	length = 1024;
 	bytes_recv = recv(socket, buffer, length, 0);
-
-	// guardar el new_fd dependiendo de lo que responda
-	// puede ser nodo nuevo o viejo
-	// o puede ser Marta
-
+	if (bytes_recv > 0) {
+		int offset = 0, tmp_size = 0, code;
+		tmp_size = sizeof(code);
+		memcpy(&code, buffer + offset, tmp_size);
+		offset += tmp_size;
+		t_bloque* bloque = malloc(sizeof(t_bloque));
+		bloque->data = buffer + offset;
+		bloque->size = strlen(bloque->data);
+		switch (code) {
+		case 100:
+			t_aceptacion_nodo* msg = malloc(sizeof(t_aceptacion_nodo));
+			msg = deserializar_aceptacion_nodo(&bloque);
+			if (msg->nodo_nuevo) {
+				agregar_nodo_nuevo(msg->nombre, socket);
+			} else {
+				agregar_nodo_viejo(msg->nombre, socket);
+			}
+			break;
+		case 200:
+			guardar_socket_marta(socket);
+			break;
+		}
+	}
 }
-
 void conexiones_file_system() {
 // Abre su puerto de escucha
 	int backLog = 20; // Número de conexiones permitidas en la cola de entrada (hasta que se aceptan)
@@ -153,7 +169,7 @@ void conexiones_file_system() {
 	sin_size = sizeof(struct sockaddr_in);
 // Acepta nuevas conexiones
 	while (1) {
-		int new_fd, len, length, rcx;
+		int new_fd, rcx;
 		new_fd = accept(socketEscucha, (struct sockaddr *) &their_addr,
 				&sin_size);
 		pthread_t thr_aceptar_conexiones;

@@ -28,5 +28,9 @@ typedef struct {
 	t_bitarray* ejecutable;
 	 t_tupla_reduce* archivos;
 	char* nombre_archivo_tmp;
-} t_mensaje_reduce;
+} t_tupla_map;
 
+typedef struct {
+	char* nombre;
+	bool nodo_nuevo;
+} t_aceptacion_nodo;

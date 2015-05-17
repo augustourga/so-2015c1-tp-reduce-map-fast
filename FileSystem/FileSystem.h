@@ -14,6 +14,7 @@
 #include <commons/log.h>
 #include <sockets.h>
 #include <pthread.h>
+#include <serializacion.h>
 
 typedef struct {
 	char *nombre_archivo;
