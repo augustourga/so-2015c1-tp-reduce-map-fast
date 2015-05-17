@@ -23,7 +23,6 @@ typedef struct {
 	bool estado;
 	t_dictionary bloques;
 } t_archivo;
-
 int main(void);
 
 #endif /* FILESYSTEM_H_ */

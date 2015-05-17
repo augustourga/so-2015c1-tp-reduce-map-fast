@@ -136,7 +136,7 @@ void agregar_nodo_viejo(char* nombre, int socket) {
 
 }
 
-void deserializar_aceptacion_nodo(t_bloque* bloque, int socket) {
+void deserializar_aceptacion_nodo(t_bloque** bloque, int socket) {
 	t_aceptacion_nodo* msg = malloc(sizeof(t_aceptacion_nodo));
 
 	if (msg->nodo_nuevo) {
@@ -152,7 +152,7 @@ void guardar_socket_marta(int socket) {
 
 void manejar_conexiones_nuevas(int socket) {
 	int length = 1024, bytes_recv;
-	char *buffer;
+	char* buffer=0;
 	bytes_recv = recv(socket, buffer, length, 0);
 	if (bytes_recv > 0) {
 		int offset = 0, tmp_size = 0, code;
@@ -180,14 +180,13 @@ void conexiones_file_system() {
 	printf("Socket: %d\n", socketEscucha);
 	listen(socketEscucha, backLog);
 
-	int sin_size;
+	unsigned int sin_size;
 	struct sockaddr_in their_addr; // Información sobre la dirección remota
 	sin_size = sizeof(struct sockaddr_in);
 // Acepta nuevas conexiones
 	while (1) {
 		int new_fd, rcx;
-		new_fd = accept(socketEscucha, (struct sockaddr *) &their_addr,
-				&sin_size);
+		new_fd = accept(socketEscucha, (struct sockaddr *) &their_addr, &sin_size);
 		pthread_t thr_aceptar_conexiones;
 		rcx = pthread_create(&thr_aceptar_conexiones, NULL,
 				(void *) manejar_conexiones_nuevas, &new_fd);
