@@ -8,19 +8,24 @@
 
 int main (){
 
-levantarConfiguracionNodo();
-//crearEspacioDatos();
-//conectarFileSystem();
+Log_Nodo = log_create(LOG_FILE,PROCESO,1,LOG_LEVEL_TRACE);
 
+if(levantarConfiguracionNodo())
+{ log_error(Log_Nodo,"Hubo errores en la carga de las configuraciones.");
+	}
+if(levantarHiloFile()){ log_error(Log_Nodo,"Conexion con File System fallida.");
+}
+
+
+//prueba del archivo
 printf("puerto %d,ip fs %s",PUERTO_FS,IP_FS);
-
 
 levantarServer();
 
 return 0;
 }
 
-void levantarConfiguracionNodo(){
+int levantarConfiguracionNodo(){
 
 
 		t_config* archivo_config = config_create(PATH);
@@ -35,13 +40,25 @@ void levantarConfiguracionNodo(){
 
 		config_destroy(archivo_config);
 
-
+return 0;
 }
 
-void conectarFileSystem(){
+int levantarHiloFile(){
+	pthread_t thr_Conexion_FileSystem;
 	t_conexion_nodo* reg_conexion = malloc(sizeof(t_conexion_nodo));
+		     reg_conexion->sock_fs= obtener_socket();
 
-	     reg_conexion->sock_fs= obtener_socket();
+		     rcx = pthread_create(&thr_Conexion_FileSystem, NULL,(void *)
+		    		              conectarFileSystem, &reg_conexion);
+			if (rcx != 0) {
+				log_error(Log_Nodo,
+						"El thread que acepta las conexiones entrantes no pudo ser creado.");
+			}
+			return 0;
+}
+
+void conectarFileSystem(t_conexion_nodo* reg_conexion){
+
 
 	 	conectar_socket(PUERTO_FS,IP_FS,reg_conexion->sock_fs);
 	 	puts("conectado al File System");
@@ -145,50 +162,56 @@ int levantarServer(){
 
 						if ((nbytesRecibidos = recv(i, buffer, BUFF_SIZE,0)) > 0) {
 
-							/*
-							deserealizar(buffer){
 
 										int offset = 0, tmp_size = 0, code ;
 
-							 memcpy(&code, bloque + offset, tmp_size = sizeof(code));
+							 memcpy(&code, buffer + offset, tmp_size = sizeof(code));
 							     	    offset += tmp_size;
 							     	   switch(code){
 
 							     	   case '1':
 
+							     		   printf("getBloque()");
+/*
 											getBloque(numero) devovera el contenido del bloque "20*numero"
 											almacenado en el espacio de datos.
 											contenidoDeBloque getBloque(unNumero);
-
+*/                                         break;
 							     	   case '2':
 
+							     		   printf("setBloque()");
+/*
 											setBloque almacenara los "datos" en "20*numero"
 
 											setBloque(numero,datos);
-
+*/											break;
 										case '3':
-
-											/* arch getFileContent(char* nombre) devolvera el contenido
+								     printf("getFileContent()");
+ 											/*
+											 arch getFileContent(char* nombre) devolvera el contenido
 											* del archivo "nombre.dat" almacenado en el espacio temporal
-
-
 											getFileContent(nombre);
+*/   										break;
 										case '4':
-
+								     printf("ejecutar_mapping()");
+/*
 											ejecutar_mapping(ejecutable,num_bloque,nombre_archivo);
-
+*/									break;
 										case '5':
-
+								     printf("ejecutar_Reduce()");
+/*
 											ejecutar_reduce(ejecutable,lista_archivos,nombre_archivo_tmp);
 							 */
+								     break;
    							printf("Mensaje recibido de socket %d: ",i);
 							fwrite(buffer, 1, nbytesRecibidos, stdout);
 							printf("\n");
 							printf("Tamanio del buffer %d bytes!\n", nbytesRecibidos);
 							fflush(stdout);
 
-
-						}else if(nbytesRecibidos == 0) {
+							     	   }
+						}
+						else if(nbytesRecibidos == 0) {
 							printf("se desconecto el socket %d \n",i);
 							FD_CLR(i,&master);
 							// aca se tendria q actualizar los maximos.
