@@ -11,6 +11,11 @@ int main (){
 
 Log_Nodo = log_create(LOG_FILE,PROCESO,1,LOG_LEVEL_TRACE);
 
+
+   t_bloque* bloquesito;
+   bloquesito = serializar_aceptacion_nodo(NODO_NUEVO,NOMBRE_NODO);
+   	  deserializar_aceptacion_nodo(bloquesito);
+
 if(levantarConfiguracionNodo())
 { log_error(Log_Nodo,"Hubo errores en la carga de las configuraciones.");
 	}
@@ -47,7 +52,7 @@ int levantarHiloFile(){
 	pthread_t thr_Conexion_FileSystem;
 	t_conexion_nodo* reg_conexion = malloc(sizeof(t_conexion_nodo));
    t_bloque* bloquesito;
-	reg_conexion->sock_fs= obtener_socket();
+   reg_conexion->sock_fs= obtener_socket();
     rcx = pthread_create(&thr_Conexion_FileSystem, NULL,(void *)
     conectarFileSystem, reg_conexion);
 		if (rcx != 0) {
@@ -55,7 +60,8 @@ int levantarHiloFile(){
 			} else {
 
 	 bloquesito = serializar_aceptacion_nodo(NODO_NUEVO,NOMBRE_NODO);
-              send(reg_conexion->sock_fs,bloquesito->data,bloquesito->size,0);
+	  deserializar_aceptacion_nodo(bloquesito);
+//              send(reg_conexion->sock_fs,bloquesito->data,bloquesito->size,0);
 			}
 
 /*

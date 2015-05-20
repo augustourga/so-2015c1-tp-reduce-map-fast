@@ -347,6 +347,20 @@ t_bloque* serializar_aceptacion_nodo(char* NODO_NUEVO,char* NOMBRE_NODO){
 
 }
 
+t_aceptacion_nodo* deserializar_aceptacion_nodo(t_bloque* bloque) {
+	t_aceptacion_nodo* msg = malloc(sizeof(t_aceptacion_nodo));
+	int offset = 0, tmp_size = 0;
+	tmp_size = sizeof(msg->nodo_nuevo);
+	memcpy(&msg->nodo_nuevo, bloque->data, tmp_size);
+	offset += tmp_size;
+	tmp_size = sizeof(msg->nombre);
+	memcpy(&msg->nombre, bloque->data + offset, tmp_size);
+
+	printf("nombre %s,esNuevo %d",msg->nombre ,msg->nodo_nuevo);
+
+	return msg;
+}
+
 t_bloque* bloque_create(int size) {
 	t_bloque* bloque = malloc(sizeof(t_bloque));
 	bloque->size = size;

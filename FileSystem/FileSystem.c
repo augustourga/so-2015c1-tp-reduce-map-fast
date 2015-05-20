@@ -140,23 +140,23 @@ void agregar_nodo_nuevo(char* nombre, int socket) {
 void agregar_nodo_viejo(char* nombre, int socket) {
 
 }
-
-void deserializar_aceptacion_nodo(t_bloque* bloque, int socket) {
-	t_aceptacion_nodo* msg = malloc(sizeof(t_aceptacion_nodo));
-	int offset = 0, tmp_size = 0;
-	tmp_size = sizeof(msg->nodo_nuevo);
-	memcpy(&msg->nodo_nuevo, bloque->data, tmp_size);
-	offset += tmp_size;
-	tmp_size = sizeof(msg->nombre);
-	memcpy(&msg->nombre, bloque->data + offset, tmp_size);
-//	bloque_destroy(bloque);
-	log_info(LOGGER, "NODO CONECTADO: %s\n", &msg->nombre);
-	if (msg->nodo_nuevo) {
-		agregar_nodo_nuevo(msg->nombre, socket);
-	} else {
-		agregar_nodo_viejo(msg->nombre, socket);
-	}
-}
+//
+//void deserializar_aceptacion_nodo(t_bloque* bloque, int socket) {
+//	t_aceptacion_nodo* msg = malloc(sizeof(t_aceptacion_nodo));
+//	int offset = 0, tmp_size = 0;
+//	tmp_size = sizeof(msg->nodo_nuevo);
+//	memcpy(&msg->nodo_nuevo, bloque->data, tmp_size);
+//	offset += tmp_size;
+//	tmp_size = sizeof(msg->nombre);
+//	memcpy(&msg->nombre, bloque->data + offset, tmp_size);
+////	bloque_destroy(bloque);
+//	log_info(LOGGER, "NODO CONECTADO: %s\n", &msg->nombre);
+//	if (msg->nodo_nuevo) {
+//		agregar_nodo_nuevo(msg->nombre, socket);
+//	} else {
+//		agregar_nodo_viejo(msg->nombre, socket);
+//	}
+//}
 
 void guardar_socket_marta(int socket) {
 
@@ -176,7 +176,7 @@ void manejar_conexiones_nuevas(int socket) {
 		bloque->size = strlen(bloque->data);
 		switch (code) {
 		case 100:
-			deserializar_aceptacion_nodo(bloque, socket);
+//			deserializar_aceptacion_nodo(bloque, socket);
 			break;
 		case 200:
 			guardar_socket_marta(socket);

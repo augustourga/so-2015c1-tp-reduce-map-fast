@@ -38,3 +38,4 @@ typedef struct {
 /****************DEFINICIONES***************/
 t_bloque* bloque_create(int size);
 t_bloque* serializar_aceptacion_nodo(char* ,char* );
+t_aceptacion_nodo* deserializar_aceptacion_nodo(t_bloque* bloque) ;
