@@ -18,12 +18,14 @@
 #include <commons/config.h>
 #include <commons/log.h>
 #include <pthread.h>
+#include "serializacion.h"
+
 
 /******************Constantes********************/
 #define PATH "/home/utnso/git/tp-2015-1c-milanesa/Nodo/NODO_CONFIG.config"
 #define LOG_FILE "/home/utnso/Job_log.txt"
 #define PROCESO "Nodo"
-
+#define BUFF_SIZE 1024
 /****************Registros***********************/
 typedef struct{
 	int sock_fs;
@@ -43,6 +45,7 @@ typedef struct{
 	     int PUERTO_NODO;
 	     t_log* Log_Nodo;
          int rcx;
+         char* NOMBRE_NODO = "NODO_PIOLA";
 /******************Definiciones*******************/
 
 int levantarConfiguracionNodo();

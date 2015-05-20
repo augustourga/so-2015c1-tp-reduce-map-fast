@@ -1,5 +1,6 @@
 #include<commons/bitarray.h>
 
+/*****************ESTRUCTURAS**************/
 typedef struct {
 	char* data;
 	int size;
@@ -34,3 +35,6 @@ typedef struct {
 	char* nombre;
 	bool nodo_nuevo;
 } t_aceptacion_nodo;
+/****************DEFINICIONES***************/
+t_bloque* bloque_create(int size);
+t_bloque* serializar_aceptacion_nodo(char* ,char* );

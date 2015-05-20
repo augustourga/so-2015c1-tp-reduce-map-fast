@@ -125,7 +125,7 @@ int conexionMaRTA()
 int conexionNodo(char* ip_nodo,int puerto_nodo)
 {
 	int sock= obtener_socket();
-	conectar_socket(puerto_nodo,ip_nodo,&sock);
+	conectar_socket(puerto_nodo,ip_nodo,sock);
 	return 1;//Falta implementar
 }
 

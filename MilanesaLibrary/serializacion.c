@@ -1,13 +1,13 @@
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <assert.h>
+#include "sockets.h"
+#include "serializacion.h"
 //
-//#include "serializacion.h"
-//
-//#include <string.h>
-//#include <stdlib.h>
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <sys/stat.h>
-//#include <assert.h>
-//#include "sockets.h"
+
 //
 ////antes de usar las funciones deserializar: fijarse que devuelve un registro con los parametros
 //
@@ -290,12 +290,7 @@
 //}
 //
 //
-//t_bloque* bloque_create(int size) {
-//	t_bloque* bloque = malloc(sizeof(t_bloque));
-//	bloque->size = size;
-//	bloque->data = malloc(size);
-//	return bloque;
-//}
+
 //
 //void bloque_destroy(t_bloque* bloque) {
 //	free(bloque->data);
@@ -327,4 +322,34 @@
 //	printf("pid %d,tid %d,m %d, tam %d, a %d ", tcb->pid,tcb->tid,tcb->m, tcb->tam,tcb->reg->a);
 //
 //}
+//#include "serializacion.h"
+t_bloque* serializar_aceptacion_nodo(char* NODO_NUEVO,char* NOMBRE_NODO){
 
+	int offset=0;
+    int codigo=100;
+    bool esNuevo;
+		t_bloque* bloque = bloque_create(sizeof(int)+sizeof(bool)+sizeof(NOMBRE_NODO));
+
+		  if(strncmp(NODO_NUEVO,"SI",2)==0)
+		  { esNuevo= true;
+		  }
+		  else {esNuevo= false;
+		  }
+
+		memcpy(bloque->data + offset, &codigo, sizeof(codigo));
+			                offset += sizeof(codigo);
+		memcpy(bloque->data + offset, &esNuevo, sizeof(esNuevo));
+			                offset += sizeof(esNuevo);
+        memcpy(bloque->data + offset, &NOMBRE_NODO, sizeof(NOMBRE_NODO));
+			                offset += sizeof(NOMBRE_NODO);
+	return bloque;
+
+
+}
+
+t_bloque* bloque_create(int size) {
+	t_bloque* bloque = malloc(sizeof(t_bloque));
+	bloque->size = size;
+	bloque->data = malloc(size);
+	return bloque;
+}
