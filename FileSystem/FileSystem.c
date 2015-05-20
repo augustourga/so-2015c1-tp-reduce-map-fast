@@ -8,7 +8,8 @@
 #include "FileSystem.h"
 
 int PUERTO_LISTEN;
-char** LISTA_NODOS;
+unsigned int CANTIDAD_NODOS_MINIMA;
+t_list* NODOS_CONECTADOS;
 t_log* LOGGER;
 bool STATUS;
 
@@ -18,14 +19,15 @@ void levantar_configuracion() {
 	if (config_has_property(config, "PUERTO_LISTEN")) {
 		PUERTO_LISTEN = config_get_int_value(config, "PUERTO_LISTEN");
 	}
-	if (config_has_property(config, "LISTA_NODOS")) {
-		LISTA_NODOS = config_get_array_value(config, "LISTA_NODOS");
+	if (config_has_property(config, "CANTIDAD_NODOS_MINIMA")) {
+		CANTIDAD_NODOS_MINIMA = config_get_int_value(config,
+				"CANTIDAD_NODOS_MINIMA");
 	}
 	config_destroy(config);
 }
 
 void crear_logger() {
-	LOGGER = log_create("log", "FileSystem", true, LOG_LEVEL_INFO);
+	LOGGER = log_create("log", "FileSystem", false, LOG_LEVEL_INFO);
 }
 
 void formatear_mdfs() {
@@ -58,6 +60,9 @@ void ver_borrar_copiar_bloques_de_archivo() {
 
 void agregar_un_nodo() {
 
+	if (!STATUS && CANTIDAD_NODOS_MINIMA <= list_size(NODOS_CONECTADOS)) {
+		STATUS = true;
+	}
 }
 
 void eliminar_un_nodo() {
@@ -136,9 +141,16 @@ void agregar_nodo_viejo(char* nombre, int socket) {
 
 }
 
-void deserializar_aceptacion_nodo(t_bloque** bloque, int socket) {
+void deserializar_aceptacion_nodo(t_bloque* bloque, int socket) {
 	t_aceptacion_nodo* msg = malloc(sizeof(t_aceptacion_nodo));
-
+	int offset = 0, tmp_size = 0;
+	tmp_size = sizeof(msg->nodo_nuevo);
+	memcpy(&msg->nodo_nuevo, bloque->data, tmp_size);
+	offset += tmp_size;
+	tmp_size = sizeof(msg->nombre);
+	memcpy(&msg->nombre, bloque->data + offset, tmp_size);
+//	bloque_destroy(bloque);
+	log_info(LOGGER, "NODO CONECTADO: %s\n", &msg->nombre);
 	if (msg->nodo_nuevo) {
 		agregar_nodo_nuevo(msg->nombre, socket);
 	} else {
@@ -152,19 +164,19 @@ void guardar_socket_marta(int socket) {
 
 void manejar_conexiones_nuevas(int socket) {
 	int length = 1024, bytes_recv;
-	char* buffer=0;
+	char* buffer = 0;
 	bytes_recv = recv(socket, buffer, length, 0);
 	if (bytes_recv > 0) {
 		int offset = 0, tmp_size = 0, code;
 		tmp_size = sizeof(code);
-		memcpy(&code, buffer + offset, tmp_size);
+		memcpy(&code, buffer, tmp_size);
 		offset += tmp_size;
 		t_bloque* bloque = malloc(sizeof(t_bloque));
 		bloque->data = buffer + offset;
 		bloque->size = strlen(bloque->data);
 		switch (code) {
 		case 100:
-			deserializar_aceptacion_nodo(&bloque, socket);
+			deserializar_aceptacion_nodo(bloque, socket);
 			break;
 		case 200:
 			guardar_socket_marta(socket);
@@ -186,7 +198,8 @@ void conexiones_file_system() {
 // Acepta nuevas conexiones
 	while (1) {
 		int new_fd, rcx;
-		new_fd = accept(socketEscucha, (struct sockaddr *) &their_addr, &sin_size);
+		new_fd = accept(socketEscucha, (struct sockaddr *) &their_addr,
+				&sin_size);
 		pthread_t thr_aceptar_conexiones;
 		rcx = pthread_create(&thr_aceptar_conexiones, NULL,
 				(void *) manejar_conexiones_nuevas, &new_fd);
