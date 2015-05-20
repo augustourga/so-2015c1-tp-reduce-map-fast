@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <commons/config.h>
 #include <commons/log.h>
+#include <commons/collections/list.h>
 #include <sockets.h>
 #include <pthread.h>
 #include <serializacion.h>
@@ -23,6 +24,12 @@ typedef struct {
 	bool estado;
 	t_dictionary bloques;
 } t_archivo;
+
+typedef struct {
+	char *nombre;
+	t_dictionary bloques;
+} t_nodo;
+
 int main(void);
 
 #endif /* FILESYSTEM_H_ */
