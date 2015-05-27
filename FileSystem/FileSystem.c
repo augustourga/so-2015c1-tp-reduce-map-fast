@@ -177,7 +177,7 @@ void manejar_conexiones_nuevas(int socket) {
 			break;
 		}
 	} else {
-		printf("Laaaaaaa cooooncha !!! El recv devolvió: %d\n",bytes_recv);
+		printf("Laaaaaaa cooooncha !!! El recv devolvió: %d\n", bytes_recv);
 	}
 }
 void conexiones_file_system() {
@@ -185,23 +185,83 @@ void conexiones_file_system() {
 	int backLog = 20; // Número de conexiones permitidas en la cola de entrada (hasta que se aceptan)
 	int socketEscucha;
 	socketEscucha = crear_socket_listen(PUERTO_LISTEN);
-	printf("Socket: %d\n", socketEscucha);
-	listen(socketEscucha, backLog);
 
-	unsigned int sin_size;
-	struct sockaddr_in their_addr; // Información sobre la dirección remota
-	sin_size = sizeof(struct sockaddr_in);
-// Acepta nuevas conexiones
+	if (listen(socketEscucha, backLog) != 0) {
+		perror("Error al poner a escuchar socket");
+	} else {
+		printf("Escuchando conexiones entrantes.\n");
+	}
+	fd_set read_fs; // descriptores q estan lisots para leer
+	fd_set master; //descriptores q q estan actualemnte conectados
+	size_t tamanio; // hace positivo a la variable
+	int socketNuevaConexion;
+	int nbytesRecibidos;
+	int max;
+	struct sockaddr_in cliente;
+
+	FD_ZERO(&master);
+	FD_ZERO(&read_fs);
+	char *buffer = malloc(100 * sizeof(char));
+
+	FD_SET(socketEscucha, &master);
+	max = socketEscucha;
+
 	while (1) {
-		int new_fd, rcx;
-		new_fd = accept(socketEscucha, (struct sockaddr *) &their_addr,
-				&sin_size);
-		pthread_t thr_aceptar_conexiones;
-		rcx = pthread_create(&thr_aceptar_conexiones, NULL,
-				(void *) manejar_conexiones_nuevas, &new_fd);
-		if (rcx != 0) {
-			log_error(LOGGER,
-					"El thread que acepta las conexiones entrantes no pudo ser creado.");
+
+		memcpy(&read_fs, &master, sizeof(master));
+		int dev_select;
+		if ((dev_select = select(max + 1, &read_fs, NULL, NULL, NULL)) == -1) {
+			perror("select");
+
+		}
+		//printf("select = %d \n",dev_select);
+		int i;
+		//max : cantidad max de sockets
+		for (i = 0; i <= max; i++) {
+			if (FD_ISSET(i, &read_fs)) {
+				//  printf("i = %d \n max = %d \n",i,max);
+				if (i == socketEscucha) {
+					// pasar a una funcion generica aceptar();
+					tamanio = sizeof(struct sockaddr_in);
+					if ((socketNuevaConexion = accept(socketEscucha,
+							(struct sockaddr*) &cliente, &tamanio)) < 0) {
+						perror("Error al aceptar conexion entrante");
+					} else {
+						if (socketNuevaConexion > max) {
+							max = socketNuevaConexion;
+						}
+						FD_SET(socketNuevaConexion, &master);
+						//printf("nueva conexion de %s desde socket %d \n",inet_ntoa(cliente.sin_addr), socketNuevaConexion);
+					} //if del accept. Recibir hasta BUFF_SIZE datos y almacenarlos en 'buffer'.
+				} else {
+
+					//verifica si esta en el cojunto de listos para leer
+					//pasarlo a una funcion generica
+					if ((nbytesRecibidos = recv(i, buffer, BUFF_SIZE, 0)) > 0) {
+
+						printf("RECIBIIIIIIIIIIIIIIIIII %s\n", buffer);
+						int offset = 0, tmp_size = 0, code;
+						tmp_size = sizeof(code);
+						memcpy(&code, buffer, tmp_size);
+						offset += tmp_size;
+
+						t_bloque* bloque = malloc(sizeof(t_bloque));
+						bloque->data = buffer + offset;
+						bloque->size = strlen(bloque->data);
+
+						switch (code) {
+						case 100:
+							aceptar_conexion_nodo(bloque, i);
+							break;
+						case 200:
+							guardar_socket_marta(i);
+							break;
+						}
+					} else {
+						printf("no recibi una mierda !!! \n");
+					}
+				}
+			}
 		}
 	}
 }

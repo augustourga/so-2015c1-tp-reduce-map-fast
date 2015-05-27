@@ -46,7 +46,6 @@ int levantarConfiguracionNodo() {
 int levantarHiloFile() {
 	pthread_t thr_Conexion_FileSystem;
 	t_conexion_nodo* reg_conexion = malloc(sizeof(t_conexion_nodo));
-	t_bloque* bloquesito;
 
 	reg_conexion->sock_fs = obtener_socket();
 	rcx = pthread_create(&thr_Conexion_FileSystem, NULL,
@@ -54,18 +53,17 @@ int levantarHiloFile() {
 	if (rcx != 0) {
 		log_error(Log_Nodo,
 				"El thread que acepta las conexiones entrantes no pudo ser creado.");
-	} else {
-		bloquesito = serializar_aceptacion_nodo(NODO_NUEVO, NOMBRE_NODO);
-//		deserializar_aceptacion_nodo(bloquesito);
-		send(reg_conexion->sock_fs, bloquesito->data, bloquesito->size, 0);
 	}
-
 	return 0;
 }
 
 void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 	conectar_socket(PUERTO_FS, IP_FS, reg_conexion->sock_fs);
 	puts("conectado al File System");
+	t_bloque* bloquesito;
+	bloquesito = serializar_aceptacion_nodo(NODO_NUEVO, NOMBRE_NODO);
+	//		deserializar_aceptacion_nodo(bloquesito);
+	send(reg_conexion->sock_fs, bloquesito->data, bloquesito->size, 0);
 }
 
 int levantarServer() {
