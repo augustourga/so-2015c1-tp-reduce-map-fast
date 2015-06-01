@@ -361,9 +361,82 @@ t_aceptacion_nodo* deserializar_aceptacion_nodo(t_bloque* bloque) {
 	return msg;
 }
 
+
 t_bloque* bloque_create(int size) {
 	t_bloque* bloque = malloc(sizeof(t_bloque));
 	bloque->size = size;
 	bloque->data = malloc(size);
 	return bloque;
 }
+
+t_bitarray* serializar_mensaje_marta_job(t_Mensaje_marta_job* mensaje)
+{
+	int size= sizeof(char)+(int)mensaje->parametros->size;
+	char* puntero= malloc(size);
+
+	t_bitarray * bloque = bitarray_create(puntero,size);
+	memcpy(&puntero[0], &mensaje->accion,1);
+	memcpy(&puntero[1],mensaje->parametros->bitarray,mensaje->parametros->size);
+
+	return bloque;
+}
+
+t_bitarray* serializar_marta_job_map(t_Marta_job_map* mensaje)
+{
+	int size = sizeof(2* sizeof(int)+ 16*sizeof(char));
+	char* data = malloc(size);
+	t_bitarray* bloque = bitarray_create(data,size);
+
+	memcpy(data,&mensaje->bloque,sizeof(int));
+	memcpy(data+sizeof(int),&mensaje->puerto_nodo,sizeof(int));
+	memcpy(data-2*sizeof(int),&mensaje->ip_nodo,16*sizeof(char));
+
+	return bloque;
+}
+
+t_Marta_job_map* deserializar_marta_job_map(t_bitarray* bloque)
+{
+	t_Marta_job_map* mensaje= malloc(sizeof(t_Mensaje_marta_job));
+
+	memcpy(&mensaje->bloque, bloque->bitarray,sizeof(int));
+	memcpy(&mensaje->puerto_nodo,bloque->bitarray+sizeof(int),sizeof(int));
+	memcpy(mensaje->ip_nodo,bloque->bitarray+2*sizeof(int),16*sizeof(char));
+
+	return mensaje;
+}
+
+t_Mensaje_marta_job* deserializar_mensaje_marta_job(t_bitarray* bloque)
+{
+	t_Mensaje_marta_job * mensaje = malloc(sizeof(t_Mensaje_marta_job));
+
+	memcpy(&mensaje->accion,bloque,sizeof(char));
+	memcpy(&mensaje->parametros,bloque+sizeof(char),bloque->size-sizeof(char));
+
+	return mensaje;
+}
+
+t_bitarray* serializar_mensaje_job_marta(t_Mensaje_job_marta* mensaje)
+{
+	int size = sizeof(int)+ strlen(mensaje->archivos);
+	char* data = malloc(size);
+	t_bitarray* bloque = bitarray_create(data,size);
+	bloque->size = size;
+	bloque->bitarray =data;
+
+	memcpy(data,&mensaje->codigo, sizeof(char));
+	memcpy(data+sizeof(char),mensaje->archivos, size-sizeof(char));
+
+	return bloque;
+}
+
+t_Mensaje_job_marta* deserializar_mensaje_job_marta(t_bitarray* bloque)
+{
+	t_Mensaje_job_marta* mensaje = malloc(sizeof(t_Mensaje_job_marta));
+	memcpy(&mensaje->codigo,bloque->bitarray,sizeof(char));
+	memcpy(mensaje->archivos,
+		   bloque->bitarray+sizeof(char),
+		   bloque->size-sizeof(char));
+
+	return mensaje;
+}
+
