@@ -18,8 +18,9 @@
 #include <unistd.h>
 #include <libio.h>
 #include <string.h>
-#include <utiles/utiles/ser#include <utiles/utiles/sockets.h>
-ializacion.h>
+#include <serializacion.h>
+#include <sockets.h>
+#include <utiles/utiles.h>
 
 #define BUFF_SIZE 1024
 
