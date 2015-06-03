@@ -265,34 +265,34 @@ t_msg *beso_message(t_msg_id id, char *beso_path, uint16_t count, ...)
 }
 
 
-t_msg *tcb_message(t_msg_id id, t_hilo *tcb, uint16_t count, ...)
-{
-	va_list arguments;
-	va_start(arguments, count);
-
-	int32_t *val = malloc(count * sizeof *val);
-
-	int i;
-	for (i = 0; i < count; i++) {
-		val[i] = va_arg(arguments, uint32_t);
-	}
-
-	size_t size = sizeof *tcb;
-	char *buffer = malloc(size);
-
-	memcpy(buffer, tcb, size);
-
-	t_msg *new = malloc(sizeof *new);
-	new->header.id = id;
-	new->header.argc = count;
-	new->argv = val;
-	new->header.length = size;
-	new->stream = buffer;
-
-	va_end(arguments);
-
-	return new;
-}
+//t_msg *tcb_message(t_msg_id id, t_hilo *tcb, uint16_t count, ...)
+//{
+//	va_list arguments;
+//	va_start(arguments, count);
+//
+//	int32_t *val = malloc(count * sizeof *val);
+//
+//	int i;
+//	for (i = 0; i < count; i++) {
+//		val[i] = va_arg(arguments, uint32_t);
+//	}
+//
+//	size_t size = sizeof *tcb;
+//	char *buffer = malloc(size);
+//
+//	memcpy(buffer, tcb, size);
+//
+//	t_msg *new = malloc(sizeof *new);
+//	new->header.id = id;
+//	new->header.argc = count;
+//	new->argv = val;
+//	new->header.length = size;
+//	new->stream = buffer;
+//
+//	va_end(arguments);
+//
+//	return new;
+//}
 
 
 t_msg *recibir_mensaje(int sock_fd)
@@ -389,12 +389,12 @@ void seedgen(void)
 }
 
 
-t_hilo *retrieve_tcb(t_msg *msg)
-{
-	t_hilo *new = malloc(sizeof *new);
-	memcpy(new, msg->stream, sizeof *new);
-	return new;
-}
+//t_hilo *retrieve_tcb(t_msg *msg)
+//{
+//	t_hilo *new = malloc(sizeof *new);
+//	memcpy(new, msg->stream, sizeof *new);
+//	return new;
+//}
 
 
 void create_file(char *path,size_t size) {
@@ -677,40 +677,40 @@ char *id_string(t_msg_id id)
 }
 
 
-void print_tcb(t_hilo *tcb)
-{
-	int i;
-	puts("CONTENIDOS DEL TCB");
-	printf("Registro PID Valor:		%8d\n", tcb->pid);
-	printf("Registro TID Valor:		%8d\n", tcb->tid);
-	printf("Registro KM Valor:		%8d\n", tcb->kernel_mode);
-	printf("Registro CS Valor:		%8d\n", tcb->segmento_codigo);
-	printf("Registro CS_Size Valor:		%8d\n", tcb->segmento_codigo_size);
-	printf("Registro IP Valor:		%8d\n", tcb->puntero_instruccion);
-	printf("Registro Stack Valor:		%8d\n", tcb->base_stack);
-	printf("Registro Stack_Size Valor:	%8d\n", tcb->cursor_stack);
+//void print_tcb(t_hilo *tcb)
+//{
+//	int i;
+//	puts("CONTENIDOS DEL TCB");
+//	printf("Registro PID Valor:		%8d\n", tcb->pid);
+//	printf("Registro TID Valor:		%8d\n", tcb->tid);
+//	printf("Registro KM Valor:		%8d\n", tcb->kernel_mode);
+//	printf("Registro CS Valor:		%8d\n", tcb->segmento_codigo);
+//	printf("Registro CS_Size Valor:		%8d\n", tcb->segmento_codigo_size);
+//	printf("Registro IP Valor:		%8d\n", tcb->puntero_instruccion);
+//	printf("Registro Stack Valor:		%8d\n", tcb->base_stack);
+//	printf("Registro Stack_Size Valor:	%8d\n", tcb->cursor_stack);
+//
+//	for(i = 0;i < 5; ++i)
+//		printf("Registro %c. Valor:		%8d\n",('A'+i), tcb->registros[i]);
+//	printf("Registro COLA:			%8d\n", tcb->cola);
+//	puts("\n");
+//}
 
-	for(i = 0;i < 5; ++i)
-		printf("Registro %c. Valor:		%8d\n",('A'+i), tcb->registros[i]);
-	printf("Registro COLA:			%8d\n", tcb->cola);
-	puts("\n");
-}
 
-
-char *string_cola(t_cola cola)
-{
-	switch(cola) {
-		case NEW:
-			return "NEW";
-		case READY:
-			return "READY";
-		case BLOCK:
-			return "BLOCK";
-		case EXEC:
-			return "EXEC";
-		case EXIT:
-			return "EXIT";
-		default:
-			return NULL;
-	}
-}
+//char *string_cola(t_cola cola)
+//{
+//	switch(cola) {
+//		case NEW:
+//			return "NEW";
+//		case READY:
+//			return "READY";
+//		case BLOCK:
+//			return "BLOCK";
+//		case EXEC:
+//			return "EXEC";
+//		case EXIT:
+//			return "EXIT";
+//		default:
+//			return NULL;
+//	}
+//}

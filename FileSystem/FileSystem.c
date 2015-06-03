@@ -156,30 +156,30 @@ void guardar_socket_marta(int socket) {
 
 }
 
-void manejar_conexiones_nuevas(int socket) {
-	int length = 1024, bytes_recv;
-	char* buffer = 0;
-	bytes_recv = recv(socket, buffer, length, 0);
-	if (bytes_recv > 0) {
-		int offset = 0, tmp_size = 0, code;
-		tmp_size = sizeof(code);
-		memcpy(&code, buffer, tmp_size);
-		offset += tmp_size;
-		t_bloque* bloque = malloc(sizeof(t_bloque));
-		bloque->data = buffer + offset;
-		bloque->size = strlen(bloque->data);
-		switch (code) {
-		case 100:
-			aceptar_conexion_nodo(bloque, socket);
-			break;
-		case 200:
-			guardar_socket_marta(socket);
-			break;
-		}
-	} else {
-		printf("Laaaaaaa cooooncha !!! El recv devolvió: %d\n", bytes_recv);
-	}
-}
+//void manejar_conexiones_nuevas(int socket) {
+//	int length = 1024, bytes_recv;
+//	char* buffer = 0;
+//	bytes_recv = recv(socket, buffer, length, 0);
+//	if (bytes_recv > 0) {
+//		int offset = 0, tmp_size = 0, code;
+//		tmp_size = sizeof(code);
+//		memcpy(&code, buffer, tmp_size);
+//		offset += tmp_size;
+//		t_bloque* bloque = malloc(sizeof(t_bloque));
+//		bloque->data = buffer + offset;
+//		bloque->size = strlen(bloque->data);
+//		switch (code) {
+//		case 100:
+//			aceptar_conexion_nodo(bloque, socket);
+//			break;
+//		case 200:
+//			guardar_socket_marta(socket);
+//			break;
+//		}
+//	} else {
+//		printf("Laaaaaaa cooooncha !!! El recv devolvió: %d\n", bytes_recv);
+//	}
+//}
 void conexiones_file_system() {
 // Abre su puerto de escucha
 	int backLog = 20; // Número de conexiones permitidas en la cola de entrada (hasta que se aceptan)

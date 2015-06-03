@@ -14,7 +14,7 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <commons/string.h>
-#include <panel/panel.h>
+//#include <panel/panel.h>
 
 #define REG_SIZE 4
 
@@ -203,7 +203,7 @@ t_msg *beso_message(t_msg_id id, char *beso_path, uint16_t count, ...);
 /*
  * Crea un t_msg a partir de los contenidos de un tcb y count argumentos.
  */
-t_msg *tcb_message(t_msg_id id, t_hilo *tcb, uint16_t count, ...);
+//t_msg *tcb_message(t_msg_id id, t_hilo *tcb, uint16_t count, ...);
 
 /*
  * Libera los contenidos de un t_msg.
@@ -274,14 +274,14 @@ char *id_string(t_msg_id id);
 /*
  * Recupera los contenidos de un tcb cargado a mensaje.
  */
-t_hilo *retrieve_tcb(t_msg *msg);
+//t_hilo *retrieve_tcb(t_msg *msg);
 
 /*
  * Convierte t_cola a string.
  */
-char *string_cola(t_cola cola);
+//char *string_cola(t_cola cola);
 
 
-void print_tcb(t_hilo *tcb);
+//void print_tcb(t_hilo *tcb);
 
 #endif /* UTILES_H_ */

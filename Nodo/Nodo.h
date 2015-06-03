@@ -14,11 +14,11 @@
 #include <libio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "sockets.h"
 #include <commons/config.h>
 #include <commons/log.h>
 #include <pthread.h>
-#include "serializacion.h"
+#include <sockets.h>
+include <utiles/utiles/sockets.h>
 
 
 /******************Constantes********************/
