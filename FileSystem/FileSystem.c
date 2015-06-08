@@ -2,7 +2,7 @@
  * FileSystem.c
  *
  *  Created on: 1/5/2015
- *      Author: utnso
+ *      Author: tomasyagas
  */
 
 #include "FileSystem.h"
@@ -10,8 +10,11 @@
 int PUERTO_LISTEN;
 unsigned int CANTIDAD_NODOS_MINIMA;
 t_list* NODOS_CONECTADOS;
+t_list* NODOS_ESPERANDO_CONEXION;
 t_log* LOGGER;
 bool STATUS;
+unsigned int ESPACIO_LIBRE_TOTAL;
+DB *dbHandler;
 
 void levantar_configuracion() {
 	t_config* config;
@@ -59,7 +62,14 @@ void ver_borrar_copiar_bloques_de_archivo() {
 }
 
 void agregar_un_nodo() {
+	if (list_size(NODOS_ESPERANDO_CONEXION)>0) {
+		t_nodo *nodo = (t_nodo*) list_remove(NODOS_ESPERANDO_CONEXION, 0);
+		nodo->cantidad_bloques_libres=50;
+		nodo->conectado_andando=true;
 
+		list_add(NODOS_CONECTADOS, nodo);
+		ESPACIO_LIBRE_TOTAL = ESPACIO_LIBRE_TOTAL + 1024000; // 1000 MB (50 bloques de 20 MB)
+	}
 	if (!STATUS && CANTIDAD_NODOS_MINIMA <= list_size(NODOS_CONECTADOS)) {
 		STATUS = true;
 	}
@@ -133,22 +143,38 @@ void resend_msg(int new_fd, char *msg, int len, int flag, int bytes_sent) {
 	}
 }
 
-void agregar_nodo_nuevo(char* nombre, int socket) {
-
+int agregar_nodo_nuevo(int id, int socket) {
+	t_nodo *nodo = (t_nodo *) malloc(sizeof(t_nodo));
+	nodo->id = id;
+	nodo->socket = socket;
+	int res;
+	res = list_add(NODOS_ESPERANDO_CONEXION, nodo);
+	if (res != 0) {
+		log_error(LOGGER,
+				"No se pudo agregar el nodo a la lista de nodos.");
+		return EXIT_FAILURE;
+	}
+	return EXIT_SUCCESS;
 }
 
-void agregar_nodo_viejo(char* nombre, int socket) {
-
+void agregar_nodo_viejo(int id, int socket) {
+	void* buscar_nodo(t_nodo* iterador){
+	    return iterador->id == id;
+	}
+	t_nodo* nodo = (t_nodo*) list_find(NODOS_CONECTADOS, (bool(*)(void*))buscar_nodo);
+	nodo->socket = socket;
+	nodo->conectado_andando = true;
+	ESPACIO_LIBRE_TOTAL = ESPACIO_LIBRE_TOTAL + ((nodo->cantidad_bloques_libres) * 20480);
 }
 
 void aceptar_conexion_nodo(t_bloque* bloque, int socket) {
 	t_aceptacion_nodo* msg = deserializar_aceptacion_nodo(bloque);
 
-	log_info(LOGGER, "NODO CONECTADO: %s\n", &msg->nombre);
+	log_info(LOGGER, "NODO CONECTADO: %d\n", &msg->id_nodo);
 	if (msg->nodo_nuevo) {
-		agregar_nodo_nuevo(msg->nombre, socket);
+		agregar_nodo_nuevo(msg->id_nodo, socket);
 	} else {
-		agregar_nodo_viejo(msg->nombre, socket);
+		agregar_nodo_viejo(msg->id_nodo, socket);
 	}
 }
 
@@ -266,11 +292,35 @@ void conexiones_file_system() {
 	}
 }
 
+int crear_db_directorios() {
+	int ret;
+	if ((ret = db_create(&dbHandler, NULL, 0)) != 0) {
+		fprintf(stderr, "db_create: %s\n", db_strerror(ret));
+		return EXIT_FAILURE;
+	}
+	if ((ret = dbHandler->open(dbHandler,
+	NULL, DATABASE, NULL, DB_BTREE, DB_CREATE, 0664)) != 0) {
+		dbHandler->err(dbHandler, ret, "%s", DATABASE);
+		return EXIT_FAILURE;
+	}
+	return EXIT_SUCCESS;
+}
+
 int main(void) {
 	levantar_configuracion();
 	STATUS = false;
+	ESPACIO_LIBRE_TOTAL = 0;
+	NODOS_CONECTADOS = list_create();
+	NODOS_ESPERANDO_CONEXION = list_create();
 	crear_logger();
 	log_info(LOGGER, "Puerto listen: %d\n", PUERTO_LISTEN);
+	int res;
+	res = crear_db_directorios();
+	if (res != 0) {
+		log_error(LOGGER,
+				"La base de datos de los directorios no pudo ser creada.");
+		return EXIT_FAILURE;
+	}
 
 // Crea el hilo que se encarga de las conexiones entrantes
 	pthread_t thr_conexiones;

@@ -353,10 +353,10 @@ t_aceptacion_nodo* deserializar_aceptacion_nodo(t_bloque* bloque) {
 	tmp_size = sizeof(msg->nodo_nuevo);
 	memcpy(&msg->nodo_nuevo, bloque->data, tmp_size);
 	offset += tmp_size;
-	tmp_size = sizeof(msg->nombre);
-	memcpy(&msg->nombre, bloque->data + offset, tmp_size);
+	tmp_size = sizeof(msg->id_nodo);
+	memcpy(&msg->id_nodo, bloque->data + offset, tmp_size);
 
-	printf("nombre %s,esNuevo %d",msg->nombre ,msg->nodo_nuevo);
+	printf("ID: %d,esNuevo %d",msg->id_nodo ,msg->nodo_nuevo);
 
 	return msg;
 }

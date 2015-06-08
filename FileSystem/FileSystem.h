@@ -21,9 +21,11 @@
 #include <serializacion.h>
 #include <sockets.h>
 #include <utiles/utiles.h>
+#include <sys/types.h>
+#include <db.h>
 
 #define BUFF_SIZE 1024
-
+#define	DATABASE "directorios.db"
 
 typedef struct {
 	char *nombre_archivo;
@@ -34,7 +36,10 @@ typedef struct {
 } t_archivo;
 
 typedef struct {
-	char *nombre;
+	int id;
+	int socket;
+	bool conectado_andando;
+	int cantidad_bloques_libres;
 	t_dictionary bloques;
 } t_nodo;
 

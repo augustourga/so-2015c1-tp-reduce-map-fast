@@ -48,7 +48,7 @@ typedef struct {
 } t_tupla_map;
 
 typedef struct {
-	char* nombre;
+	int id_nodo;
 	bool nodo_nuevo;
 } t_aceptacion_nodo;
 /****************DEFINICIONES***************/
