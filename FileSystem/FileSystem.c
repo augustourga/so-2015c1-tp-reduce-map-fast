@@ -7,14 +7,15 @@
 
 #include "FileSystem.h"
 
-int PUERTO_LISTEN;
+uint16_t PUERTO_LISTEN;
+int SOCKET_MARTA;
 unsigned int CANTIDAD_NODOS_MINIMA;
 t_list* NODOS_CONECTADOS;
 t_list* NODOS_ESPERANDO_CONEXION;
 t_log* LOGGER;
 bool STATUS;
 unsigned int ESPACIO_LIBRE_TOTAL;
-DB *dbHandler;
+//DB *dbHandler;
 
 void levantar_configuracion() {
 	t_config* config;
@@ -62,10 +63,10 @@ void ver_borrar_copiar_bloques_de_archivo() {
 }
 
 void agregar_un_nodo() {
-	if (list_size(NODOS_ESPERANDO_CONEXION)>0) {
+	if (list_size(NODOS_ESPERANDO_CONEXION) > 0) {
 		t_nodo *nodo = (t_nodo*) list_remove(NODOS_ESPERANDO_CONEXION, 0);
-		nodo->cantidad_bloques_libres=50;
-		nodo->conectado_andando=true;
+		nodo->cantidad_bloques_libres = 50;
+		nodo->conectado_andando = true;
 
 		list_add(NODOS_CONECTADOS, nodo);
 		ESPACIO_LIBRE_TOTAL = ESPACIO_LIBRE_TOTAL + 1024000; // 1000 MB (50 bloques de 20 MB)
@@ -150,148 +151,77 @@ int agregar_nodo_nuevo(int id, int socket) {
 	int res;
 	res = list_add(NODOS_ESPERANDO_CONEXION, nodo);
 	if (res != 0) {
-		log_error(LOGGER,
-				"No se pudo agregar el nodo a la lista de nodos.");
+		log_error(LOGGER, "No se pudo agregar el nodo a la lista de nodos.");
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
 }
 
 void agregar_nodo_viejo(int id, int socket) {
-	void* buscar_nodo(t_nodo* iterador){
-	    return iterador->id == id;
+	void* buscar_nodo(t_nodo* iterador) {
+		return iterador->id == id;
 	}
-	t_nodo* nodo = (t_nodo*) list_find(NODOS_CONECTADOS, (bool(*)(void*))buscar_nodo);
+	t_nodo* nodo = (t_nodo*) list_find(NODOS_CONECTADOS,
+			(bool (*)(void*)) buscar_nodo);
 	nodo->socket = socket;
 	nodo->conectado_andando = true;
-	ESPACIO_LIBRE_TOTAL = ESPACIO_LIBRE_TOTAL + ((nodo->cantidad_bloques_libres) * 20480);
-}
-
-void aceptar_conexion_nodo(t_bloque* bloque, int socket) {
-	t_aceptacion_nodo* msg = deserializar_aceptacion_nodo(bloque);
-
-	log_info(LOGGER, "NODO CONECTADO: %d\n", &msg->id_nodo);
-	if (msg->nodo_nuevo) {
-		agregar_nodo_nuevo(msg->id_nodo, socket);
-	} else {
-		agregar_nodo_viejo(msg->id_nodo, socket);
-	}
+	ESPACIO_LIBRE_TOTAL = ESPACIO_LIBRE_TOTAL
+			+ ((nodo->cantidad_bloques_libres) * 20480);
 }
 
 void guardar_socket_marta(int socket) {
-
+	SOCKET_MARTA = socket;
 }
 
-//void manejar_conexiones_nuevas(int socket) {
-//	int length = 1024, bytes_recv;
-//	char* buffer = 0;
-//	bytes_recv = recv(socket, buffer, length, 0);
-//	if (bytes_recv > 0) {
-//		int offset = 0, tmp_size = 0, code;
-//		tmp_size = sizeof(code);
-//		memcpy(&code, buffer, tmp_size);
-//		offset += tmp_size;
-//		t_bloque* bloque = malloc(sizeof(t_bloque));
-//		bloque->data = buffer + offset;
-//		bloque->size = strlen(bloque->data);
-//		switch (code) {
-//		case 100:
-//			aceptar_conexion_nodo(bloque, socket);
-//			break;
-//		case 200:
-//			guardar_socket_marta(socket);
-//			break;
-//		}
-//	} else {
-//		printf("Laaaaaaa cooooncha !!! El recv devolvió: %d\n", bytes_recv);
-//	}
-//}
-void conexiones_file_system() {
-// Abre su puerto de escucha
-	int backLog = 20; // Número de conexiones permitidas en la cola de entrada (hasta que se aceptan)
-	int socketEscucha;
-	socketEscucha = crear_socket_listen(PUERTO_LISTEN);
-
-	if (listen(socketEscucha, backLog) != 0) {
-		perror("Error al poner a escuchar socket");
-	} else {
-		printf("Escuchando conexiones entrantes.\n");
-	}
-	fd_set read_fs; // descriptores q estan lisots para leer
-	fd_set master; //descriptores q q estan actualemnte conectados
-	size_t tamanio; // hace positivo a la variable
-	int socketNuevaConexion;
-	int nbytesRecibidos;
-	int max;
-	struct sockaddr_in cliente;
-
-	FD_ZERO(&master);
-	FD_ZERO(&read_fs);
-	char *buffer = malloc(100 * sizeof(char));
-
-	FD_SET(socketEscucha, &master);
-	max = socketEscucha;
+void *atenderConexiones(void *parametro) {
+	t_msg *msg;
+	int sock_conexion = *((int *) parametro);
+	int nodo_nuevo, nodo_id;
 
 	while (1) {
+		if ((msg = recibir_mensaje(sock_conexion)) != NULL) {
 
-		memcpy(&read_fs, &master, sizeof(master));
-		int dev_select;
-		if ((dev_select = select(max + 1, &read_fs, NULL, NULL, NULL)) == -1) {
-			perror("select");
-
-		}
-		//printf("select = %d \n",dev_select);
-		int i;
-		//max : cantidad max de sockets
-		for (i = 0; i <= max; i++) {
-			if (FD_ISSET(i, &read_fs)) {
-				//  printf("i = %d \n max = %d \n",i,max);
-				if (i == socketEscucha) {
-					// pasar a una funcion generica aceptar();
-					tamanio = sizeof(struct sockaddr_in);
-					if ((socketNuevaConexion = accept(socketEscucha,
-							(struct sockaddr*) &cliente, &tamanio)) < 0) {
-						perror("Error al aceptar conexion entrante");
-					} else {
-						if (socketNuevaConexion > max) {
-							max = socketNuevaConexion;
-						}
-						FD_SET(socketNuevaConexion, &master);
-						//printf("nueva conexion de %s desde socket %d \n",inet_ntoa(cliente.sin_addr), socketNuevaConexion);
-					} //if del accept. Recibir hasta BUFF_SIZE datos y almacenarlos en 'buffer'.
+			switch (msg->header.id) {
+			case INFO_NODO:
+				nodo_nuevo = msg->argv[0];
+				nodo_id = msg->argv[1];
+				log_info(LOGGER, "NODO CONECTADO: %d\n", nodo_id);
+				if (nodo_nuevo) {
+					agregar_nodo_nuevo(nodo_id, sock_conexion);
 				} else {
-
-					//verifica si esta en el cojunto de listos para leer
-					//pasarlo a una funcion generica
-					if ((nbytesRecibidos = recv(i, buffer, BUFF_SIZE, 0)) > 0) {
-
-						printf("RECIBIIIIIIIIIIIIIIIIII %s\n", buffer);
-						int offset = 0, tmp_size = 0, code;
-						tmp_size = sizeof(code);
-						memcpy(&code, buffer, tmp_size);
-						offset += tmp_size;
-
-						t_bloque* bloque = malloc(sizeof(t_bloque));
-						bloque->data = buffer + offset;
-						bloque->size = strlen(bloque->data);
-
-						switch (code) {
-						case 100:
-							aceptar_conexion_nodo(bloque, i);
-							break;
-						case 200:
-							guardar_socket_marta(i);
-							break;
-						}
-					} else {
-						printf("no recibi una mierda !!! \n");
-					}
+					agregar_nodo_viejo(nodo_id, sock_conexion);
 				}
+				break;
+//			default:
+//				pthread_mutex_lock(&LogMutex);
+//				log_warning(Logger, "Recepción de solicitud inválida.");
+//				pthread_mutex_unlock(&LogMutex);
 			}
+		} else {
+//			log_warning(Logger, "Desconexión de un proceso.");
+			break;
 		}
+		destroy_message(msg);
+	}
+	return NULL;
+}
+
+void conexiones_file_system() {
+	pthread_t thread;
+	int listener, nuevaConexion;
+
+	listener = server_socket(PUERTO_LISTEN);
+	printf("Esperando conexiones entrantes\n");
+	while (true) {
+		nuevaConexion = accept_connection(listener);
+//			pthread_mutex_lock(&LogMutex);
+//			log_trace(Logger, "Nueva conexión.");
+//			pthread_mutex_unlock(&LogMutex);
+		pthread_create(&thread, NULL, atenderConexiones, &nuevaConexion);
 	}
 }
 
+/*
 int crear_db_directorios() {
 	int ret;
 	if ((ret = db_create(&dbHandler, NULL, 0)) != 0) {
@@ -303,8 +233,25 @@ int crear_db_directorios() {
 		dbHandler->err(dbHandler, ret, "%s", DATABASE);
 		return EXIT_FAILURE;
 	}
+//	DBT key, data;
+//	memset(&key, 0, sizeof(key));
+//	memset(&data, 0, sizeof(data));
+//	key.data = "fruit";
+//	key.size = sizeof("fruit");
+//	printf("Sizeof(fruit) == %d\n", key.size);
+//	data.data = "apple";
+//	data.size = sizeof("apple");
+//	printf("Sizeof(apple) == %d\n", data.size);
+//
+//	if ((ret = dbHandler->put(dbHandler, NULL, &key, &data, 0)) == 0) {
+//		printf("db: %s: key stored.\n", (char *) key.data);
+//		return EXIT_SUCCESS;
+//	} else {
+//		dbHandler->err(dbHandler, ret, "DB->put");
+//		return EXIT_FAILURE;
+//	}
 	return EXIT_SUCCESS;
-}
+} */
 
 int main(void) {
 	levantar_configuracion();
@@ -314,13 +261,14 @@ int main(void) {
 	NODOS_ESPERANDO_CONEXION = list_create();
 	crear_logger();
 	log_info(LOGGER, "Puerto listen: %d\n", PUERTO_LISTEN);
-	int res;
-	res = crear_db_directorios();
-	if (res != 0) {
-		log_error(LOGGER,
-				"La base de datos de los directorios no pudo ser creada.");
-		return EXIT_FAILURE;
-	}
+
+//	int res;
+//	res = crear_db_directorios();
+//	if (res != 0) {
+//		log_error(LOGGER,
+//				"La base de datos de los directorios no pudo ser creada.");
+//		return EXIT_FAILURE;
+//	}
 
 // Crea el hilo que se encarga de las conexiones entrantes
 	pthread_t thr_conexiones;
