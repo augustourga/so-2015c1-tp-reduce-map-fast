@@ -263,8 +263,8 @@ t_msg *beso_message(t_msg_id id, char *beso_path, uint16_t count, ...)
 
 	return new;
 }
-
-
+//
+//
 //t_msg *tcb_message(t_msg_id id, t_hilo *tcb, uint16_t count, ...)
 //{
 //	va_list arguments;
@@ -572,101 +572,17 @@ char *id_string(t_msg_id id)
 		case NO_NEW_ID:
 			buf = strdup("NO_NEW_ID");
 			break;
-		case INIT_CONSOLE:
-			buf = strdup("INIT_CONSOLE");
+		case EJECUTAR_MAP:
+			buf = strdup("EJECUTAR_MAP");
 			break;
-		case KILL_CONSOLE:
-			buf = strdup("KILL_CONSOLE");
+		case EJECUTAR_REDUCE:
+			buf = strdup("EJECUTAR_REDUCE");
 			break;
-		case NUMERIC_INPUT:
-			buf = strdup("NUMERIC_INPUT");
+		case FIN_MAP:
+			buf = strdup("FIN_MAP");
 			break;
-		case NUMERIC_OUTPUT:
-			buf = strdup("NUMERIC_OUTPUT");
-			break;
-		case REPLY_STRING_INPUT:
-			buf = strdup("REPLY_STRING_INPUT");
-			break;
-		case REPLY_NUMERIC_INPUT:
-			buf = strdup("REPLY_NUMERIC_INPUT");
-			break;
-		case STRING_INPUT:
-			buf = strdup("STRING_INPUT");
-			break;
-		case STRING_OUTPUT:
-			buf = strdup("STRING_OUTPUT");
-			break;
-		case CREATE_SEGMENT:
-			buf = strdup("CREATE_SEGMENT");
-			break;
-		case OK_CREATE:
-			buf = strdup("OK_CREATE");
-			break;
-		case FULL_MEMORY:
-			buf = strdup("FULL_MEMORY");
-			break;
-		case INVALID_SEG_SIZE:
-			buf = strdup("INVALID_SEG_SIZE");
-			break;
-		case MAX_SEG_NUM_REACHED:
-			buf = strdup("MAX_SEG_NUM_REACHED");
-			break;
-		case WRITE_MEMORY:
-			buf = strdup("WRITE_MEMORY");
-			break;
-		case OK_WRITE:
-			buf = strdup("OK_WRITE");
-			break;
-		case SEGMENTATION_FAULT:
-			buf = strdup("SEGMENTATION_FAULT");
-			break;
-		case INVALID_DIR:
-			buf = strdup("INVALID_DIR");
-			break;
-		case DESTROY_SEGMENT:
-			buf = strdup("DESTROY_SEGMENT");
-			break;
-		case OK_DESTROY:
-			buf = strdup("OK_DESTROY");
-			break;
-		case REQUEST_MEMORY:
-			buf = strdup("REQUEST_MEMORY");
-			break;
-		case OK_REQUEST:
-			buf = strdup("OK_REQUEST");
-			break;
-		case NEXT_TCB:
-			buf = strdup("NEXT_TCB");
-			break;
-		case CPU_TCB:
-			buf = strdup("CPU_TCB");
-			break;
-		case RETURN_TCB:
-			buf = strdup("RETURN_TCB");
-			break;
-		case CPU_ABORT:
-			buf = strdup("CPU_ABORT");
-			break;
-		case FINISHED_THREAD:
-			buf = strdup("FINISHED_THREAD");
-			break;
-		case CPU_CONNECT:
-			buf = strdup("CPU_CONNECT");
-			break;
-		case CPU_INTERRUPT:
-			buf = strdup("CPU_INTERRUPT");
-			break;
-		case CPU_CREA:
-			buf = strdup("CPU_CREA");
-			break;
-		case CPU_JOIN:
-			buf = strdup("CPU_JOIN");
-			break;
-		case CPU_BLOCK:
-			buf = strdup("CPU_BLOCK");
-			break;
-		case CPU_WAKE:
-			buf = strdup("CPU_WAKE");
+		case FIN_REDUCE:
+			buf = strdup("FIN_REDUCE");
 			break;
 		default:
 			buf = string_from_format("%d, <AGREGAR A LA LISTA>", id);

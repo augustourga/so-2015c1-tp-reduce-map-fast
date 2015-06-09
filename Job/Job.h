@@ -18,9 +18,9 @@
 #include <sockets.h>
 #include <commons/log.h>
 #include <pthread.h>
-#include "Job.h"
 #include <commons/config.h>
 #include <commons/collections/dictionary.h>
+#include <utiles/utiles.h>
 
 /*********Constantes*****/
 #define CONFIG_PATH "/home/utnso/git/tp-2015-1c-milanesa/Job/Job.config"
@@ -28,11 +28,6 @@
 #define PROCESO "Job"
 #define MAXSIZE 1024
 
-typedef struct
-{
-	FILE * stream;
-	struct stat * fstat;
-} t_Datos_archivo;
 
 typedef struct
 {
@@ -41,20 +36,26 @@ typedef struct
 	char** archivos;
 	char* resultado;
 	int combiner; //1 indica SI, 0 indica NO
-	t_Datos_archivo* map;
-	t_Datos_archivo* reduce;
+	char* mapper;
+	char* reduce;
+	int cant_archivos;
 } t_Datos_configuracion;
 
 
 int obtenerConfiguracion();
-int levantarArchivo(char*,t_Datos_archivo*);
 void loguearLinea(char* linea,t_log_level);
 void mostrarPorPantalla();
 int conexionMaRTA();
+int HiloReduce(char* ip_nodo, int puerto_nodo);
+int HiloMap(char* ip_nodo, int puerto_nodo);
+int enviar_mensaje_inicial_marta();
 
 /*********Variables globales******************/
 t_Datos_configuracion* configuracion;
 t_log* Log_job;
+pthread_t* th_hilo_map;
+pthread_t* th_hilo_reduce;
+t_msg * mensaje_actual;
 int marta_sock;
 
 /********************************************/
