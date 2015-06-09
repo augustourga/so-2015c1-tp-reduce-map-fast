@@ -59,12 +59,57 @@ int levantarHiloFile() {
 
 void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 	conectar_socket(PUERTO_FS, IP_FS, reg_conexion->sock_fs);
-	puts("conectado al File System");
-	t_bloque* bloquesito;
-	bloquesito = serializar_aceptacion_nodo(NODO_NUEVO, NOMBRE_NODO);
-	//		deserializar_aceptacion_nodo(bloquesito);
-	send(reg_conexion->sock_fs, bloquesito->data, bloquesito->size, 0);
-}
+//------------------------------------------------------------------------
+	//		t_bloque* bloquesito;
+//		int length = 1024, bytes_recv;
+//			char* buffer = 0;
+//		bloquesito = serializar_aceptacion_nodo(NODO_NUEVO, NOMBRE_NODO);
+//		send(reg_conexion->sock_fs, bloquesito->data, bloquesito->size, 0);
+
+	/*asegurarse de pasarle bien los parametros, puede recibir char*?*/
+ t_msg* mensaje= argv_message(INFO_NODO,2,NODO_NUEVO,NOMBRE_NODO);
+ enviar_mensaje(reg_conexion->sock_fs,mensaje);
+ destroy_message(mensaje);
+//-------------------------------------------------------------------
+//			bytes_recv = recv(reg_conexion->sock_fs, buffer, length, 0);
+//
+//			if (bytes_recv > 0) {
+//				int offset = 0, tmp_size = 0, code;
+//				tmp_size = sizeof(code);
+//				memcpy(&code, buffer, tmp_size);
+//				offset += tmp_size;
+//				t_bloque* bloque2 = malloc(sizeof(t_bloque));
+//				bloque2->data = buffer + offset;
+//				bloque2->size = strlen(bloque2->data);
+ t_msg*codigo= recibir_mensaje(reg_conexion->sock_fs);
+				switch (codigo->argv[0]){
+
+				case '1':
+                    //getbloque(bloque2,reg_conexion.sock_fs);
+					printf("getBloque()");
+					/*											getBloque(numero) devovera el contenido del bloque "20*numero"
+					 almacenado en el espacio de datos.
+					 contenidoDeBloque getBloque(unNumero);
+					 */break;
+				case '2':
+					setBloque(codigo->argv[1],codigo->argv[2],reg_conexion->sock_fs);
+					printf("setBloque()");
+					/*
+					 setBloque almacenara los "datos" en "20*numero"
+					 setBloque(numero,datos);
+					 */break;
+				case '3':
+					printf("getFileContent()");
+					/*
+					 arch getFileContent(char* nombre) devolvera el contenido
+					 * del archivo "nombre.dat" almacenado en el espacio temporal
+					 getFileContent(nombre);
+					 */break;
+								}
+				destroy_message(codigo);
+			}
+
+
 
 int levantarServer() {
 
@@ -189,4 +234,35 @@ int levantarServer() {
 	return EXIT_SUCCESS;
 
 }
+//void getBloque(t_bloque* bloque, int sock){
+//
+//
+//
+//
+//
+//}
+void setBloque(int numeroBloque,int cantidad_bytes, int sock){
+//debo pararme en la posicion donde se encuentra almacenado el bloque y empezar a grabar
+
+	void* mapper;
+    int bytes_recibidos=0;
+	off_t posicion;
+
+	int fd = open(DISCO, O_RDWR);
+	posicion = numeroBloque * 20 * 1024 * 1024;
+    mapper = mmap(0, 20 * 1024 * 1024, PROT_WRITE, MAP_PRIVATE, fd, posicion);
+    t_msg* mensaje;
+
+    while(cantidad_bytes>bytes_recibidos) {
+
+    mensaje= recibir_mensaje(sock);
+
+    	//copiar en la memoria la data recibida y +=asignar a bytes revibidos el tamaño
+
+
+    }
+	destroy_message(mensaje);
+}
+
+
 
