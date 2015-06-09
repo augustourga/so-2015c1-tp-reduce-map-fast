@@ -95,6 +95,30 @@ t_msg *id_message(t_msg_id id) {
 	return new;
 }
 
+void free_null(void** data) {
+	free(*data);
+	*data = NULL;
+	data = NULL;
+}
+
+bool file_exists(const char* filename) {
+	bool rs = true;
+
+	FILE* f = NULL;
+	f = fopen(filename, "r");
+	if (f != NULL) {
+		fclose(f);
+		rs = true;
+	} else
+		rs = false;
+
+	return rs;
+}
+size_t file_get_size(char* filename) {
+	struct stat st;
+	stat(filename, &st);
+	return st.st_size;
+}
 
 t_msg *argv_message(t_msg_id id, uint16_t count, ...)
 {
@@ -575,21 +599,70 @@ char *id_string(t_msg_id id)
 		case EJECUTAR_MAP:
 			buf = strdup("EJECUTAR_MAP");
 			break;
+		case NODO_MAP:
+			buf = strdup("NODO_MAP");
+						break;
 		case EJECUTAR_REDUCE:
 			buf = strdup("EJECUTAR_REDUCE");
+			break;
+		case NODO_REDUCE:
+			buf = strdup("NODO_REDUCE");
 			break;
 		case FIN_MAP:
 			buf = strdup("FIN_MAP");
 			break;
 		case FIN_REDUCE:
 			buf = strdup("FIN_REDUCE");
-			break;
+		    break;
+	    case GET_BLOQUE:
+		    buf = strdup("GET_BLOQUE");
+		    break;
+	    case SET_BLOQUE:
+		    buf = strdup("SET_BLOQUE");
+		    break;
+	    case INFO_NODO:
+	        buf = strdup("INFO_NODO");
+	        break;
+	    case GET_FILE_CONTENT:
+	  	        buf = strdup("GET_FILE_CONTENT");
+	  	        break;
 		default:
 			buf = string_from_format("%d, <AGREGAR A LA LISTA>", id);
 			break;
 	}
 
 	return buf;
+}
+
+void file_mmap_free(char* mapped, char* filename) {
+	munmap(mapped, file_get_size(filename));
+}
+
+/*
+ * devuelve el arhivo mappeado modo lectura y escritura
+ */
+void* file_get_mapped(char* filename) {
+	//el archivo ya esta creado con el size maximo
+	void* mapped = NULL;
+	struct stat st;
+	int fd = 0;
+	fd = open(filename, O_RDWR);
+	if (fd == -1) {
+		handle_error("open");
+	}
+
+	stat(filename, &st);
+	//printf("%ld\n", st.st_size);
+	int size = st.st_size;
+
+	mapped = mmap(NULL, size, PROT_WRITE, MAP_SHARED, fd, 0);
+	close(fd);
+
+	if (mapped == MAP_FAILED) {
+		handle_error("mmap");
+	}
+
+	return mapped;
 }
 
 

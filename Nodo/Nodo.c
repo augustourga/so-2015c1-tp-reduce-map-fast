@@ -8,6 +8,7 @@
 
 int main() {
 
+
 	Log_Nodo = log_create(LOG_FILE, PROCESO, 1, LOG_LEVEL_TRACE);
 
 	if (levantarConfiguracionNodo()) {
@@ -26,7 +27,7 @@ int main() {
 }
 
 int levantarConfiguracionNodo() {
-
+ char* aux;
 	t_config* archivo_config = config_create(PATH);
 
 	PUERTO_FS = config_get_int_value(archivo_config, "PUERTO_FS");
@@ -34,12 +35,20 @@ int levantarConfiguracionNodo() {
 	ARCHIVO_BIN = strdup(
 			config_get_string_value(archivo_config, "ARCHIVO_BIN"));
 	DIR_TEMP = strdup(config_get_string_value(archivo_config, "DIR_TEMP"));
-	NODO_NUEVO = strdup(config_get_string_value(archivo_config, "NODO_NUEVO"));
+	aux = strdup(config_get_string_value(archivo_config, "NODO_NUEVO"));
 	IP_NODO = strdup(config_get_string_value(archivo_config, "IP_NODO"));
 	PUERTO_NODO = config_get_int_value(archivo_config, "PUERTO_NODO");
-
+    NODO_ID= PUERTO_FS = config_get_int_value(archivo_config, "NODO_ID");
 	config_destroy(archivo_config);
 
+	if (strncmp(aux,"SI",2)==0)
+		 { NODO_NUEVO= 1;
+				  }
+	   else {NODO_NUEVO= 0;
+				  }
+
+	//mapeo el disco en memoria
+	_data = file_get_mapped(DISCO);
 	return 0;
 }
 
@@ -59,55 +68,56 @@ int levantarHiloFile() {
 
 void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 	conectar_socket(PUERTO_FS, IP_FS, reg_conexion->sock_fs);
-//------------------------------------------------------------------------
-	//		t_bloque* bloquesito;
-//		int length = 1024, bytes_recv;
-//			char* buffer = 0;
-//		bloquesito = serializar_aceptacion_nodo(NODO_NUEVO, NOMBRE_NODO);
-//		send(reg_conexion->sock_fs, bloquesito->data, bloquesito->size, 0);
 
 	/*asegurarse de pasarle bien los parametros, puede recibir char*?*/
- t_msg* mensaje= argv_message(INFO_NODO,2,NODO_NUEVO,NOMBRE_NODO);
+ t_msg* mensaje= argv_message(INFO_NODO,2,NODO_NUEVO,NODO_ID);
  enviar_mensaje(reg_conexion->sock_fs,mensaje);
  destroy_message(mensaje);
-//-------------------------------------------------------------------
-//			bytes_recv = recv(reg_conexion->sock_fs, buffer, length, 0);
-//
-//			if (bytes_recv > 0) {
-//				int offset = 0, tmp_size = 0, code;
-//				tmp_size = sizeof(code);
-//				memcpy(&code, buffer, tmp_size);
-//				offset += tmp_size;
-//				t_bloque* bloque2 = malloc(sizeof(t_bloque));
-//				bloque2->data = buffer + offset;
-//				bloque2->size = strlen(bloque2->data);
- t_msg*codigo= recibir_mensaje(reg_conexion->sock_fs);
-				switch (codigo->argv[0]){
 
-				case '1':
-                    //getbloque(bloque2,reg_conexion.sock_fs);
-					printf("getBloque()");
-					/*											getBloque(numero) devovera el contenido del bloque "20*numero"
-					 almacenado en el espacio de datos.
-					 contenidoDeBloque getBloque(unNumero);
-					 */break;
-				case '2':
-					setBloque(codigo->argv[1],codigo->argv[2],reg_conexion->sock_fs);
-					printf("setBloque()");
-					/*
-					 setBloque almacenara los "datos" en "20*numero"
-					 setBloque(numero,datos);
-					 */break;
-				case '3':
-					printf("getFileContent()");
-					/*
-					 arch getFileContent(char* nombre) devolvera el contenido
-					 * del archivo "nombre.dat" almacenado en el espacio temporal
-					 getFileContent(nombre);
-					 */break;
-								}
-				destroy_message(codigo);
-			}
+	t_msg*codigo = recibir_mensaje(reg_conexion->sock_fs);
+	char*bloque= NULL ;
+	switch (codigo->header.id) {
+
+	case GET_BLOQUE:
+		//getbloque(bloque2,reg_conexion.sock_fs);
+		/*											getBloque(numero) devovera el contenido del bloque "20*numero"
+		 almacenado en el espacio de datos.
+		 contenidoDeBloque getBloque(unNumero);
+		 */
+
+		bloque = getBloque(codigo->argv[0]);
+		t_msg* mensaje = argv_message(GET_BLOQUE, 2, codigo->argv[0],
+				tamanio_bloque);
+		mensaje->stream = bloque;
+		enviar_mensaje(reg_conexion->sock_fs, mensaje);
+		destroy_message(mensaje);
+		break;
+
+	case SET_BLOQUE:
+		/*
+		 setBloque almacenara los "datos" en "20*numero"
+		 setBloque(numero,datos);
+		 */
+
+		bloque= malloc(tamanio_bloque);
+		memcpy(bloque, codigo->stream, codigo->argv[1]);//1 es el tamaño real, el stream es el bloque de 20mb(aprox)
+		memset(bloque + codigo->argv[1], '\0',
+				tamanio_bloque - codigo->argv[1]);
+		setBloque(codigo->argv[0], bloque);
+		free_null((void*)&bloque);
+
+		destroy_message(codigo);
+		break;
+	case GET_FILE_CONTENT:
+		printf("getFileContent()");
+		/*
+		 arch getFileContent(char* nombre) devolvera el contenido
+		 * del archivo "nombre.dat" almacenado en el espacio temporal
+		 getFileContent(nombre);
+		 */break;
+	}
+
+}
 
 
 
@@ -168,13 +178,14 @@ int levantarServer() {
 						//printf("nueva conexion de %s desde socket %d \n",inet_ntoa(cliente.sin_addr), socketNuevaConexion);
 					} //if del accept. Recibir hasta BUFF_SIZE datos y almacenarlos en 'buffer'.
 				} else {
-
-					//verifica si esta en el cojunto de listos para leer
-					//pasarlo a una funcion generica
+//
+//					verifica si esta en el cojunto de listos para leer
+//					pasarlo a una funcion generica
 					if ((nbytesRecibidos = recv(i, buffer, BUFF_SIZE, 0)) > 0) {
 						int offset = 0, tmp_size = 0, code;
 						memcpy(&code, buffer + offset, tmp_size = sizeof(code));
 						offset += tmp_size;
+
 						switch (code) {
 						case '1':
 							printf("getBloque()");
@@ -241,28 +252,25 @@ int levantarServer() {
 //
 //
 //}
-void setBloque(int numeroBloque,int cantidad_bytes, int sock){
+void setBloque(int numeroBloque, char* bloque_datos){
 //debo pararme en la posicion donde se encuentra almacenado el bloque y empezar a grabar
 
-	void* mapper;
-    int bytes_recibidos=0;
-	off_t posicion;
+	log_info(Log_Nodo, "Inicio setBloque(%d)", numeroBloque);
 
-	int fd = open(DISCO, O_RDWR);
-	posicion = numeroBloque * 20 * 1024 * 1024;
-    mapper = mmap(0, 20 * 1024 * 1024, PROT_WRITE, MAP_PRIVATE, fd, posicion);
-    t_msg* mensaje;
+    //el memset lo hago para limpiar el bloque por las dudas
+	memset(_data + (numeroBloque * tamanio_bloque), 0, tamanio_bloque);
 
-    while(cantidad_bytes>bytes_recibidos) {
+	memcpy(_data + (numeroBloque * tamanio_bloque), bloque_datos, tamanio_bloque);
 
-    mensaje= recibir_mensaje(sock);
+	log_info(Log_Nodo, "Fin setBloque(%d)", numeroBloque);
 
-    	//copiar en la memoria la data recibida y +=asignar a bytes revibidos el tamaño
-
-
-    }
-	destroy_message(mensaje);
 }
-
-
-
+char* getBloque(int numeroBloque) {
+	log_info(Log_Nodo, "Ini getBloque(%d)", numeroBloque);
+	char* bloque = NULL;
+	bloque = malloc(tamanio_bloque);
+	memcpy(bloque, &(_data[numeroBloque * tamanio_bloque]), tamanio_bloque);
+	//memcpy(bloque, _bloques[numero], TAMANIO_BLOQUE);
+	log_info(Log_Nodo, "Fin getBloque(%d)", numeroBloque);
+	return bloque;
+}

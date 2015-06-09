@@ -14,8 +14,12 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <commons/string.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 //#include <panel/panel.h>
-
+#define handle_error(msj) \
+	do{perror(msj);exit(EXIT_FAILURE);} while(0)
 #define REG_SIZE 4
 
 /* Funciones Macro */
@@ -121,11 +125,20 @@ typedef enum {
 //	/****************** INTERFAZ MSP: SOLICITAR/ESCRIBIR MEMORIA. ******************/
 //	INVALID_DIR,				/* Respuesta de dirección inválida. */
 //	SEGMENTATION_FAULT,			/* Respuesta de error de segmento en lectura/escritura de memoria. */
+	/*************************JOB*******************************/
 	EJECUTAR_MAP,
 	EJECUTAR_REDUCE,
 	FIN_MAP,
 	FIN_REDUCE,
-	CONEXION_JOB
+	CONEXION_JOB,
+	/***********************NODO******************************/
+	NODO_MAP,
+	NODO_REDUCE,
+	SET_BLOQUE,
+	GET_BLOQUE,
+	GET_FILE_CONTENT,
+	INFO_NODO
+
 } t_msg_id;
 
 
@@ -257,7 +270,7 @@ char* read_whole_file_and_clean(char *path);
  */
 void write_file(char *path,char* data,size_t size);
 
-
+void* file_get_mapped(char* filename);
 /****************** FUNCIONES AUXILIARES. ******************/
 
 /*
@@ -275,6 +288,9 @@ void print_msg(t_msg *msg);
  */
 char *id_string(t_msg_id id);
 
+void file_mmap_free(char* mapped, char* filename);
+
+void free_null(void** data);
 /*
  * Recupera los contenidos de un tcb cargado a mensaje.
  */

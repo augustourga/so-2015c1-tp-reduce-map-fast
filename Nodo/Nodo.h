@@ -39,16 +39,18 @@ typedef struct{
 }t_bloque_content;
 
 /******************Variables************************/
-		 int PUERTO_FS;
+		 int tamanio_bloque= 20*1024*1024;
+         int PUERTO_FS;
 		 char* IP_FS;
 		 char* ARCHIVO_BIN;
 		 char* DIR_TEMP;
-		 char* NODO_NUEVO;
+		 int NODO_NUEVO;
 		 char* IP_NODO;
 	     int PUERTO_NODO;
+	     int NODO_ID;
 	     t_log* Log_Nodo;
          int rcx;
-         char* NOMBRE_NODO = "NODO_PIOLA";
+         char* _data;
 /******************Definiciones*******************/
 
 int levantarConfiguracionNodo();
@@ -58,6 +60,6 @@ int levantarServer();
 int levantarHiloFile();
 
 /******************FUNCIONALIDADES*******************/
-void setBloque(int numeroBloque,int cantidad_bytes, int sock);
-
+void setBloque(int numeroBloque, char* bloque_datos);
+char* getBloque(int numeroBloque);
 #endif /* NODO_NODO_H_ */
