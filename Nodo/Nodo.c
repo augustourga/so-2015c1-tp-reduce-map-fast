@@ -15,6 +15,11 @@ int main() {
 		log_error(Log_Nodo, "Hubo errores en la carga de las configuraciones.");
 	}
 
+	_data = crear_Espacio_Datos(NODO_NUEVO, ARCHIVO_BIN,RUTA);
+
+	//mapeo el disco en memoria
+//	_data = file_get_mapped(DISCO);
+
 	if (levantarHiloFile()) {
 		log_error(Log_Nodo, "Conexion con File System fallida.");
 	}
@@ -47,8 +52,7 @@ int levantarConfiguracionNodo() {
 	   else {NODO_NUEVO= 0;
 				  }
 
-	//mapeo el disco en memoria
-	_data = file_get_mapped(DISCO);
+
 	return 0;
 }
 
@@ -76,6 +80,8 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 
 	t_msg*codigo = recibir_mensaje(reg_conexion->sock_fs);
 	char*bloque= NULL ;
+	t_msg* mensaje2;
+
 	switch (codigo->header.id) {
 
 	case GET_BLOQUE:
@@ -86,11 +92,14 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 		 */
 
 		bloque = getBloque(codigo->argv[0]);
-		t_msg* mensaje = argv_message(GET_BLOQUE, 2, codigo->argv[0],
+
+		mensaje2 = string_message(GET_BLOQUE,bloque, 2, codigo->argv[0],
 				tamanio_bloque);
-		mensaje->stream = bloque;
-		enviar_mensaje(reg_conexion->sock_fs, mensaje);
-		destroy_message(mensaje);
+		enviar_mensaje(reg_conexion->sock_fs, mensaje2);
+
+		free_null((void*)&bloque);
+		destroy_message(mensaje2);
+		destroy_message(codigo);
 		break;
 
 	case SET_BLOQUE:
@@ -104,17 +113,28 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 		memset(bloque + codigo->argv[1], '\0',
 				tamanio_bloque - codigo->argv[1]);
 		setBloque(codigo->argv[0], bloque);
-		free_null((void*)&bloque);
 
+		free_null((void*)&bloque);
 		destroy_message(codigo);
 		break;
+
 	case GET_FILE_CONTENT:
-		printf("getFileContent()");
+
 		/*
 		 arch getFileContent(char* nombre) devolvera el contenido
 		 * del archivo "nombre.dat" almacenado en el espacio temporal
 		 getFileContent(nombre);
-		 */break;
+		 */
+		bloque = getFileContent(codigo->stream);
+
+		mensaje2 = id_message(GET_FILE_CONTENT);
+		mensaje2->stream=bloque;
+
+		enviar_mensaje(reg_conexion->sock_fs, mensaje2);
+		destroy_message(mensaje2);
+		destroy_message(codigo);
+		free_null((void*)&bloque);
+		break;
 	}
 
 }
@@ -127,13 +147,13 @@ int levantarServer() {
 	fd_set master; //descriptores q q estan actualemnte conectados
 	size_t tamanio; // hace positivo a la variable
 	int socketEscucha, socketNuevaConexion;
-	int nbytesRecibidos;
+
 	int max;
 	struct sockaddr_in cliente;
 
 	FD_ZERO(&master);
 	FD_ZERO(&read_fs);
-	char *buffer = malloc(100 * sizeof(char));
+
 	socketEscucha = obtener_socket();
 	vincular_socket(socketEscucha, PUERTO_NODO);
 	if (listen(socketEscucha, 10) != 0) {
@@ -179,79 +199,96 @@ int levantarServer() {
 					} //if del accept. Recibir hasta BUFF_SIZE datos y almacenarlos en 'buffer'.
 				} else {
 //
-//					verifica si esta en el cojunto de listos para leer
-//					pasarlo a una funcion generica
-					if ((nbytesRecibidos = recv(i, buffer, BUFF_SIZE, 0)) > 0) {
-						int offset = 0, tmp_size = 0, code;
-						memcpy(&code, buffer + offset, tmp_size = sizeof(code));
-						offset += tmp_size;
+					t_msg*codigo = recibir_mensaje(i);
+					char*bloque = NULL;
+					t_msg* mensaje2;
 
-						switch (code) {
-						case '1':
-							printf("getBloque()");
-							/*											getBloque(numero) devovera el contenido del bloque "20*numero"
-							 almacenado en el espacio de datos.
-							 contenidoDeBloque getBloque(unNumero);
-							 */break;
-						case '2':
-							printf("setBloque()");
-							/*
-							 setBloque almacenara los "datos" en "20*numero"
-							 setBloque(numero,datos);
-							 */break;
-						case '3':
-							printf("getFileContent()");
-							/*
-							 arch getFileContent(char* nombre) devolvera el contenido
-							 * del archivo "nombre.dat" almacenado en el espacio temporal
-							 getFileContent(nombre);
-							 */break;
-						case '4':
-							printf("ejecutar_mapping()");
-							/*
-							 ejecutar_mapping(ejecutable,num_bloque,nombre_archivo);
-							 */
-							break;
-						case '5':
-							printf("ejecutar_Reduce()");
-							/*
-							 ejecutar_reduce(ejecutable,lista_archivos,nombre_archivo_tmp);
-							 */
-							break;
-							printf("Mensaje recibido de socket %d: ", i);
-							fwrite(buffer, 1, nbytesRecibidos, stdout);
-							printf("\n");
-							printf("Tamanio del buffer %d bytes!\n",
-									nbytesRecibidos);
-							fflush(stdout);
+					switch (codigo->header.id) {
 
-						}
-					} else if (nbytesRecibidos == 0) {
-						printf("se desconecto el socket %d \n", i);
-						FD_CLR(i, &master);
-						// aca se tendria q actualizar los maximos.
+					case GET_BLOQUE:
+						//getbloque(bloque2,reg_conexion.sock_fs);
+						/*											getBloque(numero) devovera el contenido del bloque "20*numero"
+						 almacenado en el espacio de datos.
+						 contenidoDeBloque getBloque(unNumero);
+						 */
 
-					} else {
-						printf("Error al recibir datos\n i= %d\n", i);
+						bloque = getBloque(codigo->argv[0]);
+
+						mensaje2 = string_message(GET_BLOQUE, bloque, 2,
+								codigo->argv[0], tamanio_bloque);
+						enviar_mensaje(i, mensaje2);
+
+						free_null((void*) &bloque);
+						destroy_message(mensaje2);
+						destroy_message(codigo);
 						break;
+
+					case SET_BLOQUE:
+						/*
+						 setBloque almacenara los "datos" en "20*numero"
+						 setBloque(numero,datos);
+						 */
+
+						bloque = malloc(tamanio_bloque);
+						memcpy(bloque, codigo->stream, codigo->argv[1]); //1 es el tamaño real, el stream es el bloque de 20mb(aprox)
+						memset(bloque + codigo->argv[1], '\0',
+								tamanio_bloque - codigo->argv[1]);
+						setBloque(codigo->argv[0], bloque);
+
+						free_null((void*) &bloque);
+						destroy_message(codigo);
+						break;
+
+					case GET_FILE_CONTENT:
+
+						/*
+						 arch getFileContent(char* nombre) devolvera el contenido
+						 * del archivo "nombre.dat" almacenado en el espacio temporal
+						 getFileContent(nombre);
+						 */
+						bloque = getFileContent(codigo->stream);
+
+						mensaje2 = id_message(GET_FILE_CONTENT);
+						mensaje2->stream = bloque;
+
+						enviar_mensaje(i, mensaje2);
+						destroy_message(mensaje2);
+						destroy_message(codigo);
+						free_null((void*) &bloque);
+						break;
+
+					case EJECUTAR_MAP:
+						mensaje2=recibir_mensaje(i);
+
+						puts("voy a ejecutar map");
+						/*
+						 ejecutar_mapping(ejecutable,num_bloque,rchivo);
+						 */
+
+           ejecutar_map(codigo->stream,codigo->argv[0],mensaje2->stream);
+
+						break;
+					case EJECUTAR_REDUCE:
+						printf("ejecutar_Reduce()");
+						/*
+						 ejecutar_reduce(ejecutable,lista_archivos,nombre_archivo_tmp);
+						 */
+						break;
+					}
+						fflush(stdout);
+
 
 					}
 				}						//1er if
 			}						// for
 		}
 
-	}
+
 	close(socketEscucha);
 	return EXIT_SUCCESS;
 
 }
-//void getBloque(t_bloque* bloque, int sock){
-//
-//
-//
-//
-//
-//}
+
 void setBloque(int numeroBloque, char* bloque_datos){
 //debo pararme en la posicion donde se encuentra almacenado el bloque y empezar a grabar
 
@@ -273,4 +310,47 @@ char* getBloque(int numeroBloque) {
 	//memcpy(bloque, _bloques[numero], TAMANIO_BLOQUE);
 	log_info(Log_Nodo, "Fin getBloque(%d)", numeroBloque);
 	return bloque;
+}
+
+
+char* getFileContent(char* filename) {
+
+       log_info(Log_Nodo, "Inicio getFileContent(%s)", filename);
+       char* content = NULL;
+
+       //creo el espacio para almacenar el archivo
+
+       char* path = file_combine(DIR_TEMP, filename);
+       size_t size = file_get_size(path) + 1;
+       content = malloc(size);
+       printf("size: %d\n", size);
+       char* mapped = NULL;
+       mapped = file_get_mapped(path);
+       memcpy(content, mapped, size);        //
+       file_mmap_free(mapped, path);
+
+       free_null((void*)&path);
+
+       log_info(Log_Nodo, "Fin getFileContent(%s)", filename);
+       return content;
+
+}
+
+char* crear_Espacio_Datos(int NUEVO,char* ARCHIVO,char* RUT){
+	size_t tamanio=1073741824;
+	char* direccion;
+	char* path;
+	if(NUEVO==1) {
+		path = file_combine(RUT, ARCHIVO);
+		create_file(path,tamanio);
+		direccion=file_get_mapped(path);
+
+	} else {direccion = file_combine(RUT, ARCHIVO);
+
+	}
+	return direccion;
+}
+void ejecutar_map(char*ejecutable,int numeroBloque,char* nombreArchivo){
+log_info(Log_Nodo, "Ini ejecutarMap en el bloque(%d)", numeroBloque);
+log_info(Log_Nodo, "Fin ejecutarMap en el bloque(%d)", numeroBloque);
 }

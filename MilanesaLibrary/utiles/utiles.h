@@ -225,6 +225,7 @@ void print_msg(t_msg *msg);
  * Convierte t_msg_id a string.
  */
 char *id_string(t_msg_id id);
+char* file_combine(char* f1, char* f2);
 
 void file_mmap_free(char* mapped, char* filename);
 

@@ -638,6 +638,17 @@ void file_mmap_free(char* mapped, char* filename) {
 	munmap(mapped, file_get_size(filename));
 }
 
+char* file_combine(char* f1, char* f2) {
+	char* p = NULL;
+	p = string_new();
+
+	string_append(&p, f1);
+	string_append(&p, "/");
+	string_append(&p, f2);
+
+	return p;
+
+}
 /*
  * devuelve el arhivo mappeado modo lectura y escritura
  */

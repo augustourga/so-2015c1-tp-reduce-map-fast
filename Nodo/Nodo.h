@@ -29,6 +29,7 @@
 #define PROCESO "Nodo"
 #define BUFF_SIZE 1024
 #define DISCO "/home/utnso/miarchivo.bin"
+#define RUTA "/home/utnso/git/tp-2015-1c-milanesa/Nodo"
 /****************Registros***********************/
 typedef struct{
 	int sock_fs;
@@ -62,4 +63,7 @@ int levantarHiloFile();
 /******************FUNCIONALIDADES*******************/
 void setBloque(int numeroBloque, char* bloque_datos);
 char* getBloque(int numeroBloque);
+char* getFileContent(char* filename);
+char* crear_Espacio_Datos(int , char* , char* );
+void ejecutar_map(char*ejecutable,int numeroBloque,char* nombreArchivo);
 #endif /* NODO_NODO_H_ */
