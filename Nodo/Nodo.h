@@ -22,6 +22,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <utiles/utiles.h>
+#include <commons/collections/list.h>
 
 /******************Constantes********************/
 #define PATH "/home/utnso/git/tp-2015-1c-milanesa/Nodo/NODO_CONFIG.config"
@@ -41,7 +42,7 @@ typedef struct{
 
 /******************Variables************************/
 		 int tamanio_bloque= 20*1024*1024;
-         int PUERTO_FS;
+         uint16_t PUERTO_FS;
 		 char* IP_FS;
 		 char* ARCHIVO_BIN;
 		 char* DIR_TEMP;
@@ -56,14 +57,14 @@ typedef struct{
 
 int levantarConfiguracionNodo();
 void conectarFileSystem();
- //getBloque(unNumero);
-int levantarServer();
+void levantarNuevoServer();
 int levantarHiloFile();
-
+void *atenderConexiones(void *parametro);
 /******************FUNCIONALIDADES*******************/
 void setBloque(int numeroBloque, char* bloque_datos);
 char* getBloque(int numeroBloque);
 char* getFileContent(char* filename);
 char* crear_Espacio_Datos(int , char* , char* );
 void ejecutar_map(char*ejecutable,int numeroBloque,char* nombreArchivo);
+void ejecutar_reduce(char*ejecutable,t_list* listaNodos,char* nombreArchivo);
 #endif /* NODO_NODO_H_ */
