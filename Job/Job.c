@@ -9,6 +9,7 @@
 
 int main()
 {
+	t_direccion_proceso* nodo =(t_direccion_proceso*)malloc(sizeof(t_direccion_proceso));
 	Log_job = log_create(LOG_FILE,PROCESO,1,LOG_LEVEL_TRACE);
 	if(obtenerConfiguracion())
 	{
@@ -30,25 +31,17 @@ int main()
 
 	while(1){
 		mensaje_actual = recibir_mensaje(marta_sock);
+		memcpy(nodo->ip,mensaje_actual->stream,15);
+		nodo->puerto = mensaje_actual->argv[0];
 		if(mensaje_actual->header.id == EJECUTAR_REDUCE)
 		{
-			int dato = pthread_create(th_hilo_reduce, NULL, (void *) HiloReduce,
-					mensaje_actual->argv);
-			if (dato != 0) {
-				log_error(Log_job,
-						"El thread reducer no pudo ser creado.");
-				return EXIT_FAILURE;
-			}
+			levantar_hilo_reduce(nodo);
+
 		}
 		if(mensaje_actual->header.id == EJECUTAR_MAP)
 		{
-			int dato = pthread_create(th_hilo_map, NULL, (void *) HiloMap,
-				mensaje_actual->argv);
-			if (dato != 0) {
-				log_error(Log_job,
-						"El thread reducer no pudo ser creado.");
-				return EXIT_FAILURE;
-			}
+			levantar_hilo_mapper(nodo);
+
 		}
 	}
 
@@ -64,8 +57,8 @@ int obtenerConfiguracion()
 	config = config_create(CONFIG_PATH);
 
 	configuracion->ip_marta= strdup(config_get_string_value(config, "IP_MARTA"));
-	configuracion->reduce = strdup(config_get_string_value(config, "REDUCE"));
-	configuracion->mapper = strdup(config_get_string_value(config, "MAPPER"));
+	configuracion->reduce = read_whole_file(config_get_string_value(config, "REDUCE"));
+	configuracion->mapper = read_whole_file(config_get_string_value(config, "MAPPER"));
 	configuracion->puerto_marta = config_get_int_value(config,"PUERTO_MARTA");
 	configuracion->combiner =strcmp(config_get_string_value(config,"COMBINER"),"SI")?1:0;
 	configuracion->resultado = strdup(config_get_string_value(config, "RESULTADO"));
@@ -109,27 +102,59 @@ int conexionMaRTA()
 	return 0;
 }
 
-int HiloReduce(char* ip_nodo, int puerto_nodo)
+int HiloReduce(void* dato)
 {
-	int nodo_sock;
-	conectar_socket(puerto_nodo,ip_nodo,nodo_sock);
+	int nodo_sock = obtener_socket();
+	t_msg* mensaje;
+	t_direccion_proceso* nodo =(t_direccion_proceso*)dato;
 
-	t_msg* mensaje_fin_reduce = id_message(FIN_REDUCE);
-	enviar_mensaje(marta_sock,mensaje_fin_reduce);
-	destroy_message(mensaje_fin_reduce);
+	conectar_socket(nodo->puerto,nodo->ip,nodo_sock);
+	mensaje = string_message(EJECUTAR_REDUCE,configuracion->reduce,0);
+	printf("JOB-TAMAÑO DEL REDUCE : %d",strlen(configuracion->reduce));//DENBUG
+	enviar_mensaje(nodo_sock,mensaje);
+	mensaje = recibir_mensaje(nodo_sock);
 
+	//Se reenvía el resultado del map a marta
+	enviar_mensaje(marta_sock,mensaje);
+	destroy_message(mensaje);
 	return 0;
 }
 
-int HiloMap(char* ip_nodo, int puerto_nodo)
+int HiloMap(void* dato)
 {
-	int nodo_sock;
-	conectar_socket(puerto_nodo,ip_nodo,nodo_sock);
+	int nodo_sock = obtener_socket();
+	t_msg* mensaje;
+	t_direccion_proceso* nodo =(t_direccion_proceso*)dato;
 
-	t_msg* mensaje_fin_map = id_message(FIN_MAP);
-	enviar_mensaje(marta_sock,mensaje_fin_map);
-	destroy_message(mensaje_fin_map);
+	conectar_socket(nodo->puerto,nodo->ip,nodo_sock);
+	mensaje = string_message(EJECUTAR_MAP,configuracion->mapper,0);
+
+	enviar_mensaje(nodo_sock,mensaje);
+
+	int i;
+	for(i=0;i<configuracion->cant_archivos;i++)
+	{
+		//ENVÍO TODOS LOS ARCHIVOS
+		destroy_message(mensaje);
+		mensaje = string_message(ARCHIVO_JOB_MAP,configuracion->archivos[i],0);
+		enviar_mensaje(nodo_sock,mensaje);
+	}
+	//ENVÍO FIN DE ARCHIVOS
+	destroy_message(mensaje);
+	mensaje= id_message(FIN_ENVIO_ARCH);
+
+
+
+	mensaje = recibir_mensaje(nodo_sock);
+
+	//CERRAR CONEXIÓN CON EL NODO//
+
+	//Se reenvía el resultado del map a marta
+	enviar_mensaje(marta_sock,mensaje);
+	destroy_message(mensaje);
 	return 0;
+
+	//ELIMINAR THREAD
 }
 
 int enviar_mensaje_inicial_marta()
@@ -146,3 +171,30 @@ int enviar_mensaje_inicial_marta()
  	enviar_mensaje(marta_sock,mensaje_conexion_marta);
 	return 0;
 }
+
+int levantar_hilo_mapper(t_direccion_proceso* nodo)
+{
+	th_hilo_map = malloc(sizeof(pthread_t));
+	int dato = pthread_create(th_hilo_map, NULL, (void *) HiloMap,
+					(void*)nodo);
+				if (dato != 0) {
+					log_error(Log_job,
+							"El thread mapper no pudo ser creado.");
+					return EXIT_FAILURE;
+				}
+				return 0;
+}
+
+int levantar_hilo_reduce(t_direccion_proceso* nodo)
+{
+	th_hilo_reduce = malloc(sizeof(pthread_t));
+	int dato = pthread_create(th_hilo_reduce, NULL, (void *) HiloMap,
+					(void*)nodo);
+				if (dato != 0) {
+					log_error(Log_job,
+							"El thread reduce no pudo ser creado.");
+					return EXIT_FAILURE;
+				}
+				return 0;
+}
+

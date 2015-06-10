@@ -66,6 +66,9 @@ typedef enum {
 	FIN_MAP,
 	FIN_REDUCE,
 	CONEXION_JOB,
+	ARCHIVO_JOB_MAP,
+	ARCHIVO_JOB_REDUCE,
+	FIN_ENVIO_ARCH,
 	/***********************NODO******************************/
 	NODO_MAP,
 	NODO_REDUCE,

@@ -41,14 +41,22 @@ typedef struct
 	int cant_archivos;
 } t_Datos_configuracion;
 
+typedef struct
+{
+	char ip[15];
+	int puerto;
+} t_direccion_proceso;
+
 
 int obtenerConfiguracion();
 void loguearLinea(char* linea,t_log_level);
 void mostrarPorPantalla();
 int conexionMaRTA();
-int HiloReduce(char* ip_nodo, int puerto_nodo);
-int HiloMap(char* ip_nodo, int puerto_nodo);
+int HiloMap(void*);
+int HiloReduce(void*);
 int enviar_mensaje_inicial_marta();
+int levantar_hilo_mapper(t_direccion_proceso* nodo);
+int levantar_hilo_reduce(t_direccion_proceso* nodo);
 
 /*********Variables globales******************/
 t_Datos_configuracion* configuracion;
