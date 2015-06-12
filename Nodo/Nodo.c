@@ -211,8 +211,35 @@ void *atenderConexiones(void *parametro) {
 				/*
 				 ejecutar_reduce(ejecutable,lista_archivos,nombre_archivo_tmp);
 				 */
-				destroy_message(mensaje2);
+				size_t tamanioEjecutable=strlen(codigo->stream);
+				bloque = malloc(tamanioEjecutable);
+				memcpy(bloque, codigo->stream, tamanioEjecutable);
 				destroy_message(codigo);
+				mensaje2=recibir_mensaje(sock_conexion);
+
+				while(mensaje2->header.id!=FIN_ENVIO_ARCH){
+					//guardar el archivo que viene en el .stream en
+					//guardo el tamanio del archivo en tamanioArchivo
+				   char*NOMBRE_ARCHIVO=mensaje2->stream;
+                   //Job me manda el ip y puerto del nodo, si es INFO_NODO es otro nodo
+				   //
+				   codigo=recibir_mensaje(sock_conexion);
+                   if(codigo->header.id==INFO_NODO){
+                	   char*IP_NODO=codigo->stream;
+                	   int PUERTO_NODO=codigo->argv[0];
+                	   int SOCK_NODO=client_socket(IP_NODO, PUERTO_NODO);
+                   //deberia enviar en vez del socket el mensaje entero y ver si es nuevo o no?
+                	   ejecutar_reduce(bloque,SOCK_NODO,NOMBRE_ARCHIVO);
+                   //FALTA CONTEMPLAR EL TEMA DE QUE SEA UN ARCHIVO LOCAL
+                   }
+
+					destroy_message(mensaje2);
+					destroy_message(codigo);
+					mensaje2=recibir_mensaje(sock_conexion);
+
+				}
+				destroy_message(mensaje2);
+
 				break;
 			}
 
@@ -284,7 +311,10 @@ void ejecutar_map(char*ejecutable,int numeroBloque,char* nombreArchivo){
 log_info(Log_Nodo, "Inicio ejecutarMap en el bloque(%d)", numeroBloque);
 log_info(Log_Nodo, "Fin ejecutarMap en el bloque(%d)", numeroBloque);
 }
-void ejecutar_reduce(char*ejecutable,t_list* listaNodos,char* nombreArchivo){
+void ejecutar_reduce(char*ejecutable,int socket_nodo_escucha,char* nombreArchivo){
 log_info(Log_Nodo, "Inicio ejecutarReduce " );
+
+//LE PIDO AL SOCKET_NODO QUE ME DEVUELVA UN GET_FILE_CONTENT(nombreArchivo)
+//una vez recibido, los apareo con mis archivos del espacio temporal
 log_info(Log_Nodo, "Fin ejecutarReduce ");
 }

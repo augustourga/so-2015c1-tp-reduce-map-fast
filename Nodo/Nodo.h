@@ -66,5 +66,5 @@ char* getBloque(int numeroBloque);
 char* getFileContent(char* filename);
 char* crear_Espacio_Datos(int , char* , char* );
 void ejecutar_map(char*ejecutable,int numeroBloque,char* nombreArchivo);
-void ejecutar_reduce(char*ejecutable,t_list* listaNodos,char* nombreArchivo);
+void ejecutar_reduce(char*ejecutable,int nodo_escucha,char* nombreArchivo);
 #endif /* NODO_NODO_H_ */
