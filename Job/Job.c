@@ -135,16 +135,13 @@ int HiloMap(void* dato)
 
 	conectar_socket(nodo->puerto,nodo->ip,nodo_sock);
 	mensaje = string_message(EJECUTAR_MAP,configuracion->mapper,0);
-
+	enviar_mensaje(nodo_sock,mensaje);
 	//ENVÍO ARCHIVO AL QUE SE APLICA EL MAP
 	destroy_message(mensaje);
 	mensaje= string_message(ARCHIVO_JOB_MAP,nodo->archivo,0);
 
 	enviar_mensaje(nodo_sock,mensaje);
 
-	//ENVÍO FIN DE ARCHIVOS
-	destroy_message(mensaje);
-	mensaje= id_message(FIN_ENVIO_ARCH);
 
 	mensaje = recibir_mensaje(nodo_sock);
 
@@ -153,6 +150,8 @@ int HiloMap(void* dato)
 	//Se reenvía el resultado del map a marta
 	enviar_mensaje(marta_sock,mensaje);
 	destroy_message(mensaje);
+
+	shutdown(nodo_sock,2);
 	return 0;
 
 	//ELIMINAR THREAD
