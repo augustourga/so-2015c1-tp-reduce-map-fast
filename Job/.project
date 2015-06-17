@@ -4,7 +4,6 @@
 	<comment></comment>
 	<projects>
 		<project>MilanesaLibrary</project>
-		<project>commons</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

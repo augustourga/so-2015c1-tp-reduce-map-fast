@@ -19,10 +19,10 @@
 #include <libio.h>
 #include <string.h>
 #include <sockets.h>
-#include <utiles/utiles.h>
 #include <sys/types.h>
+#include <utiles/auxiliares.h>
 //#include <db.h>
-#include <utiles/utiles.h>
+#include <utiles/messages.h>
 
 #define BUFF_SIZE 1024
 #define	DATABASE "directorios.db"
