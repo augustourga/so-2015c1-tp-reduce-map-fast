@@ -21,8 +21,9 @@
 #include <serializacion.h>
 #include <sys/mman.h>
 #include <fcntl.h>
-#include <utiles/utiles.h>
 #include <commons/collections/list.h>
+#include <utiles/messages.h>
+#include <utiles/auxiliares.h>
 
 /******************Constantes********************/
 #define PATH "/home/utnso/git/tp-2015-1c-milanesa/Nodo/NODO_CONFIG.config"

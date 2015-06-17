@@ -20,7 +20,8 @@
 #include <pthread.h>
 #include <commons/config.h>
 #include <commons/collections/dictionary.h>
-#include <utiles/utiles.h>
+#include <utiles/messages.h>
+#include <utiles/files.h>
 
 /*********Constantes*****/
 #define CONFIG_PATH "/home/utnso/git/tp-2015-1c-milanesa/Job/Job.config"
