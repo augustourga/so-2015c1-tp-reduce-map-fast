@@ -204,8 +204,12 @@ void *atenderConexiones(void *parametro) {
 				 */
 				ejecutar_map(codigo->stream, codigo->argv[0], mensaje2->stream);
 				destroy_message(mensaje2);
+				mensaje2=id_message(FIN_MAP);
+				enviar_mensaje(sock_conexion,mensaje2);
+				destroy_message(mensaje2);
 				destroy_message(codigo);
 				break;
+
 			case EJECUTAR_REDUCE:
 				printf("ejecutar_Reduce()");
 				/*
@@ -239,7 +243,9 @@ void *atenderConexiones(void *parametro) {
 
 				}
 				destroy_message(mensaje2);
-
+				mensaje2=id_message(FIN_REDUCE);
+				enviar_mensaje(sock_conexion,mensaje2);
+				destroy_message(mensaje2);
 				break;
 			}
 

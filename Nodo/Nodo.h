@@ -26,7 +26,7 @@
 
 /******************Constantes********************/
 #define PATH "/home/utnso/git/tp-2015-1c-milanesa/Nodo/NODO_CONFIG.config"
-#define LOG_FILE "/home/utnso/Job_log.txt"
+#define LOG_FILE "/home/utnso/git/tp-2015-1c-milanesa/Nodo/NODO_LOG.txt"
 #define PROCESO "Nodo"
 #define BUFF_SIZE 1024
 #define DISCO "/home/utnso/miarchivo.bin"
