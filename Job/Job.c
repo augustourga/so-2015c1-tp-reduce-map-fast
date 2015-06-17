@@ -100,9 +100,11 @@ void mostrarPorPantalla()
 int conexionMaRTA()
 {
 	char buffer[MAXSIZE];
-	marta_sock = obtener_socket();
+	//marta_sock = obtener_socket();
 	//Falta validar que la conexión no falle, el Procedimiento solo imprime por pantalla
-	conectar_socket(configuracion->puerto_marta,configuracion->ip_marta,marta_sock);
+	//conectar_socket(configuracion->puerto_marta,configuracion->ip_marta,marta_sock);
+	marta_sock = client_socket(configuracion->ip_marta, configuracion->puerto_marta);
+
 
 	log_debug(Log_job,buffer);
 
@@ -111,11 +113,11 @@ int conexionMaRTA()
 
 int HiloReduce(void* dato)
 {
-	int nodo_sock = obtener_socket();
 	t_msg* mensaje;
 	t_params_hiloMap* nodo =(t_params_hiloMap*)dato;
 
-	conectar_socket(nodo->puerto,nodo->ip,nodo_sock);
+	int nodo_sock = client_socket(nodo->ip, nodo->puerto);
+
 	mensaje = string_message(EJECUTAR_REDUCE,configuracion->reduce,0);
 	printf("JOB-TAMAÑO DEL REDUCE : %d",strlen(configuracion->reduce));//DENBUG
 	enviar_mensaje(nodo_sock,mensaje);
@@ -129,11 +131,10 @@ int HiloReduce(void* dato)
 
 int HiloMap(void* dato)
 {
-	int nodo_sock = obtener_socket();
 	t_msg* mensaje;
 	t_params_hiloMap* nodo =(t_params_hiloMap*)dato;
+	int nodo_sock = client_socket(nodo->puerto, nodo->ip);
 
-	conectar_socket(nodo->puerto,nodo->ip,nodo_sock);
 	mensaje = string_message(EJECUTAR_MAP,configuracion->mapper,0);
 	enviar_mensaje(nodo_sock,mensaje);
 	//ENVÍO ARCHIVO AL QUE SE APLICA EL MAP

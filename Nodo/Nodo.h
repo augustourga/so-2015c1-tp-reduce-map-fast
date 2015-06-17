@@ -17,8 +17,6 @@
 #include <commons/config.h>
 #include <commons/log.h>
 #include <pthread.h>
-#include <sockets.h>
-#include <serializacion.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <commons/collections/list.h>

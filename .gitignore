@@ -35,9 +35,5 @@
 # Log files
 *.log
 
-# Binary files
-Job/*/Job
-Nodo/*/Nodo
-FileSystem/*/FileSystem
-Marta/*/Marta
-
+# Debug
+Debug/

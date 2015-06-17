@@ -18,7 +18,6 @@
 #include <unistd.h>
 #include <libio.h>
 #include <string.h>
-#include <sockets.h>
 #include <sys/types.h>
 #include <utiles/auxiliares.h>
 //#include <db.h>

@@ -15,13 +15,13 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sockets.h>
 #include <commons/log.h>
 #include <pthread.h>
 #include <commons/config.h>
 #include <commons/collections/dictionary.h>
 #include <utiles/messages.h>
 #include <utiles/files.h>
+#include <utiles/sockets.h>
 
 /*********Constantes*****/
 #define CONFIG_PATH "/home/utnso/git/tp-2015-1c-milanesa/Job/Job.config"
@@ -33,7 +33,7 @@
 typedef struct
 {
 	char* ip_marta;
-	int puerto_marta;
+	uint16_t puerto_marta;
 	char** archivos;
 	char* resultado;
 	int combiner; //1 indica SI, 0 indica NO
@@ -45,7 +45,7 @@ typedef struct
 typedef struct
 {
 	char ip[15];
-	int puerto;
+	uint16_t puerto;
 	char* archivo;
 } t_params_hiloMap;
 
