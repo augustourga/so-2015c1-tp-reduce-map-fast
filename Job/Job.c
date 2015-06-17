@@ -133,7 +133,7 @@ int HiloMap(void* dato)
 {
 	t_msg* mensaje;
 	t_params_hiloMap* nodo =(t_params_hiloMap*)dato;
-	int nodo_sock = client_socket(nodo->puerto, nodo->ip);
+	int nodo_sock = client_socket(nodo->ip, nodo->puerto);
 
 	mensaje = string_message(EJECUTAR_MAP,configuracion->mapper,0);
 	enviar_mensaje(nodo_sock,mensaje);
