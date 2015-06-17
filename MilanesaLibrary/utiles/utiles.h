@@ -66,6 +66,7 @@ typedef enum {
 	FIN_MAP,
 	FIN_REDUCE,
 	CONEXION_JOB,
+	JOB_MARTA_ARCH,
 	ARCHIVO_JOB_MAP,
 	ARCHIVO_JOB_REDUCE,
 	FIN_ENVIO_ARCH,
@@ -112,6 +113,10 @@ int client_socket(char* ip, uint16_t port);
  */
 int accept_connection(int sock_fd);
 
+/*
+ * Convierte al socket en no bloqueante
+ */
+void make_socket_non_blocking(int sfd);
 /*
  * Recibe un t_msg a partir de un socket determinado.
  */

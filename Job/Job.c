@@ -9,13 +9,13 @@
 
 int main()
 {
-	t_direccion_proceso* nodo =(t_direccion_proceso*)malloc(sizeof(t_direccion_proceso));
+
 	Log_job = log_create(LOG_FILE,PROCESO,1,LOG_LEVEL_TRACE);
 	if(obtenerConfiguracion())
 	{
 		log_error(Log_job,"Hubo errores en la carga de las configuraciones.");
 	}
-	mostrarPorPantalla();// DEBUGGING
+	//mostrarPorPantalla();// DEBUGGING
 
 	if(!conexionMaRTA())
 	{
@@ -27,20 +27,27 @@ int main()
 		return -12;
 	}
 
-	enviar_mensaje_inicial_marta();
+	handshake_marta();
 
 	while(1){
 		mensaje_actual = recibir_mensaje(marta_sock);
-		memcpy(nodo->ip,mensaje_actual->stream,15);
-		nodo->puerto = mensaje_actual->argv[0];
+
 		if(mensaje_actual->header.id == EJECUTAR_REDUCE)
 		{
-			levantar_hilo_reduce(nodo);
+			//levantar_hilo_reduce(params);
 
 		}
 		if(mensaje_actual->header.id == EJECUTAR_MAP)
 		{
-			levantar_hilo_mapper(nodo);
+			t_params_hiloMap* params =(t_params_hiloMap*)malloc(sizeof(t_params_hiloMap));
+			memcpy(params->ip,mensaje_actual->stream,15);
+			params->puerto = mensaje_actual->argv[0];
+
+			destroy_message(mensaje_actual);
+			mensaje_actual =recibir_mensaje(marta_sock);
+			params->archivo= malloc(strlen(mensaje_actual->stream)+1);
+			strcpy(params->archivo,mensaje_actual->stream);
+			levantar_hilo_mapper(params);
 
 		}
 	}
@@ -106,7 +113,7 @@ int HiloReduce(void* dato)
 {
 	int nodo_sock = obtener_socket();
 	t_msg* mensaje;
-	t_direccion_proceso* nodo =(t_direccion_proceso*)dato;
+	t_params_hiloMap* nodo =(t_params_hiloMap*)dato;
 
 	conectar_socket(nodo->puerto,nodo->ip,nodo_sock);
 	mensaje = string_message(EJECUTAR_REDUCE,configuracion->reduce,0);
@@ -124,25 +131,16 @@ int HiloMap(void* dato)
 {
 	int nodo_sock = obtener_socket();
 	t_msg* mensaje;
-	t_direccion_proceso* nodo =(t_direccion_proceso*)dato;
+	t_params_hiloMap* nodo =(t_params_hiloMap*)dato;
 
 	conectar_socket(nodo->puerto,nodo->ip,nodo_sock);
 	mensaje = string_message(EJECUTAR_MAP,configuracion->mapper,0);
+	enviar_mensaje(nodo_sock,mensaje);
+	//ENVÍO ARCHIVO AL QUE SE APLICA EL MAP
+	destroy_message(mensaje);
+	mensaje= string_message(ARCHIVO_JOB_MAP,nodo->archivo,0);
 
 	enviar_mensaje(nodo_sock,mensaje);
-
-	int i;
-	for(i=0;i<configuracion->cant_archivos;i++)
-	{
-		//ENVÍO TODOS LOS ARCHIVOS
-		destroy_message(mensaje);
-		mensaje = string_message(ARCHIVO_JOB_MAP,configuracion->archivos[i],0);
-		enviar_mensaje(nodo_sock,mensaje);
-	}
-	//ENVÍO FIN DE ARCHIVOS
-	destroy_message(mensaje);
-	mensaje= id_message(FIN_ENVIO_ARCH);
-
 
 
 	mensaje = recibir_mensaje(nodo_sock);
@@ -152,27 +150,41 @@ int HiloMap(void* dato)
 	//Se reenvía el resultado del map a marta
 	enviar_mensaje(marta_sock,mensaje);
 	destroy_message(mensaje);
+
+	shutdown(nodo_sock,2);
 	return 0;
 
 	//ELIMINAR THREAD
 }
 
-int enviar_mensaje_inicial_marta()
+int handshake_marta()
 {
 
-//	int i;
-	t_msg* mensaje_conexion_marta = id_message(CONEXION_JOB);//,1,configuracion->archivos[0]);
-//	for(i=1;i<configuracion->cant_archivos;i++)
-//	{
-//		mensaje_conexion_marta = modify_message(CONEXION_JOB,mensaje_conexion_marta,i+1,configuracion->archivos[i]);
-//
-//	}
+	int i;
+	t_msg* mensaje = id_message(CONEXION_JOB);//,1,configuracion->archivos[0]);
+ 	enviar_mensaje(marta_sock,mensaje);
+	for(i=0;i<configuracion->cant_archivos;i++)
+	{
+		//ENVÍO TODOS LOS ARCHIVOS
+		destroy_message(mensaje);
+		mensaje = string_message(CONEXION_JOB,configuracion->archivos[i],0);
+		enviar_mensaje(marta_sock,mensaje);
+	}
+	//ENVÍO EL FIN DE ARCHIVOS
+	destroy_message(mensaje);
+	enviar_mensaje(marta_sock,id_message(FIN_ENVIO_ARCH));
 
- 	enviar_mensaje(marta_sock,mensaje_conexion_marta);
+	destroy_message(mensaje);
+	mensaje = recibir_mensaje(marta_sock);
+	if(mensaje->header.id==FIN_ENVIO_ARCH)
+	{
+		log_trace(Log_job,"Enviados los archivos a Marta con éxito.");
+	}
+
 	return 0;
 }
 
-int levantar_hilo_mapper(t_direccion_proceso* nodo)
+int levantar_hilo_mapper(t_params_hiloMap* nodo)
 {
 	th_hilo_map = malloc(sizeof(pthread_t));
 	int dato = pthread_create(th_hilo_map, NULL, (void *) HiloMap,
@@ -185,7 +197,7 @@ int levantar_hilo_mapper(t_direccion_proceso* nodo)
 				return 0;
 }
 
-int levantar_hilo_reduce(t_direccion_proceso* nodo)
+int levantar_hilo_reduce(t_params_hiloMap* nodo)
 {
 	th_hilo_reduce = malloc(sizeof(pthread_t));
 	int dato = pthread_create(th_hilo_reduce, NULL, (void *) HiloMap,

@@ -45,7 +45,8 @@ typedef struct
 {
 	char ip[15];
 	int puerto;
-} t_direccion_proceso;
+	char* archivo;
+} t_params_hiloMap;
 
 
 int obtenerConfiguracion();
@@ -54,9 +55,9 @@ void mostrarPorPantalla();
 int conexionMaRTA();
 int HiloMap(void*);
 int HiloReduce(void*);
-int enviar_mensaje_inicial_marta();
-int levantar_hilo_mapper(t_direccion_proceso* nodo);
-int levantar_hilo_reduce(t_direccion_proceso* nodo);
+int handshake_marta();
+int levantar_hilo_mapper(t_params_hiloMap* nodo);
+int levantar_hilo_reduce(t_params_hiloMap* nodo);
 
 /*********Variables globales******************/
 t_Datos_configuracion* configuracion;

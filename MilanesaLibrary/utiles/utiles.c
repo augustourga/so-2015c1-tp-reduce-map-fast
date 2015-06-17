@@ -38,7 +38,6 @@ int server_socket(uint16_t port)
 	return sock_fd;
 }
 
-
 int client_socket(char *ip, uint16_t port)
 {
 	int sock_fd;
@@ -66,7 +65,6 @@ int client_socket(char *ip, uint16_t port)
 	return sock_fd;
 }
 
-
 int accept_connection(int sock_fd)
 {
 	struct sockaddr_in clientname;
@@ -79,6 +77,22 @@ int accept_connection(int sock_fd)
 	}	
 
 	return new_fd;
+}
+
+void make_socket_non_blocking(int sfd)
+{
+	int flags = fcntl(sfd, F_GETFL, 0);
+	if (flags == -1) {
+		perror("fcntl");
+		exit(EXIT_FAILURE);
+	}
+
+	flags |= O_NONBLOCK;
+
+	if (fcntl(sfd, F_SETFL, flags) == -1) {
+		perror("fcntl");
+		exit(EXIT_FAILURE);
+	}
 }
 
 
@@ -613,6 +627,21 @@ char *id_string(t_msg_id id)
 			break;
 		case FIN_REDUCE:
 			buf = strdup("FIN_REDUCE");
+		    break;
+		case CONEXION_JOB:
+			buf = strdup("CONEXION_JOB");
+		    break;
+		case JOB_MARTA_ARCH:
+			buf = strdup("JOB_MARTA_ARCH");
+		    break;
+		case ARCHIVO_JOB_MAP:
+			buf = strdup("ARCHIVO_JOB_MAP");
+		    break;
+		case ARCHIVO_JOB_REDUCE:
+			buf = strdup("ARCHIVO_JOB_REDUCE");
+		    break;
+		case FIN_ENVIO_ARCH:
+			buf = strdup("FIN_ENVIO_ARCH");
 		    break;
 	    case GET_BLOQUE:
 		    buf = strdup("GET_BLOQUE");
