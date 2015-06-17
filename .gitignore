@@ -3,6 +3,7 @@
 *.ko
 *.obj
 *.elf
+*.d
 
 # Precompiled Headers
 *.gch
@@ -32,4 +33,11 @@
 *.dSYM/
 
 # Log files
-log
+*.log
+
+# Binary files
+Job/*/Job
+Nodo/*/Nodo
+FileSystem/*/FileSystem
+Marta/*/Marta
+
