@@ -8,6 +8,7 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include src/subdir.mk
 -include subdir.mk
 -include objects.mk
 
@@ -25,13 +26,13 @@ endif
 all: FileSystem
 
 dependents:
-	-cd /home/utnso/projects/tp-2015-1c-milanesa/MilanesaLibrary/Debug && $(MAKE) all
+	-cd /home/utnso/workspace/tp-2015-1c-milanesa/MilanesaLibrary/Debug && $(MAKE) clean all
 
 # Tool invocations
-FileSystem: $(OBJS) $(USER_OBJS) /home/utnso/projects/tp-2015-1c-milanesa/MilanesaLibrary/Debug/libMilanesaLibrary.so
+FileSystem: $(OBJS) $(USER_OBJS) /home/utnso/workspace/tp-2015-1c-milanesa/MilanesaLibrary/Debug/libMilanesaLibrary.so
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
-	gcc -L"/home/utnso/projects/tp-2015-1c-milanesa/MilanesaLibrary/Debug" -o "FileSystem" $(OBJS) $(USER_OBJS) $(LIBS)
+	gcc -L"/home/utnso/workspace/tp-2015-1c-milanesa/MilanesaLibrary/Debug" -o "FileSystem" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -42,6 +43,6 @@ clean:
 
 .PHONY: all clean dependents
 .SECONDARY:
-/home/utnso/projects/tp-2015-1c-milanesa/MilanesaLibrary/Debug/libMilanesaLibrary.so:
+/home/utnso/workspace/tp-2015-1c-milanesa/MilanesaLibrary/Debug/libMilanesaLibrary.so:
 
 -include ../makefile.targets

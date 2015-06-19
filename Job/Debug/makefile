@@ -25,13 +25,13 @@ endif
 all: Job
 
 dependents:
-	-cd /home/utnso/projects/tp-2015-1c-milanesa/MilanesaLibrary/Debug && $(MAKE) all
+	-cd /home/utnso/workspace/tp-2015-1c-milanesa/MilanesaLibrary/Debug && $(MAKE) clean all
 
 # Tool invocations
-Job: $(OBJS) $(USER_OBJS) /home/utnso/projects/tp-2015-1c-milanesa/MilanesaLibrary/Debug/libMilanesaLibrary.so
+Job: $(OBJS) $(USER_OBJS) /home/utnso/workspace/tp-2015-1c-milanesa/MilanesaLibrary/Debug/libMilanesaLibrary.so
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
-	gcc -L"/home/utnso/projects/tp-2015-1c-milanesa/MilanesaLibrary/Debug" -o "Job" $(OBJS) $(USER_OBJS) $(LIBS)
+	gcc -L"/home/utnso/workspace/tp-2015-1c-milanesa/MilanesaLibrary/Debug" -o "Job" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -42,6 +42,6 @@ clean:
 
 .PHONY: all clean dependents
 .SECONDARY:
-/home/utnso/projects/tp-2015-1c-milanesa/MilanesaLibrary/Debug/libMilanesaLibrary.so:
+/home/utnso/workspace/tp-2015-1c-milanesa/MilanesaLibrary/Debug/libMilanesaLibrary.so:
 
 -include ../makefile.targets
