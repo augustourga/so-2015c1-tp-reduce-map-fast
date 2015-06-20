@@ -27,14 +27,14 @@ void realizar_handshake_job(int sock_job) {
 
 	mensaje = recibir_mensaje(sock_job);
 
-	while (mensaje->header.id != FIN_ENVIO_ARCH) {
+	while (mensaje->header.id != FIN_ENVIO_MENSAJE) {
 		HacerMagiaConArchivo(mensaje->stream);
 		destroy_message(mensaje);
 		mensaje = recibir_mensaje(sock_job);
 
 	}
 	destroy_message(mensaje);
-	enviar_mensaje(sock_job, id_message(FIN_ENVIO_ARCH));
+	enviar_mensaje(sock_job, id_message(FIN_ENVIO_MENSAJE));
 	destroy_message(mensaje);
 }
 
@@ -127,7 +127,7 @@ void conexion_job(int sock_job) {
 	while (1) {
 		enviar_mensaje(sock_job, mensaje = string_message(EJECUTAR_MAP, "127.0.0.1", 1, 6545));
 		destroy_message(mensaje);
-		mensaje = string_message(ARCHIVO_JOB_MAP, nombre_archivo, 0);
+		//mensaje = string_message(ARCHIVO_JOB_MAP, nombre_archivo, 0);
 		enviar_mensaje(sock_job, mensaje);
 		mensaje = recibir_mensaje(sock_job);
 		print_msg(mensaje);

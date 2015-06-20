@@ -15,23 +15,49 @@
 
 typedef enum {
 	NO_NEW_ID, // Valor centinela para evitar la modificación de id en modify_message()
-	/*************************JOB*******************************/
-	EJECUTAR_MAP,
-	EJECUTAR_REDUCE,
-	FIN_MAP,
-	FIN_REDUCE,
-	CONEXION_JOB,
-	JOB_MARTA_ARCH,
-	ARCHIVO_JOB_MAP,
-	ARCHIVO_JOB_REDUCE,
-	FIN_ENVIO_ARCH,
+	FIN_ENVIO_MENSAJE,
+	/*************************JOB*****************************/
+	//Funciones de map y reduce
+	RUTINA,					//Stream de la rutina
+	CONEXION_JOB,			//El job se conecta a MaRTA y le envía la tarea a ejecutar
+							//archivo_final | archivo1 | archivo2 ..., combiner
+
+	EJECUTAR_MAP,			//Marta a Job: Ip | nombre_arch_temp, puerto Id_op (autogenerado), numero bloque
+							//Job a Nodo nombre_arch_temp, numero_bloque
+	FIN_MAP_OK,				//Id_op
+	FIN_MAP_ERROR,			//Id_op
+
+	EJECUTAR_REDUCE,		//Marta a Job: Ip | nombre_arch_temp, puerto Id_op (autogenerado)
+							//Job a Nodo nombre_arch_temp
+	ARCHIVOS_NODO_REDUCE,	//Marta a Job: Ip | archivos1 | archivo2 ..., puerto
+	FIN_REDUCE_OK,			//Id_op
+	FIN_REDUCE_ERROR,		//Id_op
+
 	/***********************NODO******************************/
-	NODO_MAP,
-	NODO_REDUCE,
-	SET_BLOQUE,
-	GET_BLOQUE,
-	GET_FILE_CONTENT,
-	INFO_NODO
+	CONEXION_NODO,			//Nodo se conecta al MDFS y le pasa su info
+
+	GET_BLOQUE,				//Numero bloque
+	GET_BLOQUE_OK,
+	GET_BLOQUE_ERROR,
+
+	SET_BLOQUE,				//Numero bloque, datos
+	SET_BLOQUE_OK,
+	SET_BLOQUE_ERROR,
+
+	GET_FILE_CONTENT,		//Nombre del archivo temporal
+	GET_FILE_CONTENT_OK,
+	GET_FILE_CONTENT_ERROR,
+
+	/***********************Filesystem***************************/
+	CONEXION_MARTA,				//
+	CONEXION_MARTA_OK,			//
+	CONEXION_MARTA_ERROR,
+
+	MDFS_NO_OPERATIVO,			//El mdfs no está operativo todavía
+
+	INFO_ARCHIVO,				//Marta le pide al mdfs info sobre un archivo
+	INFO_ARCHIVO_OK,			//Mdfs devuelve la info
+	INFO_ARCHIVO_ERROR
 
 } t_msg_id;
 

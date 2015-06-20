@@ -68,7 +68,7 @@ int levantarHiloFile() {
 void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 
 	reg_conexion->sock_fs = client_socket(IP_FS, PUERTO_FS);
-	t_msg* mensaje = argv_message(INFO_NODO, 2, NODO_NUEVO, NODO_ID);
+	t_msg* mensaje = argv_message(CONEXION_NODO, 2, NODO_NUEVO, NODO_ID);
 	enviar_mensaje(reg_conexion->sock_fs, mensaje);
 	destroy_message(mensaje);
 
@@ -204,7 +204,7 @@ void *atenderConexiones(void *parametro) {
 				 */
 				ejecutar_map(codigo->stream, codigo->argv[0], mensaje2->stream);
 				destroy_message(mensaje2);
-				mensaje2=id_message(FIN_MAP);
+				mensaje2=id_message(FIN_MAP_OK);
 				enviar_mensaje(sock_conexion,mensaje2);
 				destroy_message(mensaje2);
 				destroy_message(codigo);
@@ -221,14 +221,14 @@ void *atenderConexiones(void *parametro) {
 				destroy_message(codigo);
 				mensaje2=recibir_mensaje(sock_conexion);
 
-				while(mensaje2->header.id!=FIN_ENVIO_ARCH){
+				while(mensaje2->header.id!=FIN_ENVIO_MENSAJE){
 					//guardar el archivo que viene en el .stream en
 					//guardo el tamanio del archivo en tamanioArchivo
 				   char*NOMBRE_ARCHIVO=mensaje2->stream;
                    //Job me manda el ip y puerto del nodo, si es INFO_NODO es otro nodo
 				   //
 				   codigo=recibir_mensaje(sock_conexion);
-                   if(codigo->header.id==INFO_NODO){
+                   if(codigo->header.id==CONEXION_NODO){
                 	   char*IP_NODO=codigo->stream;
                 	   int PUERTO_NODO=codigo->argv[0];
                 	   int SOCK_NODO=client_socket(IP_NODO, PUERTO_NODO);
@@ -243,7 +243,7 @@ void *atenderConexiones(void *parametro) {
 
 				}
 				destroy_message(mensaje2);
-				mensaje2=id_message(FIN_REDUCE);
+				mensaje2=id_message(FIN_REDUCE_OK);
 				enviar_mensaje(sock_conexion,mensaje2);
 				destroy_message(mensaje2);
 				break;
