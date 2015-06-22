@@ -308,8 +308,8 @@ char* crear_Espacio_Datos(int NUEVO, char* ARCHIVO, char* RUT) {
 		direccion = file_get_mapped(path);
 
 	} else {
-		direccion = file_combine(RUT, ARCHIVO);
-
+		path = file_combine(RUT, ARCHIVO);
+        direccion =file_get_mapped(path);
 	}
 	return direccion;
 }

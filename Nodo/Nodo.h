@@ -22,7 +22,7 @@
 #include <commons/collections/list.h>
 #include <utiles/messages.h>
 #include <utiles/auxiliares.h>
-
+#include <utiles/files.h>
 /******************Constantes********************/
 #define PATH "/home/utnso/git/tp-2015-1c-milanesa/Nodo/NODO_CONFIG.config"
 #define LOG_FILE "/home/utnso/git/tp-2015-1c-milanesa/Nodo/NODO_LOG.txt"
