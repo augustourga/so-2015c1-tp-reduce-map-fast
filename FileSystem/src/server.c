@@ -3,10 +3,6 @@
 t_list* lista_get_bloque;
 t_list* lista_set_bloque;
 
-struct arg_struct {
-	char* puerto_listen;
-};
-
 void iniciar_server(void* argumentos) {
 
 	lista_get_bloque = list_create();

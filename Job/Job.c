@@ -139,7 +139,7 @@ int HiloMap(void* dato)
 	enviar_mensaje(nodo_sock,mensaje);
 	//ENVÍO ARCHIVO AL QUE SE APLICA EL MAP
 	destroy_message(mensaje);
-	mensaje= string_message(ARCHIVO_JOB_MAP,nodo->archivo,0);
+	//mensaje= string_message(ARCHIVO_JOB_MAP,nodo->archivo,0);
 
 	enviar_mensaje(nodo_sock,mensaje);
 
@@ -173,11 +173,11 @@ int handshake_marta()
 	}
 	//ENVÍO EL FIN DE ARCHIVOS
 	destroy_message(mensaje);
-	enviar_mensaje(marta_sock,id_message(FIN_ENVIO_ARCH));
+	enviar_mensaje(marta_sock,id_message(FIN_ENVIO_MENSAJE));
 
 	destroy_message(mensaje);
 	mensaje = recibir_mensaje(marta_sock);
-	if(mensaje->header.id==FIN_ENVIO_ARCH)
+	if(mensaje->header.id==FIN_ENVIO_MENSAJE)
 	{
 		log_trace(Log_job,"Enviados los archivos a Marta con éxito.");
 	}
@@ -208,6 +208,6 @@ int levantar_hilo_reduce(t_params_hiloMap* nodo)
 							"El thread reduce no pudo ser creado.");
 					return EXIT_FAILURE;
 				}
-				return 0;
+	return 0;
 }
 

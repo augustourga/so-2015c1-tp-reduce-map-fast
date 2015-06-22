@@ -37,3 +37,6 @@
 
 # Debug
 Debug/
+
+# DB
+*.db

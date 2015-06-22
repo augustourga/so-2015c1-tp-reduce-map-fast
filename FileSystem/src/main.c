@@ -2,29 +2,52 @@
 #include "consola.h"
 #include "database.h"
 #include "server.h"
-#include "config.h"
 #include <pthread.h>
+#include <commons/config.h>
+#include <stddef.h>
+#include <utiles/log.h>
 
+#define ARCHIVO_CONFIG "./files/config_file_system.cfg"
 #define RUTA_LOG "files/log"
 
-struct arg_struct {
-	char* puerto_listen;
-};
+char* PUERTO_LISTEN;
+int CANTIDAD_NODOS;
 
-int main(int argc, char* argv[]) {
-	char* puerto_listen;
-	char* cantidad_nodos;
+void levantar_configuracion() {
+	t_config* config;
+	config = config_create(ARCHIVO_CONFIG);
 
-	log_crear(argv[1], RUTA_LOG, "FileSystem");
+	if (config == NULL) {
+		log_error_consola("No se pudo abrir el archivo de configuración");
+		exit(1);
+	}
+	log_debug_consola("Leyendo archivo de configuración");
+	if (config_has_property(config, "PUERTO_LISTEN")) {
+		PUERTO_LISTEN = config_get_string_value(config, "PUERTO_LISTEN");
+	} else {
+		log_error_consola(
+				"El archivo de configuración debe tener un PUERTO_LISTEN");
+		exit(1);
+	}
+	if (config_has_property(config, "CANTIDAD_NODOS")) {
+		CANTIDAD_NODOS = config_get_int_value(config, "CANTIDAD_NODOS");
+	} else {
+		log_error_consola(
+				"El archivo de configuración debe tener una CANTIDAD_NODOS");
+		exit(1);
+	}
+	log_info_consola("Archivo de configuración cargado correctamente");
+	config_destroy(config);
+}
 
-	leer_archivo_configuracion(&puerto_listen, &cantidad_nodos);
+int main(void) {
+	log_crear("LOG_LEVEL_INFO", RUTA_LOG, "FileSystem");
 
+	levantar_configuracion();
 	struct arg_struct args;
-	args.puerto_listen = puerto_listen;
+	args.puerto_listen = PUERTO_LISTEN;
 
-	int cantidad_nodos_minima = strtol(cantidad_nodos, NULL, 10);
-
-	inicializar_filesystem(false, cantidad_nodos_minima);
+	inicializar_filesystem(false, CANTIDAD_NODOS);
 
 	pthread_t th_server;
 	pthread_create(&th_server, NULL, (void *) iniciar_server, (void*) &args);
@@ -33,6 +56,5 @@ int main(int argc, char* argv[]) {
 	pthread_create(&th_consola, NULL, (void *) iniciar_consola, NULL);
 
 	pthread_join(th_consola, NULL);
-
 	return 0;
 }

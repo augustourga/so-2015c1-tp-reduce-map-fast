@@ -8,6 +8,10 @@
 #ifndef SRC_SERVER_H_
 #define SRC_SERVER_H_
 
+struct arg_struct {
+	char* puerto_listen;
+};
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

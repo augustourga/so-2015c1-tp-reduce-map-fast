@@ -261,12 +261,10 @@ int listar_hijos(char* ruta_directorio) {
 
 int mostrar_ayuda(char* parametro) {
 	if (parametro == NULL) {
-		//TODO: mostrar_ayuda
-		puts("La ayuda");
+		puts("Accion 			=> Comando\n---------------------	=> -----------------\nFORMATEAR 		=> formatear\nELIMINAR ARCHIVO 	=> rm archivo\nRENOMBRAR ARCHIVO 	=> cn archivo\nMOVER ARCHIVO 		=> mv archivo\nCREAR DIRECTORIO 	=> mk directorio\nELIMINAR DIRECTORIO 	=> rm directorio\nRENOMBRAR DIRECTORIO 	=> cn directorio\nMOVER DIRECTORIO 	=> mv directorio\nCOPIAR MDFS LOCAL 	=> cp mdfs local\nCOPIAR LOCAL MDFS 	=> cp local mdfs\nMD5 			=> md5\nVER BLOQUE 		=> ls bloque archivo\nBORRAR BLOQUE 		=> rm bloque\nCOPIAR BLOQUE 		=> cp bloque\nAGREGAR NODO 		=> ag nodo\nELIMINAR NODO 		=> rm nodo\nLISTAR 			=> ls\nLISTAR NODOS 		=> ls nodo\nDT 			=> dt\nDF 			=> df");
 	} else {
 		printf("La ayuda de comando %s\n", parametro);
 	}
-
 	return 0;
 }
 

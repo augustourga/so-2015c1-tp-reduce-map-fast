@@ -62,6 +62,7 @@ t_msg *string_message(t_msg_id id, char *message, uint16_t count, ...) {
 	return new;
 }
 
+//TODO: Borrar si no se usa
 t_msg *modify_message(t_msg_id new_id, t_msg *old_msg, uint16_t new_count, ...) {
 	va_list arguments;
 	va_start(arguments, new_count);
@@ -241,34 +242,13 @@ char *id_string(t_msg_id id) {
 	case EJECUTAR_MAP:
 		buf = strdup("EJECUTAR_MAP");
 		break;
-	case NODO_MAP:
-		buf = strdup("NODO_MAP");
-		break;
 	case EJECUTAR_REDUCE:
 		buf = strdup("EJECUTAR_REDUCE");
-		break;
-	case NODO_REDUCE:
-		buf = strdup("NODO_REDUCE");
-		break;
-	case FIN_MAP:
-		buf = strdup("FIN_MAP");
-		break;
-	case FIN_REDUCE:
-		buf = strdup("FIN_REDUCE");
 		break;
 	case CONEXION_JOB:
 		buf = strdup("CONEXION_JOB");
 		break;
-	case JOB_MARTA_ARCH:
-		buf = strdup("JOB_MARTA_ARCH");
-		break;
-	case ARCHIVO_JOB_MAP:
-		buf = strdup("ARCHIVO_JOB_MAP");
-		break;
-	case ARCHIVO_JOB_REDUCE:
-		buf = strdup("ARCHIVO_JOB_REDUCE");
-		break;
-	case FIN_ENVIO_ARCH:
+	case FIN_ENVIO_MENSAJE:
 		buf = strdup("FIN_ENVIO_ARCH");
 		break;
 	case GET_BLOQUE:
@@ -277,7 +257,7 @@ char *id_string(t_msg_id id) {
 	case SET_BLOQUE:
 		buf = strdup("SET_BLOQUE");
 		break;
-	case INFO_NODO:
+	case CONEXION_NODO:
 		buf = strdup("INFO_NODO");
 		break;
 	case GET_FILE_CONTENT:
