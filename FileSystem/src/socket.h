@@ -21,9 +21,6 @@
 
 void socket_bind(int listen_socket, struct addrinfo* server_info);
 int socket_listen(char* puerto_listen);
-t_paquete* socket_recibir(int socket, int* cant_bytes);
 int socket_conectado(int socket);
-t_paquete* socket_recv_all(int socket, int* cant_bytes, int largo_mensaje);
-int socket_send_all(int socket, t_paquete* paquete);
 
 #endif /* SOCKET_H_ */
