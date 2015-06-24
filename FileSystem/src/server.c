@@ -1,12 +1,6 @@
 #include "server.h"
 
-t_list* lista_get_bloque;
-t_list* lista_set_bloque;
-
 void iniciar_server(void* argumentos) {
-
-	lista_get_bloque = list_create();
-	lista_set_bloque = list_create();
 
 	struct arg_struct *args = argumentos;
 
@@ -18,7 +12,6 @@ void iniciar_server(void* argumentos) {
 	int newfd;        	   // newly accept()ed socket descriptor
 	int socket_actual;
 	int socket_marta = 0;
-	int cant_bytes;
 
 	struct sockaddr_storage addr_client; // client address
 	socklen_t addrlen;
@@ -41,7 +34,6 @@ void iniciar_server(void* argumentos) {
 		if (select(fdmax + 1, &read_fds, NULL, NULL, NULL) == -1) {
 			log_error_consola("Falló el select");
 			perror("Falló el select. Error");
-			exit(3);
 		}
 
 		// run through the existing connections looking for data to read
@@ -50,7 +42,8 @@ void iniciar_server(void* argumentos) {
 				if (socket_actual == listen_socket) {
 					// handle new connections
 					addrlen = sizeof addr_client;
-					newfd = accept(listen_socket, (struct sockaddr *) &addr_client, &addrlen);
+					newfd = accept(listen_socket,
+							(struct sockaddr *) &addr_client, &addrlen);
 					if (newfd == -1) {
 						log_error_consola("Falló el accept");
 						perror("Falló el accept. Error");
@@ -60,8 +53,8 @@ void iniciar_server(void* argumentos) {
 							fdmax = newfd;
 						}
 
-						t_paquete* mensaje = socket_recibir(newfd, &cant_bytes);
-						if (mensaje->cod_op == MARTA_HANDSHAKE) {
+						t_msg* mensaje = recibir_mensaje(newfd);
+						if (mensaje->header.id == CONEXION_MARTA) {
 							socket_marta = newfd;
 						}
 						decodificar_mensaje(mensaje, newfd);
@@ -71,7 +64,7 @@ void iniciar_server(void* argumentos) {
 					manejar_desconexion(socket_actual);
 					FD_CLR(socket_actual, &master);
 				} else if (socket_actual == socket_marta) {
-					t_paquete* mensaje = socket_recibir(newfd, &cant_bytes);
+					t_msg* mensaje = recibir_mensaje(newfd);
 					decodificar_mensaje(mensaje, newfd);
 					free(mensaje);
 				}
@@ -80,14 +73,14 @@ void iniciar_server(void* argumentos) {
 	}
 }
 
-void decodificar_mensaje(t_paquete* mensaje, int socket) {
+void decodificar_mensaje(t_msg* mensaje, int socket) {
 	extern int filesystem_operativo;
 
-	switch (mensaje->cod_op) {
-	case NODO_HANDSHAKE:
-		registrar_nodo(nodo_deserealizar_socket(mensaje->data, socket));
+	switch (mensaje->header.id) {
+	case CONEXION_NODO:
+		registrar_nodo(nodo_deserealizar_socket(mensaje->stream, socket));
 		break;
-	case MARTA_HANDSHAKE:
+	case CONEXION_MARTA:
 		if (filesystem_operativo) {
 
 		}
@@ -98,7 +91,7 @@ void decodificar_mensaje(t_paquete* mensaje, int socket) {
 			//socket_send_all(socket, respuesta);
 		}
 		break;
-	case COPIAR_ARCHIVO:
+	case GET_FILE_CONTENT:
 		if (filesystem_operativo) {
 			//char* respuesta = copiar_archivo_temporal_a_mdfs(mensaje); //TODO: copiar_archivo_temporal_a_mdfs
 			//socket_send_all(socket, respuesta);
@@ -122,24 +115,23 @@ char* mensaje_get_bloque(void* argumentos) {
 
 	int bloque = args->bloque_nodo;
 	int socket = args->socket;
-	int cant_bytes;
 	int offset = 0;
 	int bytes_a_copiar;
 
-	t_paquete* paquete_solicitud = mensaje_serializado_get_bloque(bloque);
-	socket_send_all(socket, paquete_solicitud);
-	t_paquete* respuesta = socket_recibir(socket, &cant_bytes);
+	t_msg* msg_solicitud = argv_message(GET_BLOQUE, 1, bloque);
+	enviar_mensaje(socket, msg_solicitud);
+	t_msg* respuesta = recibir_mensaje(socket);
 
-	switch (respuesta->cod_op) {
-	case GET_BLOQUE_FAIL:
+	switch (respuesta->header.id) {
+	case SET_BLOQUE_ERROR:
 		log_error_interno("No se pudo obtener el bloque");
 		return stream_bloque;
 		break;
 	case GET_BLOQUE_OK:
-		stream_bloque = malloc(respuesta->largo_data);
-		bytes_a_copiar = respuesta->largo_data;
-		memcpy(stream_bloque, respuesta->data + offset, bytes_a_copiar);
-		free(respuesta->data);
+		stream_bloque = malloc(respuesta->header.length);
+		bytes_a_copiar = respuesta->header.length;
+		memcpy(stream_bloque, respuesta->stream + offset, bytes_a_copiar);
+		free(respuesta->stream);
 
 		return stream_bloque;
 		break;
@@ -156,16 +148,14 @@ int mensaje_set_bloque(void* argumentos) {
 
 	int bloque = args->bloque_nodo;
 	int socket = args->socket;
-	int largo_chunk = args->largo_chunk;
 	char* chunk = args->chunk;
-	int cant_bytes;
 
-	t_paquete* paquete_solicitud = mensaje_serializado_set_bloque(bloque, chunk, largo_chunk);
-	socket_send_all(socket, paquete_solicitud);
-	t_paquete* respuesta = socket_recibir(socket, &cant_bytes);
+	t_msg* msg_solicitud = string_message(SET_BLOQUE, chunk, 1, bloque);
+	enviar_mensaje(socket, msg_solicitud);
+	t_msg* respuesta = recibir_mensaje(socket);
 
-	switch (respuesta->cod_op) {
-	case SET_BLOQUE_FAIL:
+	switch (respuesta->header.id) {
+	case SET_BLOQUE_ERROR:
 		log_error_interno("No se pudo obtener el bloque");
 		return 1;
 		break;
@@ -177,38 +167,3 @@ int mensaje_set_bloque(void* argumentos) {
 		return 2;
 	}
 }
-
-t_paquete* mensaje_serializado_get_bloque(int numero_bloque) {
-
-	t_paquete* paquete = malloc(sizeof(t_paquete));
-
-	paquete->cod_op = GET_BLOQUE;
-	paquete->largo_data = sizeof(numero_bloque);
-
-	paquete->data = malloc(paquete->largo_data);
-	memcpy(paquete->data, &numero_bloque, sizeof(numero_bloque));
-
-	return paquete;
-
-}
-
-t_paquete* mensaje_serializado_set_bloque(int numero_bloque, char* chunk, int largo_chunk) {
-
-	t_paquete* paquete = malloc(sizeof(t_paquete));
-
-	paquete->cod_op = SET_BLOQUE;
-	paquete->largo_data = sizeof(numero_bloque) + sizeof(largo_chunk) + largo_chunk;
-
-	paquete->data = malloc(paquete->largo_data);
-
-	int offset = 0;
-
-	paquete_serializar(paquete->data, &numero_bloque, sizeof(numero_bloque), &offset);
-
-	paquete_serializar(paquete->data, &largo_chunk, sizeof(largo_chunk), &offset);
-
-	paquete_serializar(paquete->data, chunk, largo_chunk, &offset);
-
-	return paquete;
-}
-
