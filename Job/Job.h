@@ -19,12 +19,14 @@
 #include <pthread.h>
 #include <commons/config.h>
 #include <commons/collections/dictionary.h>
+#include <commons/string.h>
+#include <commons/collections/queue.h>
 #include <utiles/messages.h>
 #include <utiles/files.h>
 #include <utiles/sockets.h>
 
 /*********Constantes*****/
-#define CONFIG_PATH "/home/utnso/git/tp-2015-1c-milanesa/Job/Job.config"
+#define CONFIG_PATH "/home/augusto/workspace/tp-2015-1c-milanesa/Job/Job.config"
 #define LOG_FILE "/home/utnso/Job_log.txt"
 #define PROCESO "Job"
 #define MAXSIZE 1024
@@ -34,20 +36,30 @@ typedef struct
 {
 	char* ip_marta;
 	uint16_t puerto_marta;
-	char** archivos;
+	char* archivos;
 	char* resultado;
 	int combiner; //1 indica SI, 0 indica NO
 	char* mapper;
 	char* reduce;
-	int cant_archivos;
 } t_Datos_configuracion;
 
 typedef struct
 {
 	char ip[15];
 	uint16_t puerto;
-	char* archivo;
+	char* archivo_final;
+	int id_operacion;
+	int bloque;
 } t_params_hiloMap;
+
+typedef struct
+{
+	char ip[15];
+	uint16_t puerto;
+	char* archivo_final;
+	int id_operacion;
+	t_queue* archivos_tmp;
+} t_params_hiloReduce;
 
 
 int obtenerConfiguracion();
@@ -58,7 +70,7 @@ int HiloMap(void*);
 int HiloReduce(void*);
 int handshake_marta();
 int levantar_hilo_mapper(t_params_hiloMap* nodo);
-int levantar_hilo_reduce(t_params_hiloMap* nodo);
+int levantar_hilo_reduce(t_params_hiloReduce* nodo);
 
 /*********Variables globales******************/
 t_Datos_configuracion* configuracion;
@@ -67,6 +79,7 @@ pthread_t* th_hilo_map;
 pthread_t* th_hilo_reduce;
 t_msg * mensaje_actual;
 int marta_sock;
+pthread_mutex_t * marta_mutex;
 
 /********************************************/
 

@@ -23,6 +23,7 @@
 #include <utiles/messages.h>
 #include <utiles/auxiliares.h>
 #include <utiles/files.h>
+#include "ejecuta_script.h"
 /******************Constantes********************/
 #define PATH "/home/utnso/git/tp-2015-1c-milanesa/Nodo/NODO_CONFIG.config"
 #define LOG_FILE "/home/utnso/git/tp-2015-1c-milanesa/Nodo/NODO_LOG.txt"
@@ -38,6 +39,12 @@ typedef struct{
 typedef struct{
 	int sock_fs;
 }t_bloque_content;
+
+typedef struct{
+	int puerto;
+	char* ip;
+	char* archivos;
+}t_nodo_archivo ;
 
 /******************Variables************************/
 		 int tamanio_bloque= 20*1024*1024;
@@ -64,6 +71,6 @@ void setBloque(int numeroBloque, char* bloque_datos);
 char* getBloque(int numeroBloque);
 char* getFileContent(char* filename);
 char* crear_Espacio_Datos(int , char* , char* );
-void ejecutar_map(char*ejecutable,int numeroBloque,char* nombreArchivo);
-void ejecutar_reduce(char*ejecutable,int nodo_escucha,char* nombreArchivo);
+t_msg_id ejecutar_map(char*ejecutable,char*bloque,char* nombreArchivo);
+t_msg_id ejecutar_reduce(char*ejecutable,char*archivo_final,t_list* listaArchivos);
 #endif /* NODO_NODO_H_ */

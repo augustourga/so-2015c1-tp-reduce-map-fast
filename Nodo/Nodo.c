@@ -144,6 +144,8 @@ void *atenderConexiones(void *parametro) {
 	int sock_conexion = *((int *) parametro);
 	char*bloque = NULL;
 	t_msg* mensaje2;
+	t_list* lista_nodos;
+	t_msg_id fin;
 
 	while (1) {
 		if ((codigo = recibir_mensaje(sock_conexion)) != NULL ) {
@@ -197,56 +199,87 @@ void *atenderConexiones(void *parametro) {
 				break;
 
 			case EJECUTAR_MAP:
+
 				mensaje2 = recibir_mensaje(sock_conexion);
 				puts("voy a ejecutar map");
-				/*
-				 ejecutar_mapping(ejecutable,num_bloque,rchivo);
-				 */
-				ejecutar_map(codigo->stream, codigo->argv[0], mensaje2->stream);
-				destroy_message(mensaje2);
-				mensaje2=id_message(FIN_MAP_OK);
+				/* ejecutar_mapping(ejecutable,num_bloque,rchivo); */
+
+				bloque = getBloque(codigo->argv[0]);
+				 fin =ejecutar_map(mensaje2->stream, bloque, codigo->stream);
+				mensaje2=id_message(fin);
 				enviar_mensaje(sock_conexion,mensaje2);
 				destroy_message(mensaje2);
 				destroy_message(codigo);
+				free(bloque);
 				break;
-
 			case EJECUTAR_REDUCE:
-				printf("ejecutar_Reduce()");
-				/*
-				 ejecutar_reduce(ejecutable,lista_archivos,nombre_archivo_tmp);
-				 */
-				size_t tamanioEjecutable=strlen(codigo->stream);
-				bloque = malloc(tamanioEjecutable);
-				memcpy(bloque, codigo->stream, tamanioEjecutable);
-				destroy_message(codigo);
-				mensaje2=recibir_mensaje(sock_conexion);
+//				printf("ejecutar_Reduce()");
+//				/*
+//				 ejecutar_reduce(ejecutable,lista_archivos,nombre_archivo_tmp);
+//				 */
+//				size_t tamanioEjecutable=strlen(codigo->stream);
+//				bloque = malloc(tamanioEjecutable);
+//				memcpy(bloque, codigo->stream, tamanioEjecutable);
+//				destroy_message(codigo);
+//				mensaje2=recibir_mensaje(sock_conexion);
+//
+//				while(mensaje2->header.id!=FIN_ENVIO_MENSAJE){
+//					//guardar el archivo que viene en el .stream en
+//					//guardo el tamanio del archivo en tamanioArchivo
+//				   char*NOMBRE_ARCHIVO=mensaje2->stream;
+//                   //Job me manda el ip y puerto del nodo, si es INFO_NODO es otro nodo
+//				   //
+//				   codigo=recibir_mensaje(sock_conexion);
+//                   if(codigo->header.id==CONEXION_NODO){
+//                	   char*IP_NODO=codigo->stream;
+//                	   int PUERTO_NODO=codigo->argv[0];
+//                	   int SOCK_NODO=client_socket(IP_NODO, PUERTO_NODO);
+//                   //deberia enviar en vez del socket el mensaje entero y ver si es nuevo o no?
+//                	   ejecutar_reduce(bloque,SOCK_NODO,NOMBRE_ARCHIVO);
+//                   //FALTA CONTEMPLAR EL TEMA DE QUE SEA UN ARCHIVO LOCAL
+//                   }
+//
+//					destroy_message(mensaje2);
+//					destroy_message(codigo);
+//					mensaje2=recibir_mensaje(sock_conexion);
+//
+//				}
+//				destroy_message(mensaje2);
+//				mensaje2=id_message(FIN_REDUCE_OK);
+//				enviar_mensaje(sock_conexion,mensaje2);
+//				destroy_message(mensaje2);
 
-				while(mensaje2->header.id!=FIN_ENVIO_MENSAJE){
-					//guardar el archivo que viene en el .stream en
-					//guardo el tamanio del archivo en tamanioArchivo
-				   char*NOMBRE_ARCHIVO=mensaje2->stream;
-                   //Job me manda el ip y puerto del nodo, si es INFO_NODO es otro nodo
-				   //
-				   codigo=recibir_mensaje(sock_conexion);
-                   if(codigo->header.id==CONEXION_NODO){
-                	   char*IP_NODO=codigo->stream;
-                	   int PUERTO_NODO=codigo->argv[0];
-                	   int SOCK_NODO=client_socket(IP_NODO, PUERTO_NODO);
-                   //deberia enviar en vez del socket el mensaje entero y ver si es nuevo o no?
-                	   ejecutar_reduce(bloque,SOCK_NODO,NOMBRE_ARCHIVO);
-                   //FALTA CONTEMPLAR EL TEMA DE QUE SEA UN ARCHIVO LOCAL
-                   }
+				lista_nodos = list_create();
+							t_nodo_archivo* nodo_arch;
+							char* archivo_final= codigo->stream;
+							char*rutina_reduce;
+							//Se recibe la rutina
+							mensaje2 = recibir_mensaje(sock_conexion);
+							size_t tamanioEjecutable=strlen(mensaje2->stream);
+							rutina_reduce = malloc(tamanioEjecutable);
+							memcpy(rutina_reduce, mensaje2->stream, tamanioEjecutable);
+							printf("ejecutar_Reduce()");
+							destroy_message(mensaje2);
 
-					destroy_message(mensaje2);
-					destroy_message(codigo);
-					mensaje2=recibir_mensaje(sock_conexion);
+							while(mensaje2->header.id!=FIN_ENVIO_MENSAJE){
+								mensaje2 = recibir_mensaje(sock_conexion);
+								nodo_arch=(t_nodo_archivo*) malloc(sizeof(t_nodo_archivo));
+								nodo_arch->ip =string_n_split(mensaje2->stream,2,"|")[0];
+								nodo_arch->archivos = string_n_split(mensaje2->stream,2,"|")[1];
+								nodo_arch->puerto= mensaje2->argv[0];
+								list_add(lista_nodos,(void*) nodo_arch);
+							}
+							/*
+							 * EJECUTAR REDUCE
+//							 */
+		                    fin = ejecutar_reduce(rutina_reduce,archivo_final,lista_nodos);
+							mensaje2=id_message(fin);
+							enviar_mensaje(sock_conexion,mensaje2);
+							destroy_message(mensaje2);
+							destroy_message(codigo);
+							free(rutina_reduce);
+							break;
 
-				}
-				destroy_message(mensaje2);
-				mensaje2=id_message(FIN_REDUCE_OK);
-				enviar_mensaje(sock_conexion,mensaje2);
-				destroy_message(mensaje2);
-				break;
 			}
 
 		} else {
@@ -313,14 +346,17 @@ char* crear_Espacio_Datos(int NUEVO, char* ARCHIVO, char* RUT) {
 	}
 	return direccion;
 }
-void ejecutar_map(char*ejecutable,int numeroBloque,char* nombreArchivo){
-log_info(Log_Nodo, "Inicio ejecutarMap en el bloque(%d)", numeroBloque);
-log_info(Log_Nodo, "Fin ejecutarMap en el bloque(%d)", numeroBloque);
+t_msg_id ejecutar_map(char*ejecutable,char* bloque,char* nombreArchivo){
+log_info(Log_Nodo, "Inicio ejecutarMap ");
+return FIN_MAP_OK;
+log_info(Log_Nodo, "Fin ejecutarMap ");
 }
-void ejecutar_reduce(char*ejecutable,int socket_nodo_escucha,char* nombreArchivo){
+t_msg_id ejecutar_reduce(char*ejecutable,char*archivo_final,t_list* listaArchivos){
 log_info(Log_Nodo, "Inicio ejecutarReduce " );
 
 //LE PIDO AL SOCKET_NODO QUE ME DEVUELVA UN GET_FILE_CONTENT(nombreArchivo)
 //una vez recibido, los apareo con mis archivos del espacio temporal
+
 log_info(Log_Nodo, "Fin ejecutarReduce ");
+return FIN_REDUCE_OK;
 }
