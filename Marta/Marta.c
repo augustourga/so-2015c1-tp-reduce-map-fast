@@ -7,8 +7,21 @@
 
 #include "Marta.h"
 
+#include <stdio.h>
+#include <time.h>
+#include <memory.h>
+#define MY_NULL '\0'
+#define MYLEN 5
+
 int main(void) {
 
+
+	char *str1, *str2;
+    str1 = "fileA";
+    str2 = "bloque123";
+
+    char * value = getRandName(str1, str2);
+	puts(value);
 	receive_messages_epoll();
 
 	return 0;
@@ -27,14 +40,14 @@ void realizar_handshake_job(int sock_job) {
 
 	mensaje = recibir_mensaje(sock_job);
 
-	while (mensaje->header.id != FIN_ENVIO_MENSAJE) {
+	while (mensaje->header.id != 'A' /*FIN_ENVIO_MENSAJE*/) {
 		HacerMagiaConArchivo(mensaje->stream);
 		destroy_message(mensaje);
 		mensaje = recibir_mensaje(sock_job);
 
 	}
 	destroy_message(mensaje);
-	enviar_mensaje(sock_job, id_message(FIN_ENVIO_MENSAJE));
+	//enviar_mensaje(sock_job, id_message(null)); /*FIN_ENVIO_MENSAJE*/
 	destroy_message(mensaje);
 }
 
@@ -145,4 +158,31 @@ int ejecutar_mensaje(int sock_fd, t_msg *recibido) {
 		break;
 	}
 	return 0;
+}
+
+char* getRandName(char* str1, char* str2) {
+	char* guion;
+	char s[MYLEN], *ptr;
+	int i, num, start, range;
+	long seconds;
+	start = (int) ('A');
+	range = (int) ('Z') - (int) ('A');
+	time(&seconds);
+	srand((unsigned int) seconds);
+	for (ptr = s, i = 1; i < MYLEN; ++ptr, ++i) {
+		num = rand() % range;
+		*ptr = (char) (num + start);
+	}
+	*ptr = MY_NULL;
+	puts(s);
+	guion = "_";
+	char* strFinal = malloc(1 + strlen(str1) + strlen(str2));
+	strcpy(strFinal, str1);
+	printf("%s", strFinal);
+	strcat(strFinal, guion);
+	puts(strFinal);
+	strcat(strFinal, str2);
+	strcat(strFinal, guion);
+	strcat(strFinal, s);
+	return strFinal;
 }

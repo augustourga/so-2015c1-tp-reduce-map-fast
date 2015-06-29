@@ -17,6 +17,7 @@
 #define MAXEVENTS 64
 #define PUERTO 9999
 
+char* getRandName(char* str1, char* str2);
 int HacerMagiaConArchivo(char*);
 void realizar_handshake_job(int);
 void conexion_job(int sock_job);
