@@ -6,7 +6,11 @@
 #include <pthread.h>
 #include <commons/collections/list.h>
 #include <utiles/log.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "paquete.h"
+#include <utiles/messages.h>
 
 typedef struct {
 	char nombre[80];
@@ -26,7 +30,7 @@ void nodo_set_socket(t_nodo* nodo, int socket);
 int nodo_asignar_bloque_disponible(t_nodo* nodo);
 bool nodo_lleno(t_nodo* nodo);
 bool nodo_con_espacio(t_nodo* nodo);
-t_nodo* nodo_deserealizar_socket(char* mensaje, int socket);
+t_nodo* nodo_deserealizar_socket(t_msg* mensaje, int socket);
 char* nodo_serializar_db(t_nodo* nodo, int* bytes_serializados);
 t_nodo* nodo_deserealizar_db(char* nodo_serializado);
 void log_info_nodo_conectado_aceptado(t_nodo* nodo);

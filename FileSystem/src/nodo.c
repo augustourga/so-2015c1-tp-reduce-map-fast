@@ -63,15 +63,21 @@ char* nodo_serializar_db(t_nodo* nodo, int* bytes_serializados) {
 
 	(*bytes_serializados) = 0;
 
-	char *nodo_serializado = malloc(sizeof(t_nodo) - sizeof(pthread_rwlock_t) + nodo->cantidad_bloques_totales * sizeof(int));
+	char *nodo_serializado = malloc(
+			sizeof(t_nodo) - sizeof(pthread_rwlock_t)
+					+ nodo->cantidad_bloques_totales * sizeof(int));
 
-	paquete_serializar(nodo_serializado, nodo->nombre, sizeof(nodo->nombre), bytes_serializados);
+	paquete_serializar(nodo_serializado, nodo->nombre, sizeof(nodo->nombre),
+			bytes_serializados);
 
-	paquete_serializar(nodo_serializado, &nodo->cantidad_bloques_totales, sizeof(nodo->cantidad_bloques_totales), bytes_serializados);
+	paquete_serializar(nodo_serializado, &nodo->cantidad_bloques_totales,
+			sizeof(nodo->cantidad_bloques_totales), bytes_serializados);
 
-	paquete_serializar(nodo_serializado, &nodo->cantidad_bloques_libres, sizeof(nodo->cantidad_bloques_libres), bytes_serializados);
+	paquete_serializar(nodo_serializado, &nodo->cantidad_bloques_libres,
+			sizeof(nodo->cantidad_bloques_libres), bytes_serializados);
 
-	paquete_serializar(nodo_serializado, nodo->bloques, nodo->cantidad_bloques_totales * sizeof(int), bytes_serializados);
+	paquete_serializar(nodo_serializado, nodo->bloques,
+			nodo->cantidad_bloques_totales * sizeof(int), bytes_serializados);
 
 	return nodo_serializado;
 }
@@ -82,35 +88,49 @@ t_nodo* nodo_deserealizar_db(char* nodo_serializado) {
 
 	int offset = 0;
 
-	paquete_deserializar(nodo->nombre, nodo_serializado, sizeof(nodo->nombre), &offset);
+	paquete_deserializar(nodo->nombre, nodo_serializado, sizeof(nodo->nombre),
+			&offset);
 
-	paquete_deserializar(&nodo->cantidad_bloques_totales, nodo_serializado, sizeof(nodo->cantidad_bloques_totales), &offset);
+	paquete_deserializar(&nodo->cantidad_bloques_totales, nodo_serializado,
+			sizeof(nodo->cantidad_bloques_totales), &offset);
 
-	paquete_deserializar(&nodo->cantidad_bloques_libres, nodo_serializado, sizeof(nodo->cantidad_bloques_libres), &offset);
+	paquete_deserializar(&nodo->cantidad_bloques_libres, nodo_serializado,
+			sizeof(nodo->cantidad_bloques_libres), &offset);
 
 	nodo->bloques = malloc(nodo->cantidad_bloques_totales * sizeof(int));
-	paquete_deserializar(nodo->bloques, nodo_serializado, nodo->cantidad_bloques_totales * sizeof(int), &offset);
+	paquete_deserializar(nodo->bloques, nodo_serializado,
+			nodo->cantidad_bloques_totales * sizeof(int), &offset);
 
 	return nodo;
 }
 
-t_nodo* nodo_deserealizar_socket(char* mensaje, int socket) {
+t_nodo* nodo_deserealizar_socket(t_msg* mensaje, int socket) {
 
 	t_nodo* nodo = nodo_crear();
 
-	int offset = 0;
+	socklen_t len;
+	struct sockaddr_storage addr;
+	char ipstr[16];
+	int port;
 
-	int largo_nombre;
-	paquete_deserializar(&(largo_nombre), mensaje, sizeof(largo_nombre), &offset);
+	strcpy(nodo->nombre, mensaje->stream);
+	nodo->cantidad_bloques_totales = mensaje->argv[0];
 
-	paquete_deserializar(nodo->nombre, mensaje, largo_nombre, &offset);
+	len = sizeof addr;
+	// Obtiene IP y PUERTO del socket del NODO
+	getpeername(socket, (struct sockaddr*) &addr, &len);
+	if (addr.ss_family == AF_INET) {
+		struct sockaddr_in *aux = (struct sockaddr_in *) &addr;
+		port = ntohs(aux->sin_port);
+		inet_ntop(AF_INET, &aux->sin_addr, ipstr, sizeof ipstr);
+	} else { // AF_INET6
+		struct sockaddr_in6 *aux = (struct sockaddr_in6 *) &addr;
+		port = ntohs(aux->sin6_port);
+		inet_ntop(AF_INET6, &aux->sin6_addr, ipstr, sizeof ipstr);
+	}
 
-	paquete_deserializar(&nodo->cantidad_bloques_totales, mensaje, sizeof(int), &offset);
-
-	paquete_deserializar(nodo->ip, mensaje, sizeof(nodo->ip), &offset);
-
-	paquete_deserializar(&nodo->puerto, mensaje, sizeof(nodo->puerto), &offset);
-
+	strcpy(nodo->ip, ipstr);
+	nodo->puerto = port;
 	nodo->cantidad_bloques_libres = nodo->cantidad_bloques_totales;
 	nodo->bloques = calloc(nodo->cantidad_bloques_totales, sizeof(int));
 	nodo->socket = socket;
@@ -119,19 +139,31 @@ t_nodo* nodo_deserealizar_socket(char* mensaje, int socket) {
 }
 
 void log_info_nodo_conectado_aceptado(t_nodo* nodo) {
-	int bloques_ocupados = nodo->cantidad_bloques_totales - nodo->cantidad_bloques_libres;
-	log_info_interno("Se reconectó el nodo %s: BT: %d - BL: %d - BO: %d - Conexión: %s:%d", nodo->nombre, nodo->cantidad_bloques_totales,
-			nodo->cantidad_bloques_libres, bloques_ocupados, nodo->ip, nodo->puerto);
+	int bloques_ocupados = nodo->cantidad_bloques_totales
+			- nodo->cantidad_bloques_libres;
+	log_info_interno(
+			"Se reconectó el nodo %s: BT: %d - BL: %d - BO: %d - Conexión: %s:%d",
+			nodo->nombre, nodo->cantidad_bloques_totales,
+			nodo->cantidad_bloques_libres, bloques_ocupados, nodo->ip,
+			nodo->puerto);
 }
 
 void log_info_nodo_conectado_nuevo(t_nodo* nodo) {
-	int bloques_ocupados = nodo->cantidad_bloques_totales - nodo->cantidad_bloques_libres;
-	log_info_interno("Se conectó el nodo nuevo %s: BT: %d - BL: %d - BO: %d - Conexión: %s:%d", nodo->nombre, nodo->cantidad_bloques_totales,
-			nodo->cantidad_bloques_libres, bloques_ocupados, nodo->ip, nodo->puerto);
+	int bloques_ocupados = nodo->cantidad_bloques_totales
+			- nodo->cantidad_bloques_libres;
+	log_info_interno(
+			"Se conectó el nodo nuevo %s: BT: %d - BL: %d - BO: %d - Conexión: %s:%d",
+			nodo->nombre, nodo->cantidad_bloques_totales,
+			nodo->cantidad_bloques_libres, bloques_ocupados, nodo->ip,
+			nodo->puerto);
 }
 
 void log_info_nodo_desconectado(t_nodo* nodo) {
-	int bloques_ocupados = nodo->cantidad_bloques_totales - nodo->cantidad_bloques_libres;
-	log_info_interno("Se desconectó el nodo %s: BT: %d - BL: %d - BO: %d - Conexión: %s:%d", nodo->nombre, nodo->cantidad_bloques_totales,
-			nodo->cantidad_bloques_libres, bloques_ocupados, nodo->ip, nodo->puerto);
+	int bloques_ocupados = nodo->cantidad_bloques_totales
+			- nodo->cantidad_bloques_libres;
+	log_info_interno(
+			"Se desconectó el nodo %s: BT: %d - BL: %d - BO: %d - Conexión: %s:%d",
+			nodo->nombre, nodo->cantidad_bloques_totales,
+			nodo->cantidad_bloques_libres, bloques_ocupados, nodo->ip,
+			nodo->puerto);
 }

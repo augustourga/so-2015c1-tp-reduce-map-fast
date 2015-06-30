@@ -59,12 +59,12 @@ void memcpy_from_file(char *dest, char *path, size_t size);
 char* read_file_and_clean(char *path, size_t size);
 
 /*
- * Lee un archivo y retorna todo su contenido.
+ * Lee un archivo y retorna toodo su contenido.
  */
 char* read_whole_file(char *path);
 
 /*
- * Lee un archivo y retorna todo su contenido, vaciándolo.
+ * Lee un archivo y retorna toodo su contenido, vaciándolo.
  */
 char* read_whole_file_and_clean(char *path);
 

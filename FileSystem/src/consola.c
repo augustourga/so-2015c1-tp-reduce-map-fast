@@ -30,7 +30,7 @@ char* comando_preparado(char* comando) {
 int ejecutar_comando(char* comando) {
 	int ret;
 	char* comando_listo = comando_preparado(comando);
-	char** parametros = string_n_split(comando_listo, 3, " ");
+	char** parametros = string_n_split(comando_listo, 6, " ");
 	if (string_equals_ignore_case(parametros[0], COMANDO_AYUDA)) {
 		ret = mostrar_ayuda(parametros[1]);
 		return ret;
@@ -122,7 +122,6 @@ int ejecutar_comando(char* comando) {
 		ret = borrar_bloque_de_nodo(strtol(parametros[1], NULL, 10), parametros[2]);
 		return ret;
 	} else if (string_equals_ignore_case(parametros[0], COMANDO_COPIAR_BLOQUE)) {
-		parametros = string_n_split(comando_listo, 5, " ");
 		if (parametros[1] == NULL || parametros[2] == NULL || parametros[3] == NULL) {
 			log_error_parametros_faltantes();
 			return 1;
@@ -263,7 +262,47 @@ int mostrar_ayuda(char* parametro) {
 	if (parametro == NULL) {
 		puts("Accion 			=> Comando\n---------------------	=> -----------------\nFORMATEAR 		=> formatear\nELIMINAR ARCHIVO 	=> rm archivo\nRENOMBRAR ARCHIVO 	=> cn archivo\nMOVER ARCHIVO 		=> mv archivo\nCREAR DIRECTORIO 	=> mk directorio\nELIMINAR DIRECTORIO 	=> rm directorio\nRENOMBRAR DIRECTORIO 	=> cn directorio\nMOVER DIRECTORIO 	=> mv directorio\nCOPIAR MDFS LOCAL 	=> cp mdfs local\nCOPIAR LOCAL MDFS 	=> cp local mdfs\nMD5 			=> md5\nVER BLOQUE 		=> ls bloque archivo\nBORRAR BLOQUE 		=> rm bloque\nCOPIAR BLOQUE 		=> cp bloque\nAGREGAR NODO 		=> ag nodo\nELIMINAR NODO 		=> rm nodo\nLISTAR 			=> ls\nLISTAR NODOS 		=> ls nodo\nDT 			=> dt\nDF 			=> df");
 	} else {
-		printf("La ayuda de comando %s\n", parametro);
+		if (string_equals_ignore_case(parametro, COMANDO_FORMATEAR)) {
+			printf("No recibe parametros\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_ELIMINAR_ARCHIVO)) {
+			printf("Recibe como parametro la ruta del archivo\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_RENOMBRAR_ARCHIVO)) {
+			printf("Recibe como primer parametro la ruta del archivo y como segundo, el nuevo nombre\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_MOVER_ARCHIVO)) {
+			printf("Recibe como primer parametro la ruta actual del archivo y como segundo, la nueva ruta\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_CREAR_DIRECTORIO)) {
+			printf("Recibe como primer parametro la ruta en la que va a estar contenido y como segundo, el nombre del nuevo directorio\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_ELIMINAR_DIRECTORIO)) {
+			printf("Recibe como parametro la ruta del directorio a eliminar\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_RENOMBRAR_DIRECTORIO)) {
+			printf("Recibe como primer parametro la ruta del directorio a renombrar y como segundo, el nuevo nombre\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_MOVER_DIRECTORIO)) {
+			printf("Recibe como primer parametro la ruta del directorio a cambiar y como segundo, la nueva ruta padre\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_COPIAR_LOCAL_MDFS)) {
+			printf("Recibe como primer parametro la ruta local y como segundo, la ruta del mdfs\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_COPIAR_MDFS_LOCAL)) {
+			printf("Recibe como primer parametro la ruta del mdfs y como segundo, la ruta local\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_MD5)) {
+			printf("Recibe como parametro la ruta del archivo en el mdfs\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_VER_BLOQUE)) {
+			printf("Recibe como primer parametro el numero del bloque y como segundo, la ruta del archivo\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_BORRAR_BLOQUE)) {
+			printf("Recibe como primer parametro el numero del bloque y como segundo, el nombre del nodo\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_COPIAR_BLOQUE)) {
+			printf("Recibe como primer parametro el numero del bloque, como segundo el nombre del nodo origen y como tercero, el nombre del nodo destino\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_AGREGAR_NODO)) {
+			printf("Recibe como parametro el nombre del nodo\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_ELIMINAR_NODO)) {
+			printf("Recibe como parametro el nombre del nodo\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_LISTAR)) {
+			printf("Recibe como parametro la ruta del directorio que se quieren saber los hijos\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_LISTAR_NODOS)) {
+			printf("Recibe como parametro el nombre de la lista de nodos que se quiere mostrar, puede ser: pendientes, aceptados u operativos\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_DF)) {
+			printf("No recibe parametros\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_DT)) {
+			printf("No recibe parametros\n");
+		}
 	}
 	return 0;
 }
