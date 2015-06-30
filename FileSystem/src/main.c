@@ -8,7 +8,7 @@
 #include <utiles/log.h>
 
 #define ARCHIVO_CONFIG "./files/config_file_system.cfg"
-#define RUTA_LOG "files/log"
+#define RUTA_LOG "/home/utnso/workspace/tp-2015-1c-milanesa/FileSystem/files/log"
 
 char* PUERTO_LISTEN;
 int CANTIDAD_NODOS;
@@ -37,7 +37,6 @@ void levantar_configuracion() {
 		exit(1);
 	}
 	log_info_consola("Archivo de configuración cargado correctamente");
-	config_destroy(config);
 }
 
 int main(void) {
@@ -46,7 +45,6 @@ int main(void) {
 	levantar_configuracion();
 	struct arg_struct args;
 	args.puerto_listen = PUERTO_LISTEN;
-
 	inicializar_filesystem(false, CANTIDAD_NODOS);
 
 	pthread_t th_server;

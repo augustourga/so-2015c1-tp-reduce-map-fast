@@ -78,12 +78,10 @@ void decodificar_mensaje(t_msg* mensaje, int socket) {
 
 	switch (mensaje->header.id) {
 	case CONEXION_NODO:
-		registrar_nodo(nodo_deserealizar_socket(mensaje->stream, socket));
+		registrar_nodo(nodo_deserealizar_socket(mensaje, socket));
 		break;
 	case CONEXION_MARTA:
-		if (filesystem_operativo) {
-
-		}
+		//TODO: registrar marta!
 		break;
 	case INFO_ARCHIVO:
 		if (filesystem_operativo) {
@@ -123,7 +121,7 @@ char* mensaje_get_bloque(void* argumentos) {
 	t_msg* respuesta = recibir_mensaje(socket);
 
 	switch (respuesta->header.id) {
-	case SET_BLOQUE_ERROR:
+	case GET_BLOQUE_ERROR:
 		log_error_interno("No se pudo obtener el bloque");
 		return stream_bloque;
 		break;

@@ -52,6 +52,7 @@ t_list* archivos_hijos_de_directorio(t_directorio* directorio_actual);
 t_directorio* directorio_raiz();
 void crear_directorio_raiz();
 int registrar_nodo(t_nodo* nodo);
+int conexion_reconexion_nodo(t_nodo* nodo_existente, t_nodo* nodo);
 int ver_bloque_de_archivo(int numero_bloque, char* nodo);
 int borrar_bloque_de_nodo(int numero_bloque_archivo, char* ruta_archivo);
 int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_origen, char* nombre_nodo_destino);
