@@ -40,7 +40,7 @@ void levantar_configuracion() {
 }
 
 int main(void) {
-	log_crear("LOG_LEVEL_INFO", RUTA_LOG, "FileSystem");
+	log_crear("INFO", RUTA_LOG, "FileSystem");
 
 	levantar_configuracion();
 	struct arg_struct args;

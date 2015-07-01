@@ -61,7 +61,11 @@ void iniciar_server(void* argumentos) {
 						free(mensaje);
 					}
 				} else if (!socket_conectado(socket_actual)) {
-					manejar_desconexion(socket_actual);
+					if (socket_actual == socket_marta) {
+						desconexion_marta(socket_actual);
+					} else {
+						desconexion_nodo(socket_actual);
+					}
 					FD_CLR(socket_actual, &master);
 				} else if (socket_actual == socket_marta) {
 					t_msg* mensaje = recibir_mensaje(newfd);
@@ -81,29 +85,44 @@ void decodificar_mensaje(t_msg* mensaje, int socket) {
 		registrar_nodo(nodo_deserealizar_socket(mensaje, socket));
 		break;
 	case CONEXION_MARTA:
-		//TODO: registrar marta!
+		log_info_interno("Marta se conectó correctamente. Su socket es %d",socket);
 		break;
 	case INFO_ARCHIVO:
 		if (filesystem_operativo) {
+
 			//char* respuesta = preparar_info_archivo(mensaje); //TODO: preparar_info_archivo
 			//socket_send_all(socket, respuesta);
+		} else {
+			enviar_fs_no_operativo(socket);
 		}
 		break;
 	case GET_FILE_CONTENT:
 		if (filesystem_operativo) {
-			//char* respuesta = copiar_archivo_temporal_a_mdfs(mensaje); //TODO: copiar_archivo_temporal_a_mdfs
-			//socket_send_all(socket, respuesta);
+
+//			char* respuesta = copiar_archivo_temporal_a_mdfs(mensaje); //TODO: copiar_archivo_temporal_a_mdfs
+//			socket_send_all(socket, respuesta);
+		} else {
+			enviar_fs_no_operativo(socket);
 		}
 		break;
 	default:
-		log_error_interno("Mensaje Incorrecto");
+		log_error_interno("Mensaje Incorrecto: %s", mensaje->header.id);
 		break;
 	}
 }
 
-void manejar_desconexion(int socket) {
+void desconexion_nodo(int socket) {
 	desconectar_nodo(socket);
+}
+
+void desconexion_marta(int socket) {
 	desconectar_marta(socket);
+}
+
+void enviar_fs_no_operativo(int socket) {
+	t_msg* msg = id_message(MDFS_NO_OPERATIVO);
+	enviar_mensaje(socket, msg);
+	destroy_message(msg);
 }
 
 char* mensaje_get_bloque(void* argumentos) {

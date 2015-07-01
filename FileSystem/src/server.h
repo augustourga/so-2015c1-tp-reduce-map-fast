@@ -43,9 +43,10 @@ struct arg_set_bloque {
 };
 
 void iniciar_server(void* argumentos);
-//void decodificar_mensaje(t_mensaje* mensaje, int cant_bytes, int socket);
-void manejar_desconexion(int socket);
 void decodificar_mensaje(t_msg* mensaje, int socket);
+void desconexion_nodo(int socket);
+void desconexion_marta(int socket);
+void enviar_fs_no_operativo(int socket);
 char* mensaje_get_bloque(void* argumentos);
 
 #endif /* SRC_SERVER_H_ */

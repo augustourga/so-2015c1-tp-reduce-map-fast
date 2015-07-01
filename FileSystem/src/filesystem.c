@@ -1368,7 +1368,7 @@ void desconectar_nodo(int socket) {
 }
 
 void desconectar_marta(int socket) {
-//TODO: desconectar_marta
+	log_info_interno("Marta se desconectó. Su socket era: %d",socket);
 }
 
 void actualizar_disponibilidad_archivos_por_desconexion(t_nodo* nodo) {
