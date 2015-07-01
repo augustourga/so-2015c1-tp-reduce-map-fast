@@ -146,9 +146,10 @@ int HiloMap(void* dato)
 	int nodo_sock = client_socket(args->ip, args->puerto);
 
 	mensaje = string_message(EJECUTAR_MAP,args->archivo_final,1,args->bloque);
+
 	enviar_mensaje(nodo_sock,mensaje);
 	destroy_message(mensaje);
-	mensaje = string_message(RUTINA,configuracion->mapper,0);
+	mensaje = string_message(RUTINA,configuracion->mapper,1,args->id_operacion);
 	enviar_mensaje(nodo_sock,mensaje);
 	destroy_message(mensaje);
 

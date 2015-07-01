@@ -18,6 +18,7 @@
 
 void error(char *s);
 
-void ejecutar(char* path_entrada, char* path_ejecutable, char* path_salida);
-
+int ejecutar(char* path_entrada, char* path_ejecutable, char* path_salida);
+char* generar_nombre_temporal( int mapreduce_id, char*map_o_reduce,int numeroBloque);
+char* generar_nombre_rutina( char*map_o_reduce);
 #endif /* SRC_EJECUTA_SCRIPT_H_ */
