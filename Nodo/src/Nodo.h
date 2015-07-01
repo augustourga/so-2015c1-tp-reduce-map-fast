@@ -23,28 +23,28 @@
 #include <utiles/messages.h>
 #include <utiles/auxiliares.h>
 #include <utiles/files.h>
+#include <utiles/log.h>
 #include "ejecuta_script.h"
+
 /******************Constantes********************/
-#define PATH "/home/utnso/git/tp-2015-1c-milanesa/Nodo/NODO_CONFIG.config"
-#define LOG_FILE "/home/utnso/git/tp-2015-1c-milanesa/Nodo/NODO_LOG.txt"
+#define PATH_CONFIG "../files/NODO_CONFIG.config"
+#define LOG_FILE "../files/NODO_LOG.txt"
 #define PROCESO "Nodo"
 #define BUFF_SIZE 1024
-#define DISCO "/home/utnso/miarchivo.bin"
+#define DISCO "../files/miarchivo.bin"
 #define RUTA "/home/utnso/git/tp-2015-1c-milanesa/Nodo"
 /****************Registros***********************/
 typedef struct{
 	int sock_fs;
 }t_conexion_nodo;
 
-typedef struct{
-	int sock_fs;
-}t_bloque_content;
 
 typedef struct{
 	int puerto;
 	char* ip;
 	char* archivos;
 }t_nodo_archivo ;
+
 
 /******************Variables************************/
 		 int tamanio_bloque= 20*1024*1024;
@@ -53,12 +53,13 @@ typedef struct{
 		 char* ARCHIVO_BIN;
 		 char* DIR_TEMP;
 		 int NODO_NUEVO;
-		 char* IP_NODO;
-	     int PUERTO_NODO;
+		 int PUERTO_NODO;
 	     int NODO_ID;
 	     t_log* Log_Nodo;
-         int rcx;
          char* _data;
+         int CANT_BLOQUES;
+         char* NOMBRE_NODO;
+         int rcx;
 /******************Definiciones*******************/
 
 int levantarConfiguracionNodo();
@@ -70,7 +71,8 @@ void *atenderConexiones(void *parametro);
 void setBloque(int numeroBloque, char* bloque_datos);
 char* getBloque(int numeroBloque);
 char* getFileContent(char* filename);
+char* generar_nombre_temporal( int mapreduce_id, char*map_o_reduce,int numeroBloque);
 char* crear_Espacio_Datos(int , char* , char* );
-t_msg_id ejecutar_map(char*ejecutable,char*bloque,char* nombreArchivo);
+t_msg_id ejecutar_map(char*ejecutable,char*bloque,char* nombreArchivo,char*temporal);
 t_msg_id ejecutar_reduce(char*ejecutable,char*archivo_final,t_list* listaArchivos);
 #endif /* NODO_NODO_H_ */

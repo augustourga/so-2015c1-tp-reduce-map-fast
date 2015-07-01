@@ -6,7 +6,7 @@
  */
 #include "Nodo.h"
 
-int main() {
+int main(int argc,char*parametros[]) {
 
 
 	Log_Nodo = log_create(LOG_FILE, PROCESO, 1, LOG_LEVEL_TRACE);
@@ -15,7 +15,7 @@ int main() {
 		log_error(Log_Nodo, "Hubo errores en la carga de las configuraciones.");
 	}
 
-	_data = crear_Espacio_Datos(NODO_NUEVO, ARCHIVO_BIN,RUTA);
+	_data = crear_Espacio_Datos(NODO_NUEVO, ARCHIVO_BIN,parametros[0]);
 
 	if (levantarHiloFile()) {
 		log_error(Log_Nodo, "Conexion con File System fallida.");
@@ -28,18 +28,17 @@ int main() {
 
 int levantarConfiguracionNodo() {
 	char* aux;
-	t_config* archivo_config = config_create(PATH);
+	t_config* archivo_config = config_create(PATH_CONFIG);
 
 	PUERTO_FS = config_get_int_value(archivo_config, "PUERTO_FS");
 	IP_FS = strdup(config_get_string_value(archivo_config, "IP_FS"));
-	ARCHIVO_BIN = strdup(
-			config_get_string_value(archivo_config, "ARCHIVO_BIN"));
+	ARCHIVO_BIN = strdup(config_get_string_value(archivo_config, "ARCHIVO_BIN"));
 	DIR_TEMP = strdup(config_get_string_value(archivo_config, "DIR_TEMP"));
 	aux = strdup(config_get_string_value(archivo_config, "NODO_NUEVO"));
-	IP_NODO = strdup(config_get_string_value(archivo_config, "IP_NODO"));
 	PUERTO_NODO = config_get_int_value(archivo_config, "PUERTO_NODO");
-	NODO_ID = config_get_int_value(archivo_config, "NODO_ID");
+	NOMBRE_NODO=strdup(config_get_string_value(archivo_config, "NOMBRE_NODO"));
 	config_destroy(archivo_config);
+
 
 	if (strncmp(aux, "SI", 2) == 0) {
 		NODO_NUEVO = 1;
@@ -68,7 +67,7 @@ int levantarHiloFile() {
 void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 
 	reg_conexion->sock_fs = client_socket(IP_FS, PUERTO_FS);
-	t_msg* mensaje = argv_message(CONEXION_NODO, 2, NODO_NUEVO, NODO_ID);
+	t_msg* mensaje = string_message(CONEXION_NODO, NOMBRE_NODO,1, CANT_BLOQUES);
 	enviar_mensaje(reg_conexion->sock_fs, mensaje);
 	destroy_message(mensaje);
 
@@ -205,50 +204,31 @@ void *atenderConexiones(void *parametro) {
 				/* ejecutar_mapping(ejecutable,num_bloque,rchivo); */
 
 				bloque = getBloque(codigo->argv[0]);
-				 fin =ejecutar_map(mensaje2->stream, bloque, codigo->stream);
-				mensaje2=id_message(fin);
-				enviar_mensaje(sock_conexion,mensaje2);
+				char* temporal = generar_nombre_temporal(mensaje2->argv[0],
+						"map", codigo->argv[0]);
+				fin = ejecutar_map(mensaje2->stream, bloque, codigo->stream,
+						temporal);
+				switch (fin) {
+				case FIN_MAP_ERROR:
+					log_error(Log_Nodo,
+							"Hubo errores en el map %d en el bloque %d.",
+							mensaje2->argv[0], codigo->argv[0]);
+					break;
+				case FIN_MAP_OK:
+					log_info(Log_Nodo, "Map %d en el bloque %d exitoso",
+							mensaje2->argv[0], codigo->argv[0]);
+					break;
+
+				}
+				mensaje2 = id_message(fin);
+				enviar_mensaje(sock_conexion, mensaje2);
 				destroy_message(mensaje2);
 				destroy_message(codigo);
 				free(bloque);
 				break;
-			case EJECUTAR_REDUCE:
-//				printf("ejecutar_Reduce()");
-//				/*
-//				 ejecutar_reduce(ejecutable,lista_archivos,nombre_archivo_tmp);
-//				 */
-//				size_t tamanioEjecutable=strlen(codigo->stream);
-//				bloque = malloc(tamanioEjecutable);
-//				memcpy(bloque, codigo->stream, tamanioEjecutable);
-//				destroy_message(codigo);
-//				mensaje2=recibir_mensaje(sock_conexion);
-//
-//				while(mensaje2->header.id!=FIN_ENVIO_MENSAJE){
-//					//guardar el archivo que viene en el .stream en
-//					//guardo el tamanio del archivo en tamanioArchivo
-//				   char*NOMBRE_ARCHIVO=mensaje2->stream;
-//                   //Job me manda el ip y puerto del nodo, si es INFO_NODO es otro nodo
-//				   //
-//				   codigo=recibir_mensaje(sock_conexion);
-//                   if(codigo->header.id==CONEXION_NODO){
-//                	   char*IP_NODO=codigo->stream;
-//                	   int PUERTO_NODO=codigo->argv[0];
-//                	   int SOCK_NODO=client_socket(IP_NODO, PUERTO_NODO);
-//                   //deberia enviar en vez del socket el mensaje entero y ver si es nuevo o no?
-//                	   ejecutar_reduce(bloque,SOCK_NODO,NOMBRE_ARCHIVO);
-//                   //FALTA CONTEMPLAR EL TEMA DE QUE SEA UN ARCHIVO LOCAL
-//                   }
-//
-//					destroy_message(mensaje2);
-//					destroy_message(codigo);
-//					mensaje2=recibir_mensaje(sock_conexion);
-//
-//				}
-//				destroy_message(mensaje2);
-//				mensaje2=id_message(FIN_REDUCE_OK);
-//				enviar_mensaje(sock_conexion,mensaje2);
-//				destroy_message(mensaje2);
 
+			case EJECUTAR_REDUCE:
+//
 				lista_nodos = list_create();
 							t_nodo_archivo* nodo_arch;
 							char* archivo_final= codigo->stream;
@@ -261,6 +241,7 @@ void *atenderConexiones(void *parametro) {
 							printf("ejecutar_Reduce()");
 							destroy_message(mensaje2);
 
+							//el primero va a ser el nodo local
 							while(mensaje2->header.id!=FIN_ENVIO_MENSAJE){
 								mensaje2 = recibir_mensaje(sock_conexion);
 								nodo_arch=(t_nodo_archivo*) malloc(sizeof(t_nodo_archivo));
@@ -331,26 +312,44 @@ char* getFileContent(char* filename) {
 
 }
 
-char* crear_Espacio_Datos(int NUEVO, char* ARCHIVO, char* RUT) {
-	size_t tamanio = 1073741824;
+char* crear_Espacio_Datos(int NUEVO, char* ARCHIVO, char* parametro) {
+	CANT_BLOQUES = atoi(parametro);
+	size_t tamanio = 20 * 1024 * 1024;
 	char* direccion;
 	char* path;
 	if (NUEVO == 1) {
-		path = file_combine(RUT, ARCHIVO);
-		create_file(path, tamanio);
+		path = file_combine(DIR_TEMP, ARCHIVO);
+		create_file(path, CANT_BLOQUES * tamanio);
 		direccion = file_get_mapped(path);
 
 	} else {
-		path = file_combine(RUT, ARCHIVO);
-        direccion =file_get_mapped(path);
+		path = file_combine(DIR_TEMP, ARCHIVO);
+		direccion = file_get_mapped(path);
 	}
 	return direccion;
 }
-t_msg_id ejecutar_map(char*ejecutable,char* bloque,char* nombreArchivo){
-log_info(Log_Nodo, "Inicio ejecutarMap ");
-return FIN_MAP_OK;
-log_info(Log_Nodo, "Fin ejecutarMap ");
+
+t_msg_id ejecutar_map(char*ejecutable, char* bloque, char* nombreArchivoFinal,
+		char*temporal) {
+	log_info(Log_Nodo, "Inicio ejecutarMap ");
+	char*ruta_sort = "/usr/bin/sort";
+	char* path_ejecutable = generar_nombre_rutina("map");
+	write_file(path_ejecutable, ejecutable, strlen(ejecutable));
+	chmod(path_ejecutable, S_IRWXU);
+	if (ejecutar(bloque, path_ejecutable, temporal)) {
+		return FIN_MAP_ERROR;
+	}
+	char* data = read_whole_file(temporal);
+	if (ejecutar(data, ruta_sort, nombreArchivoFinal)) {
+		return FIN_MAP_ERROR;
+	}
+	remove(path_ejecutable);
+	remove(temporal);
+	return FIN_MAP_OK;
+	log_info(Log_Nodo, "Fin ejecutarMap ");
 }
+
+
 t_msg_id ejecutar_reduce(char*ejecutable,char*archivo_final,t_list* listaArchivos){
 log_info(Log_Nodo, "Inicio ejecutarReduce " );
 
@@ -360,3 +359,5 @@ log_info(Log_Nodo, "Inicio ejecutarReduce " );
 log_info(Log_Nodo, "Fin ejecutarReduce ");
 return FIN_REDUCE_OK;
 }
+
+
