@@ -48,5 +48,7 @@ void desconexion_nodo(int socket);
 void desconexion_marta(int socket);
 void enviar_fs_no_operativo(int socket);
 char* mensaje_get_bloque(void* argumentos);
+t_msg* mensaje_info_archivo(char* ruta_archivo);
+t_msg* mensaje_copiar_archivo_temporal_a_mdfs(t_msg* mensaje);
 
 #endif /* SRC_SERVER_H_ */

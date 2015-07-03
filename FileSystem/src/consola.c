@@ -260,7 +260,7 @@ int listar_hijos(char* ruta_directorio) {
 
 int mostrar_ayuda(char* parametro) {
 	if (parametro == NULL) {
-		puts("Accion 			=> Comando\n---------------------	=> -----------------\nFORMATEAR 		=> formatear\nELIMINAR ARCHIVO 	=> rm archivo\nRENOMBRAR ARCHIVO 	=> cn archivo\nMOVER ARCHIVO 		=> mv archivo\nCREAR DIRECTORIO 	=> mk directorio\nELIMINAR DIRECTORIO 	=> rm directorio\nRENOMBRAR DIRECTORIO 	=> cn directorio\nMOVER DIRECTORIO 	=> mv directorio\nCOPIAR MDFS LOCAL 	=> cp mdfs local\nCOPIAR LOCAL MDFS 	=> cp local mdfs\nMD5 			=> md5\nVER BLOQUE 		=> ls bloque archivo\nBORRAR BLOQUE 		=> rm bloque\nCOPIAR BLOQUE 		=> cp bloque\nAGREGAR NODO 		=> ag nodo\nELIMINAR NODO 		=> rm nodo\nLISTAR 			=> ls\nLISTAR NODOS 		=> ls nodo\nDT 			=> dt\nDF 			=> df");
+		puts("Accion 			=> Comando\n---------------------	=> -----------------\nFORMATEAR 		=> formatear\nELIMINAR ARCHIVO 	=> rm_archivo\nRENOMBRAR ARCHIVO 	=> cn_archivo\nMOVER ARCHIVO 		=> mv_archivo\nCREAR DIRECTORIO 	=> mk_directorio\nELIMINAR DIRECTORIO 	=> rm_directorio\nRENOMBRAR DIRECTORIO 	=> cn_directorio\nMOVER DIRECTORIO 	=> mv_directorio\nCOPIAR MDFS LOCAL 	=> cp_mdfs_local\nCOPIAR LOCAL MDFS 	=> cp_local_mdfs\nMD5 			=> md5\nVER BLOQUE 		=> ls_bloque_archivo\nBORRAR BLOQUE 		=> rm_bloque\nCOPIAR BLOQUE 		=> cp_bloque\nAGREGAR NODO 		=> ag_nodo\nELIMINAR NODO 		=> rm_nodo\nLISTAR 			=> ls\nLISTAR NODOS 		=> ls_nodo\nDT 			=> dt\nDF 			=> df");
 	} else {
 		if (string_equals_ignore_case(parametro, COMANDO_FORMATEAR)) {
 			printf("No recibe parametros\n");

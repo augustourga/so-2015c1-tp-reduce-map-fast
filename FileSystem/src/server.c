@@ -85,22 +85,21 @@ void decodificar_mensaje(t_msg* mensaje, int socket) {
 		registrar_nodo(nodo_deserealizar_socket(mensaje, socket));
 		break;
 	case CONEXION_MARTA:
-		log_info_interno("Marta se conectó correctamente. Su socket es %d",socket);
+		log_info_interno("Marta se conectó correctamente. Su socket es %d",
+				socket);
 		break;
 	case INFO_ARCHIVO:
 		if (filesystem_operativo) {
-
-			//char* respuesta = preparar_info_archivo(mensaje); //TODO: preparar_info_archivo
-			//socket_send_all(socket, respuesta);
+			t_msg* msg_rta = mensaje_info_archivo(mensaje->stream);
+			enviar_mensaje(socket, msg_rta);
 		} else {
 			enviar_fs_no_operativo(socket);
 		}
 		break;
-	case GET_FILE_CONTENT:
+	case GET_ARCHIVO_TMP:
 		if (filesystem_operativo) {
-
-//			char* respuesta = copiar_archivo_temporal_a_mdfs(mensaje); //TODO: copiar_archivo_temporal_a_mdfs
-//			socket_send_all(socket, respuesta);
+			t_msg* msg_rta = mensaje_copiar_archivo_temporal_a_mdfs(mensaje);
+			enviar_mensaje(socket, msg_rta);
 		} else {
 			enviar_fs_no_operativo(socket);
 		}
@@ -149,7 +148,6 @@ char* mensaje_get_bloque(void* argumentos) {
 		bytes_a_copiar = respuesta->header.length;
 		memcpy(stream_bloque, respuesta->stream + offset, bytes_a_copiar);
 		free(respuesta->stream);
-
 		return stream_bloque;
 		break;
 	default:
@@ -173,7 +171,7 @@ int mensaje_set_bloque(void* argumentos) {
 
 	switch (respuesta->header.id) {
 	case SET_BLOQUE_ERROR:
-		log_error_interno("No se pudo obtener el bloque");
+		log_error_interno("No se pudo setear el bloque");
 		return 1;
 		break;
 	case SET_BLOQUE_OK:
@@ -184,3 +182,60 @@ int mensaje_set_bloque(void* argumentos) {
 		return 2;
 	}
 }
+
+t_msg* mensaje_info_archivo(char* ruta_archivo) {
+	t_msg* respuesta;
+	char* info;
+
+	info = preparar_info_archivo(ruta_archivo);
+	if (info != NULL) {
+		respuesta = string_message(INFO_ARCHIVO_OK, info, 0);
+	} else {
+		respuesta = id_message(INFO_ARCHIVO_ERROR);
+	}
+
+	return respuesta;
+}
+
+t_msg* mensaje_copiar_archivo_temporal_a_mdfs(t_msg* mensaje) {
+	t_msg* respuesta;
+	t_nodo* nodo;
+	char* nombre_archivo_tmp = string_new();
+	char* nombre_nodo = string_new();
+	int valor;
+
+	strcpy(nombre_archivo_tmp, mensaje->stream);
+	strcpy(nombre_nodo, &mensaje->argv[0]);
+	nodo = nodo_operativo_por_nombre(nombre_nodo);
+	if (nodo == NULL) {
+		log_error_interno(
+				"El nodo no se encuentra operativo para solicitarle un archivo temporal");
+		return id_message(GET_ARCHIVO_TMP_ERROR);
+	}
+
+	t_msg* msg_solicitud = string_message(GET_FILE_CONTENT, nombre_archivo_tmp,
+			0);
+	enviar_mensaje(nodo->socket, msg_solicitud);
+	t_msg* msg_respuesta = recibir_mensaje(nodo->socket);
+	switch (msg_respuesta->header.id) {
+	case GET_FILE_CONTENT_ERROR:
+		log_error_interno("No se pudo obtener el archivo temporal del nodo");
+		respuesta = id_message(GET_ARCHIVO_TMP_ERROR);
+		break;
+	case GET_FILE_CONTENT_OK:
+		valor = copiar_archivo_temporal_a_mdfs(nombre_archivo_tmp, msg_respuesta->stream);
+		if (valor) {
+			log_info_interno("Pudo copiarse el archivo tmp a la raiz del mdfs con exito");
+			respuesta = id_message(GET_ARCHIVO_TMP_OK);
+		} else {
+			log_error_interno("No se pudo copiar el archivo tmp al mdfs");
+			respuesta = id_message(GET_ARCHIVO_TMP_ERROR);
+		}
+		break;
+	default:
+		log_error_interno("Respuesta Incorrecta");
+		respuesta = id_message(GET_ARCHIVO_TMP_ERROR);
+	}
+	return respuesta;
+}
+

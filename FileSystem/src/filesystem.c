@@ -279,7 +279,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 			archivo_nuevo->bloques[numero_bloque].copias[redundancia].bloque_nodo =
 					nodo_asignar_bloque_disponible(nodo_actual);
 			archivo_nuevo->bloques[numero_bloque].copias[redundancia].conectado =
-					true;
+			true;
 			archivo_nuevo->bloques[numero_bloque].copias[redundancia].tamanio_bloque =
 					chunks[numero_bloque].tamanio;
 			insertar_nodo(nodo_actual);
@@ -746,7 +746,7 @@ int conexion_reconexion_nodo(t_nodo* nodo_existente, t_nodo* nodo) {
 	log_info_nodo_conectado_aceptado(nodo_existente);
 	actualizar_disponibilidad_archivos_por_reconexion(nodo_existente);
 	pasar_a_operativo();
-	ret = insertar_nodo(nodo);
+	ret = insertar_nodo(nodo_existente);
 
 	return ret;
 }
@@ -768,6 +768,14 @@ int agregar_nodo(char* nombre_nodo) {
 	list_remove_by_condition(lista_nodos_pendientes, (void*) _nodo_por_nombre);
 	pthread_mutex_unlock(&mutex_nodos_pendientes);
 
+	// Esto se hace xq si ya se encuentra entre los aceptados,
+	// se lo borra y se lo vuelve a agregar para tener la data actualizada. Y asi no se repite el nodo.
+	t_nodo* nodo_aux = nodo_aceptado_por_nombre(nombre_nodo);
+	if (nodo_aux != NULL) {
+		pthread_mutex_lock(&mutex_nodos_aceptados);
+		list_remove_by_condition(lista_nodos_aceptados, (void*) _nodo_por_nombre);
+		pthread_mutex_unlock(&mutex_nodos_aceptados);
+	}
 	list_add_nodos_aceptados(nodo);
 
 	ret = conexion_reconexion_nodo(nodo, NULL);
@@ -1368,7 +1376,7 @@ void desconectar_nodo(int socket) {
 }
 
 void desconectar_marta(int socket) {
-	log_info_interno("Marta se desconectó. Su socket era: %d",socket);
+	log_info_interno("Marta se desconectó. Su socket era: %d", socket);
 }
 
 void actualizar_disponibilidad_archivos_por_desconexion(t_nodo* nodo) {
@@ -1462,3 +1470,66 @@ void pasar_a_operativo() {
 	pthread_mutex_unlock(&mutex_filesysem_operativo);
 }
 
+char* preparar_info_archivo(char* ruta_archivo) {
+	t_archivo* archivo = NULL;
+	char* respuesta;
+
+	archivo = archivo_por_ruta(ruta_archivo);
+	if (archivo == NULL || !archivo->disponible) {
+		return NULL;
+	}
+	respuesta = serializar_info_archivo(archivo);
+
+	return respuesta;
+}
+
+char* serializar_info_archivo(t_archivo* archivo) {
+	char* respuesta = malloc(
+			((archivo->cantidad_bloques * CANTIDAD_COPIAS)
+					* (sizeof(t_copia) + sizeof(char[16]) + sizeof(char[4])))
+					+ (archivo->cantidad_bloques * sizeof(char[1])));
+	respuesta = string_new();
+	int numero_bloque;
+	int numero_copia;
+
+	for (numero_bloque = 0; numero_bloque < archivo->cantidad_bloques;
+			numero_bloque++) {
+		t_bloque bloque_actual = archivo->bloques[numero_bloque];
+		for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias;
+				numero_copia++) {
+			t_copia copia_actual = bloque_actual.copias[numero_copia];
+			string_append(&respuesta, copia_actual.nombre_nodo);
+			string_append(&respuesta, ";");
+			t_nodo* nodo_actual = nodo_operativo_por_nombre(
+					copia_actual.nombre_nodo);
+			string_append(&respuesta, nodo_actual->ip);
+			string_append(&respuesta, ";");
+			string_append(&respuesta, string_itoa(nodo_actual->puerto));
+			string_append(&respuesta, ";");
+			string_append(&respuesta, string_itoa(copia_actual.bloque_nodo));
+			string_append(&respuesta, ";");
+		}
+		string_append(&respuesta, "|");
+	}
+
+	return respuesta;
+}
+
+int copiar_archivo_temporal_a_mdfs(char* nombre_archivo_tmp, char* archivo) {
+	int resultado = 0;
+	char* ruta = string_new();
+
+	string_append(&ruta, "/tmp/");
+	string_append(&ruta, nombre_archivo_tmp);
+
+	FILE *fp = fopen(ruta, "ab");
+	if (fp != NULL) {
+		fputs(archivo, fp);
+		fclose(fp);
+		resultado = copiar_archivo_local_a_mdfs(ruta, "/");
+	} else {
+		resultado = 1;
+	}
+
+	return resultado;
+}

@@ -85,5 +85,8 @@ void desconectar_marta(int socket);
 void actualizar_disponibilidad_archivos_por_desconexion(t_nodo* nodo);
 void actualizar_disponibilidad_archivos_por_reconexion(t_nodo* nodo);
 void pasar_a_operativo();
+char* preparar_info_archivo(char* ruta_archivo);
+char* serializar_info_archivo(t_archivo* archivo);
+int copiar_archivo_temporal_a_mdfs(char* nombre_archivo_tmp, char* archivo);
 
 #endif /* SRC_FILESYSTEM_H_ */

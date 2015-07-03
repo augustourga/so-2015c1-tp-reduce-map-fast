@@ -57,8 +57,11 @@ typedef enum {
 
 	INFO_ARCHIVO,				//Marta le pide al mdfs info sobre un archivo
 	INFO_ARCHIVO_OK,			//Mdfs devuelve la info
-	INFO_ARCHIVO_ERROR
+	INFO_ARCHIVO_ERROR,
 
+	GET_ARCHIVO_TMP,			//Marta le pida al mdfs un archivo temporal de un nodo
+	GET_ARCHIVO_TMP_OK,
+	GET_ARCHIVO_TMP_ERROR
 } t_msg_id;
 
 /****************** ESTRUCTURAS DE DATOS. ******************/
