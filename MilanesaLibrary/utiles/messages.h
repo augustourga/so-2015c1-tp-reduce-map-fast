@@ -49,17 +49,15 @@ typedef enum {
 	GET_FILE_CONTENT_ERROR,
 
 	/***********************Filesystem***************************/
-	CONEXION_MARTA,				//
-	CONEXION_MARTA_OK,			//
-	CONEXION_MARTA_ERROR,
+	CONEXION_MARTA,				// (Sin parametros)
 
 	MDFS_NO_OPERATIVO,			//El mdfs no está operativo todavía
 
-	INFO_ARCHIVO,				//Marta le pide al mdfs info sobre un archivo
-	INFO_ARCHIVO_OK,			//Mdfs devuelve la info
+	INFO_ARCHIVO,				//Marta le pide al mdfs info sobre un archivo - Formato string_message: "{ruta_archivo}"
+	INFO_ARCHIVO_OK,			//Mdfs devuelve la info - Formato string_message: "{nombre_nodo};{ip};{puerto};{bloque};(esto se repite por cada copia)|" (el | es solo cuando termina un bloque)
 	INFO_ARCHIVO_ERROR,
 
-	GET_ARCHIVO_TMP,			//Marta le pida al mdfs un archivo temporal de un nodo
+	GET_ARCHIVO_TMP,			//Marta le pida al mdfs un archivo temporal de un nodo - Formato string_message: "{nombre_archivo_tmp}|{nombre_nodo}"
 	GET_ARCHIVO_TMP_OK,
 	GET_ARCHIVO_TMP_ERROR
 } t_msg_id;

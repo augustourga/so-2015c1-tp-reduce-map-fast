@@ -263,6 +263,21 @@ char *id_string(t_msg_id id) {
 	case GET_FILE_CONTENT:
 		buf = strdup("GET_FILE_CONTENT");
 		break;
+	case CONEXION_MARTA:
+		buf = strdup("CONEXION_MARTA");
+		break;
+	case MDFS_NO_OPERATIVO:
+		buf = strdup("MDFS_NO_OPERATIVO");
+		break;
+	case INFO_ARCHIVO_ERROR:
+		buf = strdup("INFO_ARCHIVO_ERROR");
+		break;
+	case GET_ARCHIVO_TMP_OK:
+		buf = strdup("GET_ARCHIVO_TMP_OK");
+		break;
+	case GET_ARCHIVO_TMP_ERROR:
+		buf = strdup("GET_ARCHIVO_TMP_ERROR");
+		break;
 	default:
 		buf = string_from_format("%d, <AGREGAR A LA LISTA>", id);
 		break;

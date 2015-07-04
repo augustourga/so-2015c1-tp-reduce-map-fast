@@ -304,7 +304,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 
 int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 	int fildes_local = open(ruta_local, O_RDWR | O_CREAT, S_IRWXU);
-
+	long tamanio_archivo;
 	if (fildes_local < 0) {
 		log_error_consola("No se pudo crear el archivo %s", ruta_local);
 		return 1;
@@ -326,11 +326,11 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 		pthread_rwlock_unlock(&archivo_mdfs->lock);
 		return 1;
 	}
-
-	ftruncate(fildes_local, 160); //TODO: Ver de tomar el tamaño real del archivo (desde la base de datos que te dice el tamanio del archivo)
+	tamanio_archivo = archivo_mdfs->tamanio;
+	ftruncate(fildes_local, tamanio_archivo);
 	int offset_actual = 0;
 
-	char* map = mmap(0, 160, PROT_WRITE | PROT_READ, MAP_SHARED, fildes_local,
+	char* map = mmap(0, tamanio_archivo, PROT_WRITE | PROT_READ, MAP_SHARED, fildes_local,
 			0);
 	if (map == MAP_FAILED) {
 		log_error_consola("Error de map");
@@ -389,8 +389,8 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 	}
 
 	pthread_rwlock_unlock(&archivo_mdfs->lock);
-	msync(map, 160, MS_SYNC);
-	munmap(map, 160);
+	msync(map, tamanio_archivo, MS_SYNC);
+	munmap(map, tamanio_archivo);
 
 	return 0;
 }
@@ -1530,6 +1530,11 @@ int copiar_archivo_temporal_a_mdfs(char* nombre_archivo_tmp, char* archivo) {
 	} else {
 		resultado = 1;
 	}
-
+	if (resultado==0) {
+		char* nombre_nuevo = string_new();
+		nombre_nuevo = string_duplicate(ruta);
+		string_append(&nombre_nuevo, ".viejo");
+		rename(ruta, nombre_nuevo);
+	}
 	return resultado;
 }

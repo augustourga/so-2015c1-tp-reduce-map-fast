@@ -98,14 +98,14 @@ void decodificar_mensaje(t_msg* mensaje, int socket) {
 		break;
 	case GET_ARCHIVO_TMP:
 		if (filesystem_operativo) {
-			t_msg* msg_rta = mensaje_copiar_archivo_temporal_a_mdfs(mensaje);
+			t_msg* msg_rta = mensaje_copiar_archivo_temporal_a_mdfs(mensaje->stream);
 			enviar_mensaje(socket, msg_rta);
 		} else {
 			enviar_fs_no_operativo(socket);
 		}
 		break;
 	default:
-		log_error_interno("Mensaje Incorrecto: %s", mensaje->header.id);
+		log_error_interno("Mensaje Incorrecto: ", mensaje->header.id);
 		break;
 	}
 }
@@ -197,15 +197,16 @@ t_msg* mensaje_info_archivo(char* ruta_archivo) {
 	return respuesta;
 }
 
-t_msg* mensaje_copiar_archivo_temporal_a_mdfs(t_msg* mensaje) {
+t_msg* mensaje_copiar_archivo_temporal_a_mdfs(char* mensaje) {
 	t_msg* respuesta;
 	t_nodo* nodo;
 	char* nombre_archivo_tmp = string_new();
 	char* nombre_nodo = string_new();
 	int valor;
 
-	strcpy(nombre_archivo_tmp, mensaje->stream);
-	strcpy(nombre_nodo, &mensaje->argv[0]);
+	char** parametros = string_n_split(mensaje, 2, "|");
+	string_append(&nombre_archivo_tmp, parametros[0]);
+	string_append(&nombre_nodo, parametros[1]);
 	nodo = nodo_operativo_por_nombre(nombre_nodo);
 	if (nodo == NULL) {
 		log_error_interno(
