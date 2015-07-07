@@ -1,34 +1,37 @@
 /*
  * job.h
  *
- *  Created on: 14/6/2015
+ *  Created on: 6/7/2015
  *      Author: utnso
  */
 
 #ifndef SRC_JOB_H_
 #define SRC_JOB_H_
 
-#include "marta.h"
 #include <commons/collections/list.h>
+#include <utiles/messages.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <stdlib.h>
+#include "tarea.h"
+#include "server.h"
 
 typedef struct {
-	t_nodo nodo;
-	char* nombre;
-} t_temp;
-
-typedef struct {
-	char* archivo;
-	int bloque_archivo;
-	t_nodo nodo_1;
-	t_nodo nodo_2;
-	t_nodo nodo_3;
-	bool map;
-	t_temp map_temp_nombre;
-	bool reduce;
-	t_temp reduce_temp_nombre;
+	int id;
 	int socket;
+	char* archivo_final;
+	bool combiner;
+	t_list* maps;
+	t_list* reduces;
+	sem_t sem_maps_fin;
+	sem_t sem_reduces_fin;
+	bool replanifica;
 } t_job;
 
+t_job* job_crear();
+t_archivo solicitar_informacion_archivo(char* ruta_mdfs);
 void procesar_job(void* argumentos);
+void generar_maps(t_job** job, char* ruta_mdfs);
+void ejecutar_maps(t_job* job);
 
 #endif /* SRC_JOB_H_ */

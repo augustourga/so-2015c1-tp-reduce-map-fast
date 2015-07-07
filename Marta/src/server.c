@@ -1,22 +1,15 @@
 #include "server.h"
 
-struct arg_struct {
-	char* puerto_listen;
-};
 
-void iniciar_server(void* argumentos) {
+int socket_mdfs;
 
-	struct arg_struct *args = argumentos;
-
-	char* puerto_listen = args->puerto_listen;
+void iniciar_server(uint16_t puerto_listen) {
 
 	fd_set master;    // master file descriptor list
 	fd_set read_fds;  // temp file descriptor list for select()
 	int fdmax;        // maximum file descriptor number
 	int newfd;        	   // newly accept()ed socket descriptor
 	int socket_actual;
-	int socket_marta = 0;
-	int cant_bytes;
 
 	struct sockaddr_storage addr_client; // client address
 	socklen_t addrlen;
@@ -59,12 +52,12 @@ void iniciar_server(void* argumentos) {
 						t_msg* mensaje = recibir_mensaje(newfd);
 						if (mensaje->header.id == CONEXION_JOB) {
 							FD_SET(newfd, &master); // add to master set
-							crearHiloJob(newfd, mensaje); //TODO: crearHiloJob
+							crearHiloJob(newfd, mensaje);
 						}
 						destroy_message(mensaje);
 					}
 				} else if (!socket_conectado(socket_actual)) {
-					manejar_desconexion(socket_actual); //TODO: Manejardesconexion
+					//manejar_desconexion(socket_actual); //TODO: Manejardesconexion
 					FD_CLR(socket_actual, &master);
 				} else {
 					t_msg* mensaje = recibir_mensaje(socket_actual);
@@ -78,18 +71,18 @@ void iniciar_server(void* argumentos) {
 void decodificar_mensaje(t_msg* mensaje, int socket) {
 
 	switch (mensaje->header.id) {
-	case FIN_MAP_OK:
-		actualizar_tabla_tareas(mensaje->argv[0], FIN_MAP_OK);
-		break;
-	case FIN_MAP_ERROR:
-		actualizar_tabla_tareas_error(mensaje->argv[0], FIN_MAP_ERROR);
-		break;
-	case FIN_REDUCE_OK:
-		actualizar_tabla_tareas(mensaje->argv[0], FIN_REDUCE_OK);
-		break;
-	case FIN_REDUCE_ERROR:
-		actualizar_tabla_tareas_error(mensaje->argv[0], FIN_REDUCE_ERROR);
-		break;
+	/*case FIN_MAP_OK: //TODO: Definir las respuestas
+	 actualizar_tabla_tareas(mensaje->argv[0], FIN_MAP_OK);
+	 break;
+	 case FIN_MAP_ERROR:
+	 actualizar_tabla_tareas_error(mensaje->argv[0], FIN_MAP_ERROR);
+	 break;
+	 case FIN_REDUCE_OK:
+	 actualizar_tabla_tareas(mensaje->argv[0], FIN_REDUCE_OK);
+	 break;
+	 case FIN_REDUCE_ERROR:
+	 actualizar_tabla_tareas_error(mensaje->argv[0], FIN_REDUCE_ERROR);
+	 break;*/
 	default:
 		log_error_interno("Mensaje Incorrecto");
 		break;
@@ -105,6 +98,44 @@ int socket_conectado(int socket) {
 	return bytes;
 }
 
+void conectarse_a_mdfs(char* ip_mdfs, uint16_t puerto_mdfs) {
+
+	if ((socket_mdfs = client_socket(ip_mdfs, puerto_mdfs)) < 0) {
+		log_error_consola("Error al conectarse a MDFS");
+		exit(1);
+	}
+
+	t_msg* mensaje = id_message(CONEXION_MARTA);
+	enviar_mensaje(socket_mdfs, mensaje);
+
+	destroy_message(mensaje);
+
+}
+
+char* get_info_archivo(char* ruta_mdfs) {
+
+	char* ret;
+
+	t_msg* message = string_message(INFO_ARCHIVO, ruta_mdfs, 0);
+	enviar_mensaje(socket_mdfs, message);
+	t_msg* respuesta = recibir_mensaje(socket_mdfs);
+
+	if (respuesta->header.id == INFO_ARCHIVO_OK) {
+		ret = string_duplicate(respuesta->stream);
+	} else {
+		log_error_consola("No se pudo realizar el job");
+		ret = NULL;
+	}
+
+	destroy_message(respuesta);
+	destroy_message(message);
+	return ret;
+}
+
+void copiar_archivo_final() {
+
+}
+
 void crearHiloJob(int newfd, t_msg* mensaje) {
 	struct arg_job args;
 
@@ -113,6 +144,6 @@ void crearHiloJob(int newfd, t_msg* mensaje) {
 	args.mensaje = mensaje;
 	args.socket = newfd;
 
-	pthread_create(&hilo_job, NULL, (void*) procesar_job, args, NULL);
+	pthread_create(&hilo_job, NULL, (void*) procesar_job, &args);
 }
 

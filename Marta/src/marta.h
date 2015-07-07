@@ -16,24 +16,26 @@
 #include <utiles/log.h>
 #include "config.h"
 #include "server.h"
+#include "tarea.h"
+#include "job.h"
 
 #define RUTA_LOG "log/marta.log"
 #define PUERTO_LISTEN 3333
 
-char* getRandName(char* str1, char* str2);
-int conectarse_a_mdfs(char* ip_mdfs, uint16_t puerto_mdfs);
-
 typedef struct {
 	char* ip;
+	char* nombre;
 	int puerto;
-	int numero_bloque;
-} t_nodo;
-
-typedef struct {
-	char* ip;
-	int puerto;
-	int numero_bloque;
+	int carga_trabajo;
 } t_nodo_global;
 
+char* getRandName(char* str1, char* str2);
+char* get_info_archivo(char* ruta_mdfs);
+t_nodo get_nodo_menos_cargado(t_nodo nodos[3]);
+void planificar_maps(t_job** job);
+void agregar_nodo_si_no_existe(t_nodo nodo_nuevo);
+
+void lista_jobs_add(t_job* job);
+void lista_nodos_add(t_nodo_global* nodo);
 
 #endif /* MARTA_H_ */
