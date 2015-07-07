@@ -330,8 +330,8 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 	ftruncate(fildes_local, tamanio_archivo);
 	int offset_actual = 0;
 
-	char* map = mmap(0, tamanio_archivo, PROT_WRITE | PROT_READ, MAP_SHARED, fildes_local,
-			0);
+	char* map = mmap(0, tamanio_archivo, PROT_WRITE | PROT_READ, MAP_SHARED,
+			fildes_local, 0);
 	if (map == MAP_FAILED) {
 		log_error_consola("Error de map");
 		pthread_rwlock_unlock(&archivo_mdfs->lock);
@@ -773,7 +773,8 @@ int agregar_nodo(char* nombre_nodo) {
 	t_nodo* nodo_aux = nodo_aceptado_por_nombre(nombre_nodo);
 	if (nodo_aux != NULL) {
 		pthread_mutex_lock(&mutex_nodos_aceptados);
-		list_remove_by_condition(lista_nodos_aceptados, (void*) _nodo_por_nombre);
+		list_remove_by_condition(lista_nodos_aceptados,
+				(void*) _nodo_por_nombre);
 		pthread_mutex_unlock(&mutex_nodos_aceptados);
 	}
 	list_add_nodos_aceptados(nodo);
@@ -888,6 +889,7 @@ int ver_bloque_de_archivo(int numero_bloque_archivo, char* ruta_archivo) {
 
 	if (!archivo->disponible) {
 		log_error_consola("El archivo %s no está disponible", ruta_archivo);
+		pthread_rwlock_unlock(&archivo->lock);
 		return 1;
 	}
 
@@ -897,7 +899,7 @@ int ver_bloque_de_archivo(int numero_bloque_archivo, char* ruta_archivo) {
 	}
 	t_copia copia_actual =
 			archivo->bloques[numero_bloque_archivo].copias[redundancia];
-
+	pthread_rwlock_unlock(&archivo->lock);
 	t_nodo* nodo = nodo_operativo_por_nombre(copia_actual.nombre_nodo);
 
 	if (nodo == NULL) {
@@ -911,15 +913,14 @@ int ver_bloque_de_archivo(int numero_bloque_archivo, char* ruta_archivo) {
 	struct arg_get_bloque args;
 	args.bloque_nodo = copia_actual.bloque_nodo;
 	args.socket = nodo->socket;
-	args.nombre_nodo = strdup(copia_actual.nombre_nodo);
 
 	pthread_create(&th_bloque, NULL, (void *) mensaje_get_bloque,
 			(void*) &args);
 	char* dato_bloque = malloc(10000);
 	pthread_join(th_bloque, (void*) &dato_bloque);
-
+	pthread_rwlock_unlock(&nodo->lock);
 	if (dato_bloque == NULL) {
-		log_error_consola("Ocurrió un error al generar el archivo");
+		log_error_consola("Ocurrió un error al obtener el bloque del archivo");
 		return 1;
 	}
 
@@ -945,7 +946,7 @@ int ver_bloque_de_nodo(int numero_bloque_nodo, char* nombre_nodo) {
 	pthread_rwlock_rdlock(&nodo->lock);
 
 	if (numero_bloque_nodo > nodo->cantidad_bloques_totales) {
-		log_error_consola("El nodo %s no está conectado", nombre_nodo);
+		log_error_consola("El bloque %d no existe", numero_bloque_nodo);
 		pthread_rwlock_unlock(&nodo->lock);
 		return 1;
 	}
@@ -1075,10 +1076,10 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo,
 		return 1;
 	}
 
-	nodo_origen = nodo_aceptado_por_nombre(nombre_nodo_origen);
+	nodo_origen = nodo_operativo_por_nombre(nombre_nodo_origen);
 
 	if (nodo_origen == NULL) {
-		log_error_consola("El nodo %s no está aceptado", nombre_nodo_origen);
+		log_error_consola("El nodo %s no está operativo", nombre_nodo_origen);
 		return 1;
 	}
 	pthread_rwlock_rdlock(&nodo_origen->lock);
@@ -1090,21 +1091,21 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo,
 	}
 
 	if (nodo_origen->bloques[numero_bloque_nodo] == 0) {
-		log_error_consola("El bloque a borrar está vacío");
+		log_error_consola("El bloque a copiar está vacío");
 		pthread_rwlock_unlock(&nodo_origen->lock);
 		return 1;
 	}
 
-	nodo_destino = nodo_aceptado_por_nombre(nombre_nodo_destino);
+	nodo_destino = nodo_operativo_por_nombre(nombre_nodo_destino);
 
 	if (nodo_destino == NULL) {
-		log_error_consola("El nodo %s no está aceptado", nombre_nodo_destino);
+		log_error_consola("El nodo %s no está operativo", nombre_nodo_destino);
 		pthread_rwlock_unlock(&nodo_origen->lock);
 		return 1;
 	}
 
 	if (nodo_lleno(nodo_destino)) {
-		log_error_consola("El nodo %s está lleno", nombre_nodo_destino);
+		log_error_consola("El nodo destino %s está lleno", nombre_nodo_destino);
 		pthread_rwlock_unlock(&nodo_origen->lock);
 		return 1;
 	}
@@ -1113,11 +1114,40 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo,
 	int numero_bloque_nodo_destino = nodo_asignar_bloque_disponible(
 			nodo_destino);
 
-	//enviar la info de un nodo a otro
-	insertar_nodo(nodo_destino);
+	//TODO: Testear que esto funcione
+	pthread_t th_bloque;
 
-	pthread_rwlock_unlock(&nodo_destino->lock);
+	struct arg_get_bloque args;
+	args.bloque_nodo = numero_bloque_nodo;
+	args.socket = nodo_origen->socket;
+
+	pthread_create(&th_bloque, NULL, (void *) mensaje_get_bloque,
+			(void*) &args);
+	char* dato_bloque = malloc(10000);
+	pthread_join(th_bloque, (void*) &dato_bloque);
 	pthread_rwlock_unlock(&nodo_origen->lock);
+	if (dato_bloque == NULL) {
+		log_error_consola("Ocurrió un error al obtener el bloque del archivo");
+		return 1;
+	}
+
+	pthread_t th_bloque_2;
+	struct arg_set_bloque* args2;
+	args2->bloque_nodo = numero_bloque_nodo_destino;
+	args2->socket = nodo_destino->socket;
+	args2->chunk = dato_bloque;
+
+	pthread_create(&th_bloque_2, NULL, (void *) mensaje_set_bloque,
+			(void*) &args2);
+	int resultado;
+	pthread_join(th_bloque_2, (void*) &resultado);
+	if (resultado != 0) {
+		log_error_consola(
+				"Ocurrió un error al setear el bloque del archivo en el nodo destino");
+		return 1;
+	}
+	insertar_nodo(nodo_destino);
+	pthread_rwlock_unlock(&nodo_destino->lock);
 
 	int numero_bloque_copiado;
 	int tamanio_bloque_copiado;
@@ -1530,7 +1560,7 @@ int copiar_archivo_temporal_a_mdfs(char* nombre_archivo_tmp, char* archivo) {
 	} else {
 		resultado = 1;
 	}
-	if (resultado==0) {
+	if (resultado == 0) {
 		char* nombre_nuevo = string_new();
 		nombre_nuevo = string_duplicate(ruta);
 		string_append(&nombre_nuevo, ".viejo");
