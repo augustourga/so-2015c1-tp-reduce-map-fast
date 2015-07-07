@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
-void generar_maps(t_job** job, char* ruta_mdfs) {
+void generar_maps(t_job* job, char* ruta_mdfs) {
 
 	char* info_archivo = get_info_archivo(ruta_mdfs);
 	int bloque_archivo = 0;
@@ -64,7 +64,7 @@ void generar_maps(t_job** job, char* ruta_mdfs) {
 
 		map->archivo = archivo;
 
-		list_add((*job)->maps, map);
+		list_add(job->maps, map);
 
 		bloque_archivo++;
 	}
@@ -73,27 +73,29 @@ void generar_maps(t_job** job, char* ruta_mdfs) {
 
 }
 
-void planificar_maps(t_job** job) {
+void planificar_maps(t_job* job) {
 
 	void _planifica_maps(t_map* map) {
-		t_temp arch_tmp;
-		arch_tmp.nombre = getRandName(map->archivo.nombre, "????"); //TODO: No se qué va acá
-		arch_tmp.nodo = get_nodo_menos_cargado(map->archivo.copias);
-		map->arch_tmp = arch_tmp;
+		if (map->estado == PENDIENTE || map->estado == FIN_ERROR) {
+			t_temp arch_tmp;
+			arch_tmp.nombre = getRandName(map->archivo.nombre, "????"); //TODO: No se qué va acá
+			arch_tmp.nodo = get_nodo_menos_cargado(map->archivo.copias);
+			map->arch_tmp = arch_tmp;
+		}
 	}
 
-	list_iterate((*job)->maps, (void*) _planifica_maps);
+	list_iterate(job->maps, (void*) _planifica_maps);
 
 }
 
-void planificar_reduces_con_combiner(t_job** job) {
+void planificar_reduces_con_combiner(t_job* job) {
 
 	bool _ordena_por_nombre(t_map* map1, t_map* map2) {
 		return map1->arch_tmp.nombre <= map2->arch_tmp.nombre;
 	}
 
-	list_sort((*job)->maps, (void*) _ordena_por_nombre);
-	t_map* primer_map = list_get((*job)->maps, 0);
+	list_sort(job->maps, (void*) _ordena_por_nombre);
+	t_map* primer_map = list_get(job->maps, 0);
 	char* nombre_actual = primer_map->arch_tmp.nodo.nombre;
 	t_temp* temp_actual = malloc(sizeof(t_temp));
 	temp_actual->nodo = primer_map->arch_tmp.nodo;
@@ -107,7 +109,7 @@ void planificar_reduces_con_combiner(t_job** job) {
 			string_append(&temp_actual->nombre, "|");
 		} else {
 			list_add(reduce_actual->temporales, temp_actual);
-			list_add((*job)->reduces, reduce_actual);
+			list_add(job->reduces, reduce_actual);
 			t_reduce* reduce_actual = reduce_crear();
 			reduce_actual->arch_tmp.nodo = map->arch_tmp.nodo;
 			reduce_actual->arch_tmp.nombre = getRandName("Sarasa1", "sarasa2"); //TODO: Generar nombre de archivo
@@ -119,9 +121,9 @@ void planificar_reduces_con_combiner(t_job** job) {
 		}
 	}
 
-	list_iterate((*job)->maps, (void*) _genera_reduces);
+	list_iterate(job->maps, (void*) _genera_reduces);
 
-	t_reduce* primer_reduce = list_get((*job)->reduces, 0);
+	t_reduce* primer_reduce = list_get(job->reduces, 0);
 
 	t_reduce* reduce_final = reduce_crear();
 	reduce_final->arch_tmp.nodo = primer_reduce->arch_tmp.nodo; //TODO: ver si se puede elegir otro con algún criterio mejor
@@ -131,13 +133,13 @@ void planificar_reduces_con_combiner(t_job** job) {
 		list_add(reduce_final->temporales, &reduce->arch_tmp);
 	}
 
-	list_iterate((*job)->reduces, (void*) _temporales_reduce_final);
+	list_iterate(job->reduces, (void*) _temporales_reduce_final);
 
-	(*job)->reduce_final = reduce_final;
+	job->reduce_final = reduce_final;
 
 }
 
-void planificar_reduces_sin_combiner(t_job** job) {
+void planificar_reduces_sin_combiner(t_job* job) {
 
 	t_reduce* reduce = reduce_crear();
 
@@ -151,7 +153,7 @@ void planificar_reduces_sin_combiner(t_job** job) {
 		}
 	}
 
-	list_iterate((*job)->maps, (void*) _contabilizar_nodos);
+	list_iterate(job->maps, (void*) _contabilizar_nodos);
 
 	int max = 1;
 	char* nombre_nodo_con_mas_archivos;
@@ -179,8 +181,8 @@ void planificar_reduces_sin_combiner(t_job** job) {
 		return map1->arch_tmp.nombre <= map2->arch_tmp.nombre;
 	}
 
-	list_sort((*job)->maps, (void*) _ordena_por_nombre);
-	t_map* primer_map = list_get((*job)->maps, 0);
+	list_sort(job->maps, (void*) _ordena_por_nombre);
+	t_map* primer_map = list_get(job->maps, 0);
 	char* nombre_actual = primer_map->arch_tmp.nodo.nombre;
 	t_temp* temp_actual = malloc(sizeof(t_temp));
 	temp_actual->nodo = primer_map->arch_tmp.nodo;
@@ -199,17 +201,17 @@ void planificar_reduces_sin_combiner(t_job** job) {
 		}
 	}
 
-	list_iterate((*job)->maps, (void*) _genera_temporales);
+	list_iterate(job->maps, (void*) _genera_temporales);
 
-	(*job)->reduce_final = reduce;
+	job->reduce_final = reduce;
 
 	pthread_mutex_unlock(&mutex_nodos);
 
 }
 
-void planificar_reduces(t_job** job) {
+void planificar_reduces(t_job* job) {
 
-	if ((*job)->combiner) {
+	if (job->combiner) {
 		planificar_reduces_con_combiner(job);
 	} else {
 		planificar_reduces_sin_combiner(job);
@@ -231,17 +233,17 @@ void procesar_job(void* argumentos) {
 
 	int i;
 	for (i = 1; datos[i + 1] != NULL; i++) {
-		generar_maps(&job, datos[i]);
+		generar_maps(job, datos[i]);
 	}
 	job->combiner = datos[i];
 
 	lista_jobs_add(job);
 
-	planificar_maps(&job);
+	planificar_maps(job);
 
 	ejecuta_maps(job);
 
-	planificar_reduces(&job);
+	planificar_reduces(job);
 
 	if (job->combiner) {
 		ejecuta_reduces(job);
@@ -357,6 +359,18 @@ t_map* map_por_id(int id, t_job* job) {
 	return map_actual;
 }
 
+t_reduce* reduce_por_id(int id, t_job* job) {
+	t_reduce* reduce_actual = NULL;
+
+	bool _map_por_id(t_reduce* reduce) {
+		return reduce->id == id;
+	}
+
+	reduce_actual = list_find(job->reduces, (void*) _map_por_id);
+
+	return reduce_actual;
+}
+
 void actualizar_job_map_ok(int id, int socket) {
 	pthread_mutex_lock(&mutex_jobs);
 
@@ -387,6 +401,18 @@ void actualizar_job_map_ok(int id, int socket) {
 	pthread_mutex_unlock(&mutex_jobs);
 }
 
+void eliminar_nodo_desconectado(t_nodo nodo) {
+	pthread_mutex_lock(&mutex_nodos);
+
+	bool _nodo_por_nombre(t_nodo_global* nodo_global_actual) {
+		return !strcmp(nodo_global_actual->nodo.nombre, nodo.nombre);
+	}
+
+	list_remove_and_destroy_by_condition(lista_nodos, (void*) _nodo_por_nombre, (void*)destroy_nodo);
+
+	pthread_mutex_unlock(&mutex_nodos);
+}
+
 void actualizar_job_map_error(int id, int socket) {
 	pthread_mutex_lock(&mutex_jobs);
 
@@ -406,7 +432,9 @@ void actualizar_job_map_error(int id, int socket) {
 
 	map_actual->estado = FIN_ERROR;
 
-	//TODO: Falta ver cosas de replanificación, eliminar el nodo de la lista de nodos, etc.
+	eliminar_nodo_desconectado(map_actual->arch_tmp.nodo);
+
+	planificar_maps(job_actual);
 
 	job_actual->replanifica = true;
 
@@ -468,4 +496,10 @@ void lista_nodos_add(t_nodo_global* nodo) {
 	pthread_mutex_lock(&mutex_nodos);
 	list_add(lista_nodos, nodo);
 	pthread_mutex_unlock(&mutex_nodos);
+}
+
+void destroy_nodo(t_nodo_global* nodo) {
+	free(nodo->nodo.ip);
+	free(nodo->nodo.nombre);
+	free(nodo);
 }

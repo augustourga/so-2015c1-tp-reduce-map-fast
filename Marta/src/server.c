@@ -52,7 +52,7 @@ void iniciar_server(uint16_t puerto_listen) {
 						t_msg* mensaje = recibir_mensaje(newfd);
 						if (mensaje->header.id == CONEXION_JOB) {
 							FD_SET(newfd, &master); // add to master set
-							crearHiloJob(newfd, mensaje);
+							crear_hilo_job(newfd, mensaje);
 						}
 						destroy_message(mensaje);
 					}
@@ -142,7 +142,7 @@ void copiar_archivo_final(t_job* job) {
 
 }
 
-void crearHiloJob(int newfd, t_msg* mensaje) {
+void crear_hilo_job(int newfd, t_msg* mensaje) {
 	struct arg_job args;
 
 	pthread_t hilo_job;

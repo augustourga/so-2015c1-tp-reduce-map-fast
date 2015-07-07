@@ -31,8 +31,8 @@ typedef struct {
 char* getRandName(char* str1, char* str2);
 char* get_info_archivo(char* ruta_mdfs);
 t_nodo get_nodo_menos_cargado(t_nodo nodos[3]);
-void generar_maps(t_job** job, char* ruta_mdfs);
-void planificar_maps(t_job** job);
+void generar_maps(t_job* job, char* ruta_mdfs);
+void planificar_maps(t_job* job);
 void agregar_nodo_si_no_existe(t_nodo nodo_nuevo);
 
 void actualizar_job_map_ok(int id, int socket);
@@ -42,5 +42,6 @@ void actualizar_job_reduce_error(int id, int socket);
 
 void lista_jobs_add(t_job* job);
 void lista_nodos_add(t_nodo_global* nodo);
+void destroy_nodo(t_nodo_global* nodo);
 
 #endif /* MARTA_H_ */
