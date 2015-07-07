@@ -30,7 +30,7 @@ typedef struct {
 
 t_job* job_crear();
 t_archivo solicitar_informacion_archivo(char* ruta_mdfs);
-void procesar_job(void* argumentos);
+void procesa_job(void* argumentos);
 void ejecuta_maps(t_job* job);
 void ejecuta_reduces(t_job* job);
 void ejecuta_reduce_final(t_job* job);

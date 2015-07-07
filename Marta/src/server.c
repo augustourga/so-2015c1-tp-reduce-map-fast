@@ -72,16 +72,16 @@ void decodificar_mensaje(t_msg* mensaje, int socket) {
 
 	switch (mensaje->header.id) {
 	case FIN_MAP_OK:
-	 actualizar_job_map_ok(mensaje->argv[0], socket);
+	 actualiza_job_map_ok(mensaje->argv[0], socket);
 	 break;
 	 case FIN_MAP_ERROR:
-	 actualizar_job_map_error(mensaje->argv[0], socket);
+	 actualiza_job_map_error(mensaje->argv[0], socket);
 	 break;
 	 case FIN_REDUCE_OK:
-	 actualizar_job_reduce_ok(mensaje->argv[0], socket);
+	 actualiza_job_reduce_ok(mensaje->argv[0], socket);
 	 break;
 	 case FIN_REDUCE_ERROR:
-	 actualizar_job_reduce_error(mensaje->argv[0], socket);
+	 actualizar_job_reduce_error(mensaje->argv[0], socket, mensaje->stream);
 	 break;
 	default:
 		log_error_interno("Mensaje Incorrecto");
@@ -150,6 +150,6 @@ void crear_hilo_job(int newfd, t_msg* mensaje) {
 	args.mensaje = mensaje;
 	args.socket = newfd;
 
-	pthread_create(&hilo_job, NULL, (void*) procesar_job, &args);
+	pthread_create(&hilo_job, NULL, (void*) procesa_job, &args);
 }
 

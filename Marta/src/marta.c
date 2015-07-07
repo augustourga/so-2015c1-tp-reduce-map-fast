@@ -89,7 +89,7 @@ void planificar_maps(t_job* job) {
 }
 
 void planificar_reduces_con_combiner(t_job* job) {
-
+	//TODO: Adaptarlo para que soporte replanificación de reduces.
 	bool _ordena_por_nombre(t_map* map1, t_map* map2) {
 		return map1->arch_tmp.nombre <= map2->arch_tmp.nombre;
 	}
@@ -219,7 +219,7 @@ void planificar_reduces(t_job* job) {
 
 }
 
-void procesar_job(void* argumentos) {
+void procesa_job(void* argumentos) {
 
 	t_job* job = job_crear();
 
@@ -239,17 +239,38 @@ void procesar_job(void* argumentos) {
 
 	lista_jobs_add(job);
 
-	planificar_maps(job);
+	while (true) {
 
-	ejecuta_maps(job);
+		planificar_maps(job);
 
-	planificar_reduces(job);
+		ejecuta_maps(job);
 
-	if (job->combiner) {
-		ejecuta_reduces(job);
+		sem_wait(&job->sem_maps_fin);
+
+		if (job->replanifica) {
+			continue;
+		}
+
+		planificar_reduces(job);
+
+		if (job->combiner) {
+			ejecuta_reduces(job);
+
+			sem_wait(&job->sem_reduces_fin);
+
+			if (job->replanifica) {
+				continue;
+			}
+		}
+
+		ejecuta_reduce_final(job);
+
+		sem_wait(&job->sem_reduce_final_fin);
+
+		if (!job->replanifica) {
+			break;
+		}
 	}
-
-	ejecuta_reduce_final(job);
 
 }
 
@@ -371,7 +392,7 @@ t_reduce* reduce_por_id(int id, t_job* job) {
 	return reduce_actual;
 }
 
-void actualizar_job_map_ok(int id, int socket) {
+void actualiza_job_map_ok(int id, int socket) {
 	pthread_mutex_lock(&mutex_jobs);
 
 	t_job* job_actual = job_por_socket(socket);
@@ -401,19 +422,19 @@ void actualizar_job_map_ok(int id, int socket) {
 	pthread_mutex_unlock(&mutex_jobs);
 }
 
-void eliminar_nodo_desconectado(t_nodo nodo) {
+void elimina_nodo_desconectado(char* nombre_nodo) {
 	pthread_mutex_lock(&mutex_nodos);
 
 	bool _nodo_por_nombre(t_nodo_global* nodo_global_actual) {
-		return !strcmp(nodo_global_actual->nodo.nombre, nodo.nombre);
+		return !strcmp(nodo_global_actual->nodo.nombre, nombre_nodo);
 	}
 
-	list_remove_and_destroy_by_condition(lista_nodos, (void*) _nodo_por_nombre, (void*)destroy_nodo);
+	list_remove_and_destroy_by_condition(lista_nodos, (void*) _nodo_por_nombre, (void*) destroy_nodo);
 
 	pthread_mutex_unlock(&mutex_nodos);
 }
 
-void actualizar_job_map_error(int id, int socket) {
+void actualiza_job_map_error(int id, int socket) {
 	pthread_mutex_lock(&mutex_jobs);
 
 	t_job* job_actual = job_por_socket(socket);
@@ -432,9 +453,7 @@ void actualizar_job_map_error(int id, int socket) {
 
 	map_actual->estado = FIN_ERROR;
 
-	eliminar_nodo_desconectado(map_actual->arch_tmp.nodo);
-
-	planificar_maps(job_actual);
+	elimina_nodo_desconectado(map_actual->arch_tmp.nodo.nombre);
 
 	job_actual->replanifica = true;
 
@@ -449,7 +468,7 @@ void actualizar_job_map_error(int id, int socket) {
 	pthread_mutex_unlock(&mutex_jobs);
 }
 
-void actualizar_job_reduce_ok(int id, int socket) {
+void actualiza_job_reduce_ok(int id, int socket) {
 	pthread_mutex_lock(&mutex_jobs);
 
 	t_job* job_actual = job_por_socket(socket);
@@ -468,12 +487,12 @@ void actualizar_job_reduce_ok(int id, int socket) {
 
 	if (id == job_actual->reduce_final->id) {
 		copiar_archivo_final(job_actual);
-		//TODO: Capaz agregar un semáforo más para indicar que terminó el job.
+		sem_post(&job_actual->sem_reduce_final_fin);
 	} else {
 		reduce_actual->estado = FIN_OK;
 
 		bool _finalizo(t_reduce* reduce) {
-			return reduce->estado == FIN_OK;
+			return reduce->estado == FIN_OK || reduce->estado == FIN_ERROR;
 		}
 
 		if (list_all_satisfy(job_actual->reduces, (void*) _finalizo)) {
@@ -482,8 +501,50 @@ void actualizar_job_reduce_ok(int id, int socket) {
 	}
 	pthread_mutex_unlock(&mutex_jobs);
 }
-void actualizar_job_reduce_error(int id, int socket) {
-	//TODO: Finalizar y borrar el job
+
+void actualizar_job_reduce_error(int id, int socket, char* nombre_nodo) {
+	pthread_mutex_lock(&mutex_jobs);
+
+	t_job* job_actual = job_por_socket(socket);
+
+	if (!job_actual) {
+		log_error_consola("El job no existe");
+		exit(1);
+	}
+
+	t_reduce* reduce_actual = reduce_por_id(id, job_actual);
+
+	if (!reduce_actual) {
+		log_error_consola("El map no existe");
+		exit(1);
+	}
+
+	elimina_nodo_desconectado(nombre_nodo);
+
+	job_actual->replanifica = true;
+	reduce_actual->estado = FIN_ERROR;
+
+	void _maps_fin_ok_por_nodo(t_map* map) {
+		if (map->estado == FIN_OK && !strcmp(map->arch_tmp.nodo.nombre, nombre_nodo)) {
+			map->estado = FIN_ERROR;
+		}
+	}
+
+	list_iterate(job_actual->maps, _maps_fin_ok_por_nodo);
+
+	if (id == job_actual->reduce_final->id) {
+		sem_post(&job_actual->sem_reduce_final_fin);
+	} else {
+
+		bool _finalizo(t_reduce* reduce) {
+			return reduce->estado == FIN_OK || reduce->estado == FIN_ERROR;
+		}
+
+		if (list_all_satisfy(job_actual->reduces, (void*) _finalizo)) {
+			sem_post(&job_actual->sem_reduces_fin);
+		}
+	}
+	pthread_mutex_unlock(&mutex_jobs);
 }
 
 void lista_jobs_add(t_job* job) {

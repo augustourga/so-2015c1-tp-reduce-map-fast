@@ -35,10 +35,10 @@ void generar_maps(t_job* job, char* ruta_mdfs);
 void planificar_maps(t_job* job);
 void agregar_nodo_si_no_existe(t_nodo nodo_nuevo);
 
-void actualizar_job_map_ok(int id, int socket);
-void actualizar_job_map_error(int id, int socket);
-void actualizar_job_reduce_ok(int id, int socket);
-void actualizar_job_reduce_error(int id, int socket);
+void actualiza_job_map_ok(int id, int socket);
+void actualiza_job_map_error(int id, int socket);
+void actualiza_job_reduce_ok(int id, int socket);
+void actualizar_job_reduce_error(int id, int socket, char* nombre_nodo);
 
 void lista_jobs_add(t_job* job);
 void lista_nodos_add(t_nodo_global* nodo);

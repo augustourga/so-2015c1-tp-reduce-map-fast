@@ -14,27 +14,19 @@ t_job* job_crear() {
 
 void ejecuta_maps(t_job* job) {
 
-	while (true) {
-
-		void _ejecuta_map(t_map* map) {
-			if (map->estado == PENDIENTE || map->estado == FIN_ERROR) {
-				char* stream = string_duplicate(map->arch_tmp.nodo.ip);
-				string_append(&stream, "|");
-				string_append(&stream, string_duplicate(map->arch_tmp.nombre));
-				t_msg* message = string_message(EJECUTAR_MAP, stream, 3, map->arch_tmp.nodo.puerto, map->id, map->arch_tmp.nodo.numero_bloque);
-				map->estado = EN_EJECUCION;
-				enviar_mensaje(job->socket, message);
-				destroy_message(message);
-			}
-		}
-
-		list_iterate(job->maps, (void*) _ejecuta_map);
-
-		sem_wait(&job->sem_maps_fin);
-		if (!job->replanifica) {
-			break;
+	void _ejecuta_map(t_map* map) {
+		if (map->estado == PENDIENTE || map->estado == FIN_ERROR) {
+			char* stream = string_duplicate(map->arch_tmp.nodo.ip);
+			string_append(&stream, "|");
+			string_append(&stream, string_duplicate(map->arch_tmp.nombre));
+			t_msg* message = string_message(EJECUTAR_MAP, stream, 3, map->arch_tmp.nodo.puerto, map->id, map->arch_tmp.nodo.numero_bloque);
+			map->estado = EN_EJECUCION;
+			enviar_mensaje(job->socket, message);
+			destroy_message(message);
 		}
 	}
+
+	list_iterate(job->maps, (void*) _ejecuta_map);
 }
 
 void ejecuta_reduce(t_job* job, t_reduce* reduce) {
@@ -76,10 +68,5 @@ void ejecuta_reduces(t_job* job) {
 		}
 
 		list_iterate(job->reduces, (void*) _ejecuta_reduce);
-
-		sem_wait(&job->sem_reduces_fin);
-		if (!job->replanifica) {
-			break;
-		}
 	}
 }
