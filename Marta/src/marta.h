@@ -31,6 +31,7 @@ typedef struct {
 char* getRandName(char* str1, char* str2);
 char* get_info_archivo(char* ruta_mdfs);
 t_nodo get_nodo_menos_cargado(t_nodo nodos[3]);
+void generar_maps(t_job** job, char* ruta_mdfs);
 void planificar_maps(t_job** job);
 void agregar_nodo_si_no_existe(t_nodo nodo_nuevo);
 

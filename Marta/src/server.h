@@ -19,6 +19,7 @@
 #include <utiles/messages.h>
 #include <utiles/log.h>
 #include "job.h"
+#include "marta.h"
 
 #define PACKAGESIZE 1024	// Define cual va a ser el size maximo del paquete a enviar
 
@@ -34,5 +35,6 @@ int socket_conectado(int socket);
 void conectarse_a_mdfs(char* ip_mdfs, uint16_t puerto_mdfs);
 char* get_info_archivo(char* ruta_mdfs);
 void crearHiloJob(int newfd, t_msg* mensaje);
+void copiar_archivo_final(t_job* job);
 
 #endif /* SRC_SERVER_H_ */

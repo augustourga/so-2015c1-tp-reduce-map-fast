@@ -36,6 +36,43 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
+void generar_maps(t_job** job, char* ruta_mdfs) {
+
+	char* info_archivo = get_info_archivo(ruta_mdfs);
+	int bloque_archivo = 0;
+
+	char** bloques_archivo = string_split(info_archivo, "|");
+
+	void _crear_map(char* bloque_archivo_info) {
+		char** datos = string_split(bloque_archivo_info, ";");
+
+		t_map* map = map_crear();
+
+		t_archivo archivo;
+		archivo.nombre = string_duplicate(ruta_mdfs);
+		archivo.bloque = bloque_archivo;
+
+		int i;
+		int copia;
+		for (i = 0, copia = 0; datos[i] != NULL && copia < 3; i += 4, copia++) {
+			archivo.copias[copia].nombre = string_duplicate(datos[i]);
+			archivo.copias[copia].ip = string_duplicate(datos[i + 1]);
+			archivo.copias[copia].puerto = atoi(datos[i + 2]);
+			archivo.copias[copia].numero_bloque = atoi(datos[i + 3]);
+			agregar_nodo_si_no_existe(archivo.copias[copia]);
+		}
+
+		map->archivo = archivo;
+
+		list_add((*job)->maps, map);
+
+		bloque_archivo++;
+	}
+
+	string_iterate_lines(bloques_archivo, (void*) _crear_map);
+
+}
+
 void planificar_maps(t_job** job) {
 
 	void _planifica_maps(t_map* map) {
@@ -64,7 +101,7 @@ void planificar_reduces_con_combiner(t_job** job) {
 	reduce_actual->arch_tmp.nodo = primer_map->arch_tmp.nodo;
 	reduce_actual->arch_tmp.nombre = getRandName("Sarasa1", "sarasa2"); //TODO: Generar nombre de archivo
 
-	void _collect(t_map* map) {
+	void _genera_reduces(t_map* map) {
 		if (!strcmp(nombre_actual, map->arch_tmp.nodo.nombre)) {
 			string_append(&temp_actual->nombre, map->arch_tmp.nombre);
 			string_append(&temp_actual->nombre, "|");
@@ -82,7 +119,7 @@ void planificar_reduces_con_combiner(t_job** job) {
 		}
 	}
 
-	list_iterate((*job)->maps, (void*) _collect);
+	list_iterate((*job)->maps, (void*) _genera_reduces);
 
 	t_reduce* primer_reduce = list_get((*job)->reduces, 0);
 
@@ -90,11 +127,11 @@ void planificar_reduces_con_combiner(t_job** job) {
 	reduce_final->arch_tmp.nodo = primer_reduce->arch_tmp.nodo; //TODO: ver si se puede elegir otro con algún criterio mejor
 	reduce_final->arch_tmp.nombre = getRandName("Saras", "jojo"); //TODO: Generar nombre
 
-	void _collect2(t_reduce* reduce) {
+	void _temporales_reduce_final(t_reduce* reduce) {
 		list_add(reduce_final->temporales, &reduce->arch_tmp);
 	}
 
-	list_iterate((*job)->reduces, (void*) _collect2);
+	list_iterate((*job)->reduces, (void*) _temporales_reduce_final);
 
 	(*job)->reduce_final = reduce_final;
 
@@ -148,7 +185,7 @@ void planificar_reduces_sin_combiner(t_job** job) {
 	t_temp* temp_actual = malloc(sizeof(t_temp));
 	temp_actual->nodo = primer_map->arch_tmp.nodo;
 
-	void _collect(t_map* map) {
+	void _genera_temporales(t_map* map) {
 		if (!strcmp(nombre_actual, map->arch_tmp.nodo.nombre)) {
 			string_append(&temp_actual->nombre, map->arch_tmp.nombre);
 			string_append(&temp_actual->nombre, "|");
@@ -162,7 +199,7 @@ void planificar_reduces_sin_combiner(t_job** job) {
 		}
 	}
 
-	list_iterate((*job)->maps, (void*) _collect);
+	list_iterate((*job)->maps, (void*) _genera_temporales);
 
 	(*job)->reduce_final = reduce;
 
@@ -202,17 +239,15 @@ void procesar_job(void* argumentos) {
 
 	planificar_maps(&job);
 
-	ejecutar_maps(job);
+	ejecuta_maps(job);
 
-	planificar_reduces(&job); //TODO: Planificar reduces
+	planificar_reduces(&job);
 
-	if(job->combiner) {
-		ejecutar_reduces(job);
+	if (job->combiner) {
+		ejecuta_reduces(job);
 	}
 
-	ejecutar_reduce_final(job);
-
-	//copiar_archivo_final(); //TODO: copiar archivo final
+	ejecuta_reduce_final(job);
 
 }
 
@@ -387,10 +422,40 @@ void actualizar_job_map_error(int id, int socket) {
 }
 
 void actualizar_job_reduce_ok(int id, int socket) {
+	pthread_mutex_lock(&mutex_jobs);
 
+	t_job* job_actual = job_por_socket(socket);
+
+	if (!job_actual) {
+		log_error_consola("El job no existe");
+		exit(1);
+	}
+
+	t_reduce* reduce_actual = reduce_por_id(id, job_actual);
+
+	if (!reduce_actual) {
+		log_error_consola("El map no existe");
+		exit(1);
+	}
+
+	if (id == job_actual->reduce_final->id) {
+		copiar_archivo_final(job_actual);
+		//TODO: Capaz agregar un semáforo más para indicar que terminó el job.
+	} else {
+		reduce_actual->estado = FIN_OK;
+
+		bool _finalizo(t_reduce* reduce) {
+			return reduce->estado == FIN_OK;
+		}
+
+		if (list_all_satisfy(job_actual->reduces, (void*) _finalizo)) {
+			sem_post(&job_actual->sem_reduces_fin);
+		}
+	}
+	pthread_mutex_unlock(&mutex_jobs);
 }
 void actualizar_job_reduce_error(int id, int socket) {
-
+	//TODO: Finalizar y borrar el job
 }
 
 void lista_jobs_add(t_job* job) {

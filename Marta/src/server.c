@@ -71,7 +71,7 @@ void iniciar_server(uint16_t puerto_listen) {
 void decodificar_mensaje(t_msg* mensaje, int socket) {
 
 	switch (mensaje->header.id) {
-	case FIN_MAP_OK: //TODO: Definir las respuestas
+	case FIN_MAP_OK:
 	 actualizar_job_map_ok(mensaje->argv[0], socket);
 	 break;
 	 case FIN_MAP_ERROR:
@@ -132,7 +132,13 @@ char* get_info_archivo(char* ruta_mdfs) {
 	return ret;
 }
 
-void copiar_archivo_final() {
+void copiar_archivo_final(t_job* job) {
+	char* stream = string_duplicate(job->archivo_final);
+	string_append(&stream, "|");
+	string_append(&stream, job->reduce_final->arch_tmp.nodo.nombre);
+
+	t_msg* message = string_message(GET_ARCHIVO_TMP, stream,0);
+	enviar_mensaje(socket_mdfs, message);
 
 }
 

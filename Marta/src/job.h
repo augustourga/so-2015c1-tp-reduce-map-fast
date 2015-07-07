@@ -14,7 +14,6 @@
 #include <semaphore.h>
 #include <stdlib.h>
 #include "tarea.h"
-#include "server.h"
 
 typedef struct {
 	int socket;
@@ -25,15 +24,15 @@ typedef struct {
 	t_reduce* reduce_final;
 	sem_t sem_maps_fin;
 	sem_t sem_reduces_fin;
+	sem_t sem_reduce_final_fin;
 	bool replanifica;
 } t_job;
 
 t_job* job_crear();
 t_archivo solicitar_informacion_archivo(char* ruta_mdfs);
 void procesar_job(void* argumentos);
-void generar_maps(t_job** job, char* ruta_mdfs);
-void ejecutar_maps(t_job* job);
-void ejecutar_reduces(t_job* job);
-void ejecutar_reduce_final(t_job* job);
+void ejecuta_maps(t_job* job);
+void ejecuta_reduces(t_job* job);
+void ejecuta_reduce_final(t_job* job);
 
 #endif /* SRC_JOB_H_ */
