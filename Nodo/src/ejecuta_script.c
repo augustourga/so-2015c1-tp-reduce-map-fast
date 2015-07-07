@@ -83,17 +83,17 @@ char* generar_nombre_rutina( char*map_o_reduce){
 	return file_map1;
 	}
 
-char* generar_nombre_temporal( int mapreduce_id, char*map_o_reduce,int numeroBloque){
+char* generar_nombre_temporal( int map_id, char*map,int numeroBloque){
 	char* file_map1 = string_new();
 	string_append(&file_map1, "tmp_");
 
 	char str[15];
 
-	sprintf(str, "%d", mapreduce_id);
+	sprintf(str, "%d", map_id);
 	string_append(&file_map1, str);
 	string_append(&file_map1, "_");
 
-	string_append(&file_map1, map_o_reduce);
+	string_append(&file_map1, map);
 	string_append(&file_map1, "_");
 	sprintf(str, "%d", numeroBloque);
 	string_append(&file_map1, str);
@@ -101,7 +101,5 @@ char* generar_nombre_temporal( int mapreduce_id, char*map_o_reduce,int numeroBlo
 	string_append(&file_map1, ".txt");
 	return file_map1;
 	}
-
-
 
 
