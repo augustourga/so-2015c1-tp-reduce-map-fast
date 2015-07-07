@@ -71,18 +71,18 @@ void iniciar_server(uint16_t puerto_listen) {
 void decodificar_mensaje(t_msg* mensaje, int socket) {
 
 	switch (mensaje->header.id) {
-	/*case FIN_MAP_OK: //TODO: Definir las respuestas
-	 actualizar_tabla_tareas(mensaje->argv[0], FIN_MAP_OK);
+	case FIN_MAP_OK: //TODO: Definir las respuestas
+	 actualizar_job_map_ok(mensaje->argv[0], socket);
 	 break;
 	 case FIN_MAP_ERROR:
-	 actualizar_tabla_tareas_error(mensaje->argv[0], FIN_MAP_ERROR);
+	 actualizar_job_map_error(mensaje->argv[0], socket);
 	 break;
 	 case FIN_REDUCE_OK:
-	 actualizar_tabla_tareas(mensaje->argv[0], FIN_REDUCE_OK);
+	 actualizar_job_reduce_ok(mensaje->argv[0], socket);
 	 break;
 	 case FIN_REDUCE_ERROR:
-	 actualizar_tabla_tareas_error(mensaje->argv[0], FIN_REDUCE_ERROR);
-	 break;*/
+	 actualizar_job_reduce_error(mensaje->argv[0], socket);
+	 break;
 	default:
 		log_error_interno("Mensaje Incorrecto");
 		break;

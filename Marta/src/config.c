@@ -1,6 +1,6 @@
 #include "config.h"
 
-void leer_archivo_configuracion(char** ip_mdfs, uint16_t* puerto_mdfs, int* operaciones_por_nodo) {
+void leer_archivo_configuracion(char** ip_mdfs, uint16_t* puerto_mdfs) {
 	t_config* config = NULL;
 
 	config = config_create(ARCHIVO_CONFIG);
@@ -22,12 +22,6 @@ void leer_archivo_configuracion(char** ip_mdfs, uint16_t* puerto_mdfs, int* oper
 		(*puerto_mdfs) = config_get_int_value(config, "PUERTO_MDFS");
 	} else {
 		log_error_consola("El archivo de configuración debe tener un PUERTO_MDFS");
-		exit(1);
-	}
-	if (config_has_property(config, "OPERACIONES_NODO")) {
-		(*puerto_mdfs) = config_get_string_value(config, "OPERACIONES_NODO");
-	} else {
-		log_error_consola("El archivo de configuración debe tener un OPERACIONES_NODO");
 		exit(1);
 	}
 
