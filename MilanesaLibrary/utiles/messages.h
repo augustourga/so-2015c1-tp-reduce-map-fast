@@ -22,16 +22,16 @@ typedef enum {
 	CONEXION_JOB,			//El job se conecta a MaRTA y le envía la tarea a ejecutar
 							//archivo_final | archivo1 | archivo2 ..., combiner
 
-	EJECUTAR_MAP,			//Marta a Job: Ip | nombre_arch_temp, puerto Id_op (autogenerado), numero bloque
+	EJECUTAR_MAP,			//Marta a Job: Ip | nombre_arch_temp, puerto, Id_op (autogenerado), numero bloque
 							//Job a Nodo nombre_arch_temp, numero_bloque
 	FIN_MAP_OK,				//Id_op
 	FIN_MAP_ERROR,			//Id_op
 
-	EJECUTAR_REDUCE,		//Marta a Job: Ip | nombre_arch_temp, puerto Id_op (autogenerado)
+	EJECUTAR_REDUCE,		//Marta a Job: Ip | nombre_nodo | nombre_arch_temp , puerto, Id_op (autogenerado)
 							//Job a Nodo nombre_arch_temp
 	ARCHIVOS_NODO_REDUCE,	//Marta a Job: Ip | archivos1 | archivo2 ..., puerto
 	FIN_REDUCE_OK,			//Id_op
-	FIN_REDUCE_ERROR,		//Id_op
+	FIN_REDUCE_ERROR,		//nombre_nodo ,Id_op
 
 	/***********************NODO******************************/
 	CONEXION_NODO,			//Nodo se conecta al MDFS y le pasa su info
