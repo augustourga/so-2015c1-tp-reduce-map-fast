@@ -20,6 +20,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <commons/collections/list.h>
+#include <commons/collections/queue.h>
 #include <utiles/messages.h>
 #include <utiles/auxiliares.h>
 #include <utiles/files.h>
@@ -73,6 +74,8 @@ char* getBloque(int numeroBloque);
 char* getFileContent(char* filename);
 char* generar_nombre_temporal( int mapreduce_id, char*map_o_reduce,int numeroBloque);
 char* crear_Espacio_Datos(int , char* , char* );
-t_msg_id ejecutar_map(char*ejecutable,char*bloque,char* nombreArchivo,char*temporal);
-t_msg_id ejecutar_reduce(char*ejecutable,char*archivo_final,t_list* listaArchivos);
+void liberar_Espacio_datos(char* _data,char* ARCHIVO);
+void apareo(char* temporal,t_queue* colaArchivos);
+t_msg_id ejecutar_map(char*ejecutable,char* nombreArchivoFinal,int numeroBloque,int mapid);
+t_msg_id ejecutar_reduce(char*ejecutable,char*archivo_final,t_queue* colaArchivos,int id_reduce);
 #endif /* NODO_NODO_H_ */

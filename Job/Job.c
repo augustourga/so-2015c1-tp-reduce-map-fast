@@ -41,9 +41,10 @@ int main(int argc, char* argv[])
 			argumentos= string_split(mensaje_actual->stream,"|");
 			paramsR->archivos_tmp = queue_create();
 			strcpy(paramsR->ip,argumentos[0]);
+			strcpy(paramsR->nombre_nodo,argumentos[1]);
 			paramsR->puerto=mensaje_actual->argv[0];
 			paramsR->id_operacion=mensaje_actual->argv[1];
-			paramsR->archivo_final= argumentos[1];
+			paramsR->archivo_final= argumentos[2];
 
 			mensaje_actual=recibir_mensaje(marta_sock);
 			while(mensaje_actual->header.id!=FIN_ENVIO_MENSAJE)
@@ -112,24 +113,34 @@ int HiloReduce(void* dato)
 {
 	t_msg* mensaje;
 	int i;
-	t_params_hiloReduce* args =(t_params_hiloReduce*)dato;
+	t_params_hiloReduce* args = (t_params_hiloReduce*) dato;
 	int nodo_sock = client_socket(args->ip, args->puerto);
 
-	mensaje = string_message(EJECUTAR_REDUCE,args->archivo_final,0);
-	enviar_mensaje(nodo_sock,mensaje);
+	mensaje = string_message(EJECUTAR_REDUCE, args->archivo_final, 1,
+			args->id_operacion);
+	enviar_mensaje(nodo_sock, mensaje);
 
-	mensaje= string_message(RUTINA,configuracion->reduce,0);
-	enviar_mensaje(nodo_sock,mensaje);
-	for(i=0;i<args->archivos_tmp->elements->elements_count;i++)
-	{
+	mensaje = string_message(RUTINA, configuracion->reduce, 0);
+	enviar_mensaje(nodo_sock, mensaje);
+	for (i = 0; i < args->archivos_tmp->elements->elements_count; i++) {
 
-		enviar_mensaje(nodo_sock,(t_msg*)queue_pop(args->archivos_tmp));
+		enviar_mensaje(nodo_sock, (t_msg*) queue_pop(args->archivos_tmp));
 	}
-	mensaje= id_message(FIN_ENVIO_MENSAJE);
-	enviar_mensaje(nodo_sock,mensaje);
-	mensaje= recibir_mensaje(nodo_sock);
+	mensaje = id_message(FIN_ENVIO_MENSAJE);
+	enviar_mensaje(nodo_sock, mensaje);
+	mensaje = recibir_mensaje(nodo_sock);
 
-	mensaje= argv_message(mensaje->header.id,1,args->id_operacion);
+	switch (mensaje->header.id) {
+	case FIN_REDUCE_ERROR:
+		mensaje = string_message(mensaje->header.id, args->nombre_nodo, 1,
+				args->id_operacion);
+		break;
+	case FIN_REDUCE_OK:
+		mensaje = argv_message(mensaje->header.id, 1, args->id_operacion);
+		break;
+	}
+
+
 
 	//Se reenvía el resultado del reduce a marta
 	//pthread_mutex_lock(marta_mutex);

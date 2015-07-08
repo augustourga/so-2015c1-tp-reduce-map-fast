@@ -6,22 +6,23 @@
  */
 #include "Nodo.h"
 
-int main(int argc,char*parametros[]) {
+int main(int argc, char*parametros[]) {
 
-
-	Log_Nodo = log_create(LOG_FILE, PROCESO, 1, LOG_LEVEL_TRACE);
+	log_crear("INFO", LOG_FILE, PROCESO);
 
 	if (levantarConfiguracionNodo()) {
-		log_error(Log_Nodo, "Hubo errores en la carga de las configuraciones.");
+		log_error_consola("Hubo errores en la carga de las configuraciones.");
 	}
 
-	_data = crear_Espacio_Datos(NODO_NUEVO, ARCHIVO_BIN,parametros[0]);
+	_data = crear_Espacio_Datos(NODO_NUEVO, ARCHIVO_BIN, parametros[0]);
 
 	if (levantarHiloFile()) {
-		log_error(Log_Nodo, "Conexion con File System fallida.");
+		log_error_consola("Conexion con File System fallida.");
 	}
 
 	levantarNuevoServer();
+
+	liberar_Espacio_datos(_data, ARCHIVO_BIN);
 
 	return 0;
 }
@@ -32,13 +33,14 @@ int levantarConfiguracionNodo() {
 
 	PUERTO_FS = config_get_int_value(archivo_config, "PUERTO_FS");
 	IP_FS = strdup(config_get_string_value(archivo_config, "IP_FS"));
-	ARCHIVO_BIN = strdup(config_get_string_value(archivo_config, "ARCHIVO_BIN"));
+	ARCHIVO_BIN = strdup(
+			config_get_string_value(archivo_config, "ARCHIVO_BIN"));
 	DIR_TEMP = strdup(config_get_string_value(archivo_config, "DIR_TEMP"));
 	aux = strdup(config_get_string_value(archivo_config, "NODO_NUEVO"));
 	PUERTO_NODO = config_get_int_value(archivo_config, "PUERTO_NODO");
-	NOMBRE_NODO=strdup(config_get_string_value(archivo_config, "NOMBRE_NODO"));
+	NOMBRE_NODO = strdup(
+			config_get_string_value(archivo_config, "NOMBRE_NODO"));
 	config_destroy(archivo_config);
-
 
 	if (strncmp(aux, "SI", 2) == 0) {
 		NODO_NUEVO = 1;
@@ -46,19 +48,16 @@ int levantarConfiguracionNodo() {
 		NODO_NUEVO = 0;
 	}
 
-
 	return 0;
 }
 
 int levantarHiloFile() {
 	pthread_t thr_Conexion_FileSystem;
 	t_conexion_nodo* reg_conexion = malloc(sizeof(t_conexion_nodo));
-
-
 	rcx = pthread_create(&thr_Conexion_FileSystem, NULL,
 			(void *) conectarFileSystem, reg_conexion);
 	if (rcx != 0) {
-		log_error(Log_Nodo,
+		log_error_consola(
 				"El thread que acepta las conexiones entrantes no pudo ser creado.");
 	}
 	return 0;
@@ -70,6 +69,7 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 	t_msg* mensaje = string_message(CONEXION_NODO, NOMBRE_NODO,1, CANT_BLOQUES);
 	enviar_mensaje(reg_conexion->sock_fs, mensaje);
 	destroy_message(mensaje);
+	log_info_interno("Conectado al File System en el socket %d",reg_conexion->sock_fs);
 
 	while (true) {
 
@@ -89,7 +89,7 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 			mensaje2 = string_message(GET_BLOQUE, bloque, 2, codigo->argv[0],
 					tamanio_bloque);
 			enviar_mensaje(reg_conexion->sock_fs, mensaje2);
-			free_null((void*) &bloque);
+			free(bloque);
 			destroy_message(mensaje2);
 			destroy_message(codigo);
 			break;
@@ -104,7 +104,7 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 			memset(bloque + codigo->argv[1], '\0',
 					tamanio_bloque - codigo->argv[1]);
 			setBloque(codigo->argv[0], bloque);
-			free_null((void*) &bloque);
+			free(bloque);
 			destroy_message(codigo);
 			break;
 
@@ -120,7 +120,7 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 			enviar_mensaje(reg_conexion->sock_fs, mensaje2);
 			destroy_message(mensaje2);
 			destroy_message(codigo);
-			free_null((void*) &bloque);
+			free(bloque);
 			break;
 		}
 
@@ -134,6 +134,8 @@ void levantarNuevoServer() {
 	printf("Esperando conexiones entrantes\n");
 	while (true) {
 		nuevaConexion = accept_connection(listener);
+		log_info_consola("Se ha conectado un proceso al socket %d",nuevaConexion);
+		log_info_interno("Se ha conectado un proceso al socket %d",nuevaConexion);
 		pthread_create(&thread, NULL, atenderConexiones, &nuevaConexion);
 	}
 }
@@ -143,8 +145,11 @@ void *atenderConexiones(void *parametro) {
 	int sock_conexion = *((int *) parametro);
 	char*bloque = NULL;
 	t_msg* mensaje2;
-	t_list* lista_nodos;
+	t_queue *cola_nodos=queue_create();
 	t_msg_id fin;
+	t_nodo_archivo* nodo_arch;
+	char*rutina_reduce;
+
 
 	while (1) {
 		if ((codigo = recibir_mensaje(sock_conexion)) != NULL ) {
@@ -161,7 +166,7 @@ void *atenderConexiones(void *parametro) {
 				mensaje2 = string_message(GET_BLOQUE, bloque, 2,
 						codigo->argv[0], tamanio_bloque);
 				enviar_mensaje(sock_conexion, mensaje2);
-				free_null((void*) &bloque);
+				free(bloque);
 				destroy_message(mensaje2);
 				destroy_message(codigo);
 				break;
@@ -176,7 +181,7 @@ void *atenderConexiones(void *parametro) {
 				memset(bloque + codigo->argv[1], '\0',
 						tamanio_bloque - codigo->argv[1]);
 				setBloque(codigo->argv[0], bloque);
-				free_null((void*) &bloque);
+				free(bloque);
 				destroy_message(codigo);
 				break;
 
@@ -194,28 +199,25 @@ void *atenderConexiones(void *parametro) {
 				enviar_mensaje(sock_conexion, mensaje2);
 				destroy_message(mensaje2);
 				destroy_message(codigo);
-				free_null((void*) &bloque);
+				free(bloque);
 				break;
 
 			case EJECUTAR_MAP:
 
 				mensaje2 = recibir_mensaje(sock_conexion);
-				puts("voy a ejecutar map");
-				/* ejecutar_mapping(ejecutable,num_bloque,rchivo); */
 
-				bloque = getBloque(codigo->argv[0]);
-				char* temporal = generar_nombre_temporal(mensaje2->argv[0],
-						"map", codigo->argv[0]);
-				fin = ejecutar_map(mensaje2->stream, bloque, codigo->stream,
-						temporal);
+				fin = ejecutar_map(mensaje2->stream, codigo->stream,codigo->argv[0],mensaje2->argv[0]);
 				switch (fin) {
 				case FIN_MAP_ERROR:
-					log_error(Log_Nodo,
-							"Hubo errores en el map %d en el bloque %d.",
+					log_error_consola("Hubo errores en el map %d en el bloque %d.",
+							mensaje2->argv[0], codigo->argv[0]);
+					log_error_interno("Hubo errores en el map %d en el bloque %d.",
 							mensaje2->argv[0], codigo->argv[0]);
 					break;
 				case FIN_MAP_OK:
-					log_info(Log_Nodo, "Map %d en el bloque %d exitoso",
+					log_info_consola("Map %d en el bloque %d exitoso",
+							mensaje2->argv[0], codigo->argv[0]);
+					log_info_interno("Map %d en el bloque %d exitoso",
 							mensaje2->argv[0], codigo->argv[0]);
 					break;
 
@@ -224,21 +226,16 @@ void *atenderConexiones(void *parametro) {
 				enviar_mensaje(sock_conexion, mensaje2);
 				destroy_message(mensaje2);
 				destroy_message(codigo);
-				free(bloque);
 				break;
 
 			case EJECUTAR_REDUCE:
 //
-				lista_nodos = list_create();
-							t_nodo_archivo* nodo_arch;
-							char* archivo_final= codigo->stream;
-							char*rutina_reduce;
+
 							//Se recibe la rutina
 							mensaje2 = recibir_mensaje(sock_conexion);
 							size_t tamanioEjecutable=strlen(mensaje2->stream);
 							rutina_reduce = malloc(tamanioEjecutable);
 							memcpy(rutina_reduce, mensaje2->stream, tamanioEjecutable);
-							printf("ejecutar_Reduce()");
 							destroy_message(mensaje2);
 
 							//el primero va a ser el nodo local
@@ -248,12 +245,13 @@ void *atenderConexiones(void *parametro) {
 								nodo_arch->ip =string_n_split(mensaje2->stream,2,"|")[0];
 								nodo_arch->archivos = string_n_split(mensaje2->stream,2,"|")[1];
 								nodo_arch->puerto= mensaje2->argv[0];
-								list_add(lista_nodos,(void*) nodo_arch);
+								queue_push(cola_nodos,(void*) nodo_arch);
+
 							}
 							/*
 							 * EJECUTAR REDUCE
 //							 */
-		                    fin = ejecutar_reduce(rutina_reduce,archivo_final,lista_nodos);
+		                    fin = ejecutar_reduce(rutina_reduce,codigo->stream,cola_nodos,codigo->argv[0]);
 							mensaje2=id_message(fin);
 							enviar_mensaje(sock_conexion,mensaje2);
 							destroy_message(mensaje2);
@@ -264,7 +262,8 @@ void *atenderConexiones(void *parametro) {
 			}
 
 		} else {
-//			log_warning(Logger, "Desconexión de un proceso.");
+			log_error_consola("Se ha desconectado un proceso del socket %d",sock_conexion);
+			log_error_interno("Se ha desconectado un proceso del socket %d",sock_conexion);
 			break;
 		}
 	}
@@ -274,28 +273,28 @@ void *atenderConexiones(void *parametro) {
 
 void setBloque(int numeroBloque, char* bloque_datos) {
     //debo pararme en la posicion donde se encuentra almacenado el bloque y empezar a grabar
-	log_info(Log_Nodo, "Inicio setBloque(%d)", numeroBloque);
+	log_info_interno( "Inicio setBloque(%d)", numeroBloque);
 	//el memset lo hago para limpiar el bloque por las dudas
 	memset(_data + (numeroBloque * tamanio_bloque), 0, tamanio_bloque);
 	memcpy(_data + (numeroBloque * tamanio_bloque), bloque_datos,
 			tamanio_bloque);
-	log_info(Log_Nodo, "Fin setBloque(%d)", numeroBloque);
+	log_info_interno( "Fin setBloque(%d)", numeroBloque);
 
 }
 char* getBloque(int numeroBloque) {
-	log_info(Log_Nodo, "Ini getBloque(%d)", numeroBloque);
+	log_info_interno( "Ini getBloque(%d)", numeroBloque);
 	char* bloque = NULL;
 	bloque = malloc(tamanio_bloque);
 	memcpy(bloque, &(_data[numeroBloque * tamanio_bloque]), tamanio_bloque);
 	//memcpy(bloque, _bloques[numero], TAMANIO_BLOQUE);
-	log_info(Log_Nodo, "Fin getBloque(%d)", numeroBloque);
+	log_info_interno( "Fin getBloque(%d)", numeroBloque);
 	return bloque;
 }
 
 
 char* getFileContent(char* filename) {
 
-       log_info(Log_Nodo, "Inicio getFileContent(%s)", filename);
+       log_info_interno( "Inicio getFileContent(%s)", filename);
        char* content = NULL;
        //creo el espacio para almacenar el archivo
        char* path = file_combine(DIR_TEMP, filename);
@@ -307,31 +306,47 @@ char* getFileContent(char* filename) {
        memcpy(content, mapped, size);        //
        file_mmap_free(mapped, path);
        free_null((void*)&path);
-       log_info(Log_Nodo, "Fin getFileContent(%s)", filename);
+       log_info_interno( "Fin getFileContent(%s)", filename);
        return content;
 
 }
 
 char* crear_Espacio_Datos(int NUEVO, char* ARCHIVO, char* parametro) {
-	CANT_BLOQUES = atoi(parametro);
 	size_t tamanio = 20 * 1024 * 1024;
+	int tamanio_bytes = atoi(parametro);
+	CANT_BLOQUES = tamanio_bytes / tamanio;
+	log_info_interno(
+			"Comienzo de creacion del espacio de datos. Cantidad de Bloques: %d",
+			CANT_BLOQUES);
+
 	char* direccion;
 	char* path;
 	if (NUEVO == 1) {
 		path = file_combine(DIR_TEMP, ARCHIVO);
 		create_file(path, CANT_BLOQUES * tamanio);
 		direccion = file_get_mapped(path);
-
 	} else {
 		path = file_combine(DIR_TEMP, ARCHIVO);
 		direccion = file_get_mapped(path);
 	}
+	log_info_interno(
+			"Fin de creacion del espacio de datos. Cantidad de Bloques: %d",
+			CANT_BLOQUES);
 	return direccion;
 }
 
-t_msg_id ejecutar_map(char*ejecutable, char* bloque, char* nombreArchivoFinal,
-		char*temporal) {
-	log_info(Log_Nodo, "Inicio ejecutarMap ");
+void liberar_Espacio_datos(char* _data,char* ARCHIVO){
+	char* path = file_combine(DIR_TEMP, ARCHIVO);
+	file_mmap_free(_data,path );
+}
+t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal,int numeroBloque, int mapid) {
+	log_info_consola("Inicio ejecutarMap ID:%d en el bloque %d", mapid,
+			numeroBloque);
+	log_info_interno("Inicio ejecutarMap ID:%d en el bloque %d", mapid,
+			numeroBloque);
+	char*bloque = NULL;
+	bloque = getBloque(numeroBloque);
+	char* temporal = generar_nombre_temporal(mapid, "map", numeroBloque);
 	char*ruta_sort = "/usr/bin/sort";
 	char* path_ejecutable = generar_nombre_rutina("map");
 	write_file(path_ejecutable, ejecutable, strlen(ejecutable));
@@ -345,19 +360,68 @@ t_msg_id ejecutar_map(char*ejecutable, char* bloque, char* nombreArchivoFinal,
 	}
 	remove(path_ejecutable);
 	remove(temporal);
+	free(bloque);
 	return FIN_MAP_OK;
-	log_info(Log_Nodo, "Fin ejecutarMap ");
+	log_info_consola("Fin ejecutarMap ID:%d en el bloque %d", mapid,
+			numeroBloque);
+	log_info_interno("Fin ejecutarMap ID:%d en el bloque %d", mapid,
+			numeroBloque);
 }
 
+t_msg_id ejecutar_reduce(char*ejecutable, char* nombreArchivoFinal,
+		t_queue* colaArchivos, int id_reduce) {
+/*Reducir en Nodo1:
 
-t_msg_id ejecutar_reduce(char*ejecutable,char*archivo_final,t_list* listaArchivos){
-log_info(Log_Nodo, "Inicio ejecutarReduce " );
+Archivo local: librazo12345.tmp
+Archivo remoto: Nodo4 - librazo12347.tmp
+Archivo remoto: Nodo3 - librazo12349.tmp
 
-//LE PIDO AL SOCKET_NODO QUE ME DEVUELVA UN GET_FILE_CONTENT(nombreArchivo)
-//una vez recibido, los apareo con mis archivos del espacio temporal
+Almacenar el resultado en: librazo.reduce.12885.tmp
 
-log_info(Log_Nodo, "Fin ejecutarReduce ");
-return FIN_REDUCE_OK;
+1) El job va a lanzar un hilo reducer y se va a conectar al Nodo1
+2) El hilo reducer va a enviar el contenido de reduce.py al Nodo1.
+3) El Nodo1 guarda el contenido de reduce.py en un archivo en el filesystem local. Le da permisos de ejecución.
+4) El hilo reducer va a enviar los nombres y nodos de los archivos a aparear al Nodo1
+5) El Nodo1 se va a conectar a los nodos Nodo4 y Nodo3.
+6) El Nodo1 va a abrir el archivo librazo12345.tmp y va a solicitarle al Nodo4 el archivo librazo12347.tmp y al Nodo3 el archivo librazo12349.tmp.
+Mientras va recibiendo streams irá apareando los contenidos y enviará el resultado del apareo al reducer.py
+7) El resultado del reducer.py lo irá almacenando en librazo.reduce.12885.tmp
+8) Al concluir el apareo de los tres archivos el Nodo1 notificará al Job el éxito de la operación
+*/
+
+
+	log_info_consola("Inicio ejecutar Reduce ID:%d ", id_reduce);
+	log_info_consola("Inicio ejecutar Reduce ID:%d ", id_reduce);
+
+	t_msg* mensaje;
+
+
+	char* path_ejecutable = generar_nombre_rutina("reduce");
+	write_file(path_ejecutable, ejecutable, strlen(ejecutable));
+	chmod(path_ejecutable, S_IRWXU);
+
+//saco el primer elemento que es el nodo actual, seteo ip en null y lo vuelvo a poner en la cola
+	t_nodo_archivo* elem =(t_nodo_archivo*) malloc(sizeof(t_nodo_archivo));
+	elem = (t_nodo_archivo *) queue_pop(colaArchivos);
+	elem->ip=NULL;
+	char*temporal = generar_nombre_temporal(id_reduce, "reduce", elem->puerto);
+	queue_push(colaArchivos,(void*) elem);
+
+//colaArchivos tiene el formato 	(t_nodo_archivo*elem) que tiene elem->ip, elem->puerto,y aca un char* con los nombres de archivos separados por ;
+    apareo(temporal,colaArchivos);
+	char* data = read_whole_file(temporal);
+	if (ejecutar(data, path_ejecutable, nombreArchivoFinal)) {
+		return FIN_REDUCE_ERROR;
+	}
+	destroy_message(mensaje);
+	free(elem);
+	log_info_consola("Fin ejecutar Reduce ID:%d ", id_reduce);
+	log_info_consola("Fin ejecutar Reduce ID:%d ", id_reduce);
+	return FIN_REDUCE_OK;
 }
 
+void apareo(char* temporal,t_queue* colaArchivos){
+
+
+}
 
