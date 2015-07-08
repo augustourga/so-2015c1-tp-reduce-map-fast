@@ -56,7 +56,6 @@ typedef struct{
 		 char* DIR_TEMP;
 		 int NODO_NUEVO;
 		 int PUERTO_NODO;
-	     int NODO_ID;
 	     t_log* Log_Nodo;
          char* _data;
          int CANT_BLOQUES;
@@ -76,7 +75,8 @@ char* getFileContent(char* filename);
 char* generar_nombre_temporal( int mapreduce_id, char*map_o_reduce,int numeroBloque);
 char* crear_Espacio_Datos(int , char* , char* );
 void liberar_Espacio_datos(char* _data,char* ARCHIVO);
-void apareo(char* temporal,t_queue* colaArchivos);
+void apareo(char* temporal,t_list* colaArchivos);
+t_list* deserealizar_cola(t_queue* colaArchivos);
 t_msg_id ejecutar_map(char*ejecutable,char* nombreArchivoFinal,int numeroBloque,int mapid);
 t_msg_id ejecutar_reduce(char*ejecutable,char*archivo_final,t_queue* colaArchivos,int id_reduce);
 #endif /* NODO_NODO_H_ */

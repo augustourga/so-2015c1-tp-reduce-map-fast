@@ -1,9 +1,4 @@
-/*
- * Nodo.c
- *
- *  Created on: 25/4/2015
- *      Author: utnso
- */
+
 #include "Nodo.h"
 
 int main(int argc, char*parametros[]) {
@@ -370,54 +365,64 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal,int numeroBloque
 
 t_msg_id ejecutar_reduce(char*ejecutable, char* nombreArchivoFinal,
 		t_queue* colaArchivos, int id_reduce) {
-/*Reducir en Nodo1:
-
-Archivo local: librazo12345.tmp
-Archivo remoto: Nodo4 - librazo12347.tmp
-Archivo remoto: Nodo3 - librazo12349.tmp
-
-Almacenar el resultado en: librazo.reduce.12885.tmp
-
-1) El job va a lanzar un hilo reducer y se va a conectar al Nodo1
-2) El hilo reducer va a enviar el contenido de reduce.py al Nodo1.
-3) El Nodo1 guarda el contenido de reduce.py en un archivo en el filesystem local. Le da permisos de ejecución.
-4) El hilo reducer va a enviar los nombres y nodos de los archivos a aparear al Nodo1
-5) El Nodo1 se va a conectar a los nodos Nodo4 y Nodo3.
-6) El Nodo1 va a abrir el archivo librazo12345.tmp y va a solicitarle al Nodo4 el archivo librazo12347.tmp y al Nodo3 el archivo librazo12349.tmp.
-Mientras va recibiendo streams irá apareando los contenidos y enviará el resultado del apareo al reducer.py
-7) El resultado del reducer.py lo irá almacenando en librazo.reduce.12885.tmp
-8) Al concluir el apareo de los tres archivos el Nodo1 notificará al Job el éxito de la operación
-*/
-
 
 	log_info_consola("Inicio ejecutar Reduce ID:%d ", id_reduce);
 	log_info_consola("Inicio ejecutar Reduce ID:%d ", id_reduce);
 
 	t_msg* mensaje;
-
+	t_list* lista_nodos;
 
 	char* path_ejecutable = generar_nombre_rutina("reduce");
 	write_file(path_ejecutable, ejecutable, strlen(ejecutable));
 	chmod(path_ejecutable, S_IRWXU);
+	char*temporal = generar_nombre_temporal(id_reduce, "reduce", 5);
 
-//saco el primer elemento que es el nodo actual, seteo ip en null y lo vuelvo a poner en la cola
-	t_nodo_archivo* elem =(t_nodo_archivo*) malloc(sizeof(t_nodo_archivo));
-	elem = (t_nodo_archivo *) queue_pop(colaArchivos);
-	elem->ip=NULL;
-	char*temporal = generar_nombre_temporal(id_reduce, "reduce", elem->puerto);
-	queue_push(colaArchivos,(void*) elem);
+	lista_nodos = deserealizar_cola(colaArchivos);
 
-//colaArchivos tiene el formato 	(t_nodo_archivo*elem) que tiene elem->ip, elem->puerto,y aca un char* con los nombres de archivos separados por ;
-    apareo(temporal,colaArchivos);
+	apareo(temporal, lista_nodos);
 	char* data = read_whole_file(temporal);
 	if (ejecutar(data, path_ejecutable, nombreArchivoFinal)) {
 		return FIN_REDUCE_ERROR;
 	}
 	destroy_message(mensaje);
-	free(elem);
+
 	log_info_consola("Fin ejecutar Reduce ID:%d ", id_reduce);
 	log_info_consola("Fin ejecutar Reduce ID:%d ", id_reduce);
 	return FIN_REDUCE_OK;
+}
+
+t_list* deserealizar_cola(t_queue* colaArchivos) {
+	int k, a;
+	char** lista_archivos_aux;
+	t_nodo_archivo* nodo_aux;
+	t_list* lista_nodos = list_create();
+	t_nodo_archivo* elem = (t_nodo_archivo*) malloc(sizeof(t_nodo_archivo));
+	elem = (t_nodo_archivo *) queue_pop(colaArchivos);
+	lista_archivos_aux = string_split(elem->archivo, ";");
+	for (k = 0; lista_archivos_aux[k] != NULL; k++) {
+		nodo_aux->ip = NULL;
+		nodo_aux->puerto = elem->puerto;
+		nodo_aux->archivo = lista_archivos_aux[k];
+		list_add(lista_nodos, nodo_aux);
+	}
+	a = queue_size(colaArchivos);
+	if (a != 0) {
+		elem = (t_nodo_archivo *) queue_pop(colaArchivos);
+		while (a != 0) {
+			lista_archivos_aux = string_split(elem->archivo, ";");
+			for (k = 0; lista_archivos_aux[k] != NULL; k++) {
+				nodo_aux->ip = elem->ip;
+				nodo_aux->puerto = elem->puerto;
+				nodo_aux->archivo = lista_archivos_aux[k];
+				list_add(lista_nodos, nodo_aux);
+			}
+			a = queue_size(colaArchivos);
+			elem = (t_nodo_archivo *) queue_pop(colaArchivos);
+
+		}
+	}
+	free(elem);
+	return lista_nodos;
 }
 
 void apareo(char* temporal,t_list* lista_nodos_archivos){
