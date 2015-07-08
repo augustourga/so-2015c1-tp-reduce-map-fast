@@ -48,6 +48,10 @@ typedef enum {
 	GET_FILE_CONTENT_OK,
 	GET_FILE_CONTENT_ERROR,
 
+	GET_NEXT_ROW,			//Nombre de archivo temporal
+	GET_NEXT_ROW_OK,
+	GET_NEXT_ROW_ERROR,
+
 	/***********************Filesystem***************************/
 	CONEXION_MARTA,				// (Sin parametros)
 

@@ -10,6 +10,7 @@ int main(int argc, char*parametros[]) {
 	}
 
 	_data = crear_Espacio_Datos(NODO_NUEVO, ARCHIVO_BIN, parametros[0]);
+	archivos_temporales = list_create();
 
 	if (levantarHiloFile()) {
 		log_error_consola("Conexion con File System fallida.");
@@ -353,6 +354,7 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal,int numeroBloque
 	if (ejecutar(data, ruta_sort, nombreArchivoFinal)) {
 		return FIN_MAP_ERROR;
 	}
+	list_add_archivo_tmp(nombreArchivoFinal);
 	remove(path_ejecutable);
 	remove(temporal);
 	free(bloque);
@@ -440,9 +442,9 @@ void apareo(char* temporal,t_list* lista_nodos_archivos){
 	t_nodo_archivo* elem =(t_nodo_archivo*) malloc(sizeof(t_nodo_archivo));
 	for (i=0; i<cantidad_nodos_archivos; i++) {
 		elem = (t_nodo_archivo *) list_get(lista_nodos_archivos,i);
-		elem->posicion_puntero = NULL;
 		registros[i] = obtener_proximo_registro(elem);
 	}
+	registros[i+1] = NULL;
 
 	pos = obtener_posicion_menor_clave(registros);
 	strcpy(registro_actual_1, registros[pos]);
@@ -495,33 +497,113 @@ void apareo(char* temporal,t_list* lista_nodos_archivos){
 char* obtener_proximo_registro(t_nodo_archivo* nodo_archivo) {
 	char* resultado;
 	if (nodo_archivo->ip==NULL) {
-		resultado = obtener_proximo_registro_de_archivo(nodo_archivo->archivo, nodo_archivo->posicion_puntero);
+		resultado = obtener_proximo_registro_de_archivo(nodo_archivo->archivo);
 	} else {
-		resultado = enviar_mensaje_proximo_registro(nodo_archivo->ip, nodo_archivo->puerto, nodo_archivo->archivo, nodo_archivo->posicion_puntero);
+		resultado = enviar_mensaje_proximo_registro(nodo_archivo);
 	}
 	return resultado;
 }
 
 int obtener_posicion_menor_clave(char** registros) {
-	int pos;
-	// TODO: aca hay q recorrer los registros uno por uno, splitearlo para obtener la clave y compararlas
-	// devolver la posicion en la q se encuentra esta clave dentro de los registros
+	int pos, i, aux;
+	char* clave_1 = string_new();
+	char* clave_2 = string_new();
+
+	// obtiene primer campo != EOF
+	for (pos=0; (registros[pos]!=NULL) && (string_is_empty(clave_1)); pos++){
+		if (registros[pos]!=EOF) {
+			clave_1 = string_n_split(registros[pos], 2, ";")[0];
+		}
+	}
+
+	if (!string_is_empty(clave_1)) {
+		for (i = pos + 1; registros[i]!=NULL; i++) {
+			if (registros[i]!=EOF) {
+				clave_2 = string_n_split(registros[i], 2, ";")[0];
+				aux = obtener_menor(clave_1, clave_2); //devuelve 0 si son iguales, 1 si clave_1 es menor, 2 si clave_2 es menor
+				if (aux==2) {
+					pos = i;
+					strcpy(clave_1, clave_2);
+				}
+			}
+		}
+	} else {
+		pos = -1;
+	}
 	// devuelve -1 una vez que en el array ya son todos campos nulos u EOF
 	return pos;
 }
 
-char* obtener_proximo_registro_de_archivo(char* archivo, fpos_t* posicion_puntero) {
-	char* resultado;
-	// TODO: abro el archivo, si el puntero esta en NULL, leo el primer registro y devuelvo eso
-	// sino esta en NULL, posiciono el puntero, leo y devuelvo
+int obtener_menor(char* clave_1, char* clave_2) {
+	int resultado;
+	//TODO: devuelve 0 si son iguales, 1 si clave_1 es menor, 2 si clave_2 es menor
 
 	return resultado;
 }
 
-char* enviar_mensaje_proximo_registro(char* ip, int puerto, char* archivo, fpos_t* posicion_puntero) {
-	char* resultado;
-	// TODO: armo el mensaje que le pide a otro nodo el proximo registro
-	// al recibir el mensaje el otro nodo, solo tendria que ejecutar la funcion obtener_proximo_registro_de_archivo(archivo, posicion_puntero) y devolver por mensaje su resultado
-	// asi q aca se espera la respuesta del mensaje y devuelve eso
+char* obtener_proximo_registro_de_archivo(char* archivo) {
+	char* resultado = string_new();
+	fpos_t* posicion_puntero = obtener_posicion_puntero_arch_tmp(archivo);
+
+	FILE* file = fopen(archivo, "r");
+	if (file != NULL) {
+		if (posicion_puntero != NULL) {
+			fsetpos(file, posicion_puntero);
+		}
+		resultado = fgets(resultado, 101, file);
+		fgetpos(file, posicion_puntero);
+		fclose(file);
+		actualizar_posicion_puntero_arch_tmp(archivo, posicion_puntero);
+	} else {
+		log_error_interno("No pudo abrirse el archivo temporal");
+		resultado = NULL;
+	}
+
 	return resultado;
+}
+
+char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
+	char* resultado;
+	int socket_tmp;
+	socket_tmp = client_socket(nodo_archivo->ip, nodo_archivo->puerto);
+	t_msg* msg = string_message(GET_NEXT_ROW, nodo_archivo->archivo, 0);
+	enviar_mensaje(socket_tmp, msg);
+	msg = recibir_mensaje(socket_tmp);
+	if (msg->header.id==GET_NEXT_ROW_OK) {
+		strcpy(resultado, msg->stream);
+	}
+	if (msg->header.id==GET_NEXT_ROW_ERROR) {
+		log_error_interno("El nodo no devolvio el proximo registro. Devolvio ERROR.");
+	}
+	// TODO: Fijarse si aca falla re-pedimos el proximo registro o no.
+	return resultado;
+}
+
+void list_add_archivo_tmp(char* nombre_archivo) {
+	t_archivo_tmp* archivo = malloc(sizeof(t_archivo_tmp));
+	strcpy(archivo->nombre_archivo, nombre_archivo);
+	archivo->posicion_puntero = NULL;
+	list_add(archivos_temporales, archivo);
+}
+
+fpos_t* obtener_posicion_puntero_arch_tmp(char* nombre_archivo) {
+	t_archivo_tmp* archivo;
+
+	bool _archivo_con_nombre(t_archivo_tmp* archivo_tmp) {
+		return string_equals_ignore_case(archivo_tmp->nombre_archivo, nombre_archivo);
+	}
+	archivo = list_find(archivos_temporales,(void*) _archivo_con_nombre);
+
+	return archivo->posicion_puntero;
+}
+
+void actualizar_posicion_puntero_arch_tmp(char* nombre_archivo, fpos_t* posicion_puntero) {
+	t_archivo_tmp* archivo;
+
+	bool _archivo_con_nombre(t_archivo_tmp* archivo_tmp) {
+		return string_equals_ignore_case(archivo_tmp->nombre_archivo, nombre_archivo);
+	}
+
+	archivo = list_find(archivos_temporales,(void*) _archivo_con_nombre);
+	archivo->posicion_puntero = posicion_puntero; // TODO: preguntar si esto funciona! Asi se estaria actualizando el puntero en el archivo_tmp q se encuentra en la lista??
 }

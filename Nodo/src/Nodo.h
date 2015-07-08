@@ -44,9 +44,12 @@ typedef struct{
 	int puerto;
 	char* ip;
 	char* archivo;
-	fpos_t* posicion_puntero;
-}t_nodo_archivo ;
+}t_nodo_archivo;
 
+typedef struct{
+	char* nombre_archivo;
+	fpos_t* posicion_puntero;
+}t_archivo_tmp;
 
 /******************Variables************************/
 		 int tamanio_bloque= 20*1024*1024;
@@ -61,6 +64,7 @@ typedef struct{
          int CANT_BLOQUES;
          char* NOMBRE_NODO;
          int rcx;
+         t_list* archivos_temporales;
 /******************Definiciones*******************/
 
 int levantarConfiguracionNodo();
