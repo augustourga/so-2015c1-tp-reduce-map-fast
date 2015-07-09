@@ -25,7 +25,6 @@ typedef struct {
 	sem_t sem_maps_fin;
 	sem_t sem_reduces_fin;
 	sem_t sem_reduce_final_fin;
-	bool replanifica;
 } t_job;
 
 t_job* job_crear();

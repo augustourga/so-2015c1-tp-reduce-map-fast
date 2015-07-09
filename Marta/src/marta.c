@@ -227,12 +227,12 @@ void procesa_job(void* argumentos) {
 	char** datos = string_split(args->mensaje->stream, "|");
 
 	job->archivo_final = string_duplicate(datos[0]);
+	job->combiner = args->mensaje->argv[0]; //TODO: Modificar en el Job
 
 	int i;
-	for (i = 1; datos[i + 1] != NULL; i++) {
+	for (i = 1; datos[i] != NULL; i++) {
 		generar_maps(job, datos[i]);
 	}
-	job->combiner = datos[i];
 
 	lista_jobs_add(job);
 

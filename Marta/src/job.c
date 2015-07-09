@@ -8,7 +8,6 @@ t_job* job_crear() {
 	job->reduces = list_create();
 	sem_init(&job->sem_maps_fin, 0, 0);
 	sem_init(&job->sem_reduces_fin, 0, 0);
-	job->replanifica = false;
 	return job;
 }
 

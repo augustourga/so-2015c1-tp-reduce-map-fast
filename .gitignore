@@ -33,7 +33,7 @@
 *.dSYM/
 
 # Log files
-*.log
+*log
 
 # Debug
 Debug/
