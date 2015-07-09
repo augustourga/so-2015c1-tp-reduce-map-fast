@@ -23,18 +23,19 @@ typedef struct {
 	char* ip;
 	char* nombre;
 	int puerto;
-	int numero_bloque;
+	int numero_bloque; //Solo se usa para cuando está en t_archivo
 } t_nodo;
 
 
 typedef struct {
 	t_nodo nodo;
 	char* nombre;
-} t_temp;
+} t_temp; //Representa al archivo de salida de un map, de salida de reduce, o de entrada de reduce
 
 typedef struct {
 	char* nombre;
 	int bloque;
+	int cantidad_copias;
 	t_nodo copias[3];
 } t_archivo;
 

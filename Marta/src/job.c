@@ -59,7 +59,7 @@ void ejecuta_reduce_final(t_job* job) {
 
 }
 
-void ejecuta_reduces(t_job* job) {
+void ejecuta_reduces_parciales(t_job* job) {
 
 	while (true) {
 
