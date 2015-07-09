@@ -158,7 +158,7 @@ char* mensaje_get_bloque(void* argumentos) {
 }
 
 int mensaje_set_bloque(void* argumentos) {
-
+	log_debug_interno("Empieza set_bloque");
 	struct arg_set_bloque* args = argumentos;
 
 	int bloque = args->bloque_nodo;
@@ -175,6 +175,8 @@ int mensaje_set_bloque(void* argumentos) {
 		return 1;
 		break;
 	case SET_BLOQUE_OK:
+		log_debug_interno("Terminó set_bloque OK");
+		// TODO: logear HDP!
 		return 0;
 		break;
 	default:

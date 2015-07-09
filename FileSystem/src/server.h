@@ -38,7 +38,6 @@ struct arg_get_bloque {
 struct arg_set_bloque {
 	int socket;
 	int bloque_nodo;
-	char* nombre_nodo;
 	char* chunk;
 };
 
