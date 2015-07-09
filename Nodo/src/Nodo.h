@@ -86,7 +86,7 @@ t_msg_id ejecutar_reduce(char*ejecutable,char*archivo_final,t_queue* colaArchivo
 /******************APAREO***************************/
 void apareo(char* temporal,t_list* lista_nodos_archivos);
 char* obtener_proximo_registro(t_nodo_archivo* nodo_archivo);
-int obtener_posicion_menor_clave(char** registros);
+int obtener_posicion_menor_clave(char** registros, int cantidad_nodos_archivos);
 char* obtener_proximo_registro_de_archivo(char* archivo);
 char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo);
 void list_add_archivo_tmp(char* nombre_archivo);

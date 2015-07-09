@@ -118,6 +118,9 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 			destroy_message(codigo);
 			free(bloque);
 			break;
+		default:
+			// TODO: NO SE
+			break;
 		}
 
 	}
@@ -217,6 +220,9 @@ void *atenderConexiones(void *parametro) {
 					log_info_interno("Map %d en el bloque %d exitoso",
 							mensaje2->argv[0], codigo->argv[0]);
 					break;
+				default:
+					// TODO: NO SE
+					break;
 
 				}
 				mensaje2 = id_message(fin);
@@ -230,6 +236,7 @@ void *atenderConexiones(void *parametro) {
 
 				//Se recibe la rutina
 				mensaje2 = recibir_mensaje(sock_conexion);
+				// TODO: AUGUSTO termina esto HDP ! ( VERIFICA Q EL HEADER.ID sea RUTINA)
 				size_t tamanioEjecutable = strlen(mensaje2->stream);
 				rutina_reduce = malloc(tamanioEjecutable);
 				memcpy(rutina_reduce, mensaje2->stream, tamanioEjecutable);
@@ -262,12 +269,15 @@ void *atenderConexiones(void *parametro) {
 				if (bloque != NULL) {
 					mensaje2 = string_message(GET_NEXT_ROW_OK, bloque, 0);
 				} else {
-					mensaje2 = string_message(GET_NEXT_ROW_ERROR, bloque, 0);
+					mensaje2 = id_message(GET_NEXT_ROW_ERROR);
 				}
 				enviar_mensaje(sock_conexion, mensaje2);
 				destroy_message(mensaje2);
 				destroy_message(codigo);
 
+				break;
+			default:
+				// TODO: NO SE
 				break;
 			}
 
@@ -387,7 +397,6 @@ t_msg_id ejecutar_reduce(char*ejecutable, char* nombreArchivoFinal,
 	log_info_consola("Inicio ejecutar Reduce ID:%d ", id_reduce);
 	log_info_consola("Inicio ejecutar Reduce ID:%d ", id_reduce);
 
-	t_msg* mensaje;
 	t_list* lista_nodos;
 
 	char* path_ejecutable = generar_nombre_rutina("reduce");
@@ -402,7 +411,6 @@ t_msg_id ejecutar_reduce(char*ejecutable, char* nombreArchivoFinal,
 	if (ejecutar(data, path_ejecutable, nombreArchivoFinal)) {
 		return FIN_REDUCE_ERROR;
 	}
-	destroy_message(mensaje);
 
 	log_info_consola("Fin ejecutar Reduce ID:%d ", id_reduce);
 	log_info_consola("Fin ejecutar Reduce ID:%d ", id_reduce);
@@ -412,7 +420,7 @@ t_msg_id ejecutar_reduce(char*ejecutable, char* nombreArchivoFinal,
 t_list* deserealizar_cola(t_queue* colaArchivos) {
 	int k, a;
 	char** lista_archivos_aux;
-	t_nodo_archivo* nodo_aux;
+	t_nodo_archivo* nodo_aux = (t_nodo_archivo*) malloc(sizeof(t_nodo_archivo));
 	t_list* lista_nodos = list_create();
 	t_nodo_archivo* elem = (t_nodo_archivo*) malloc(sizeof(t_nodo_archivo));
 	elem = (t_nodo_archivo *) queue_pop(colaArchivos);
@@ -446,11 +454,12 @@ t_list* deserealizar_cola(t_queue* colaArchivos) {
 void apareo(char* temporal,t_list* lista_nodos_archivos){
 	char** registros = malloc(sizeof(int));
 	int i, pos, valor_actual_1, valor_actual_2;
-	char* clave_actual_1, clave_actual_2, registro_actual_1, registro_actual_2, aux_append;
+	char* clave_actual_1 = string_new();
+	char* clave_actual_2 = string_new();
+	char* registro_actual_1 = string_new();
+	char* registro_actual_2 = string_new();
 
-	char* ruta = string_new();
-	string_append(&ruta, "/tmp/");
-	string_append(&ruta, temporal);
+	char* ruta = file_combine(DIR_TEMP, temporal);
 	FILE* archivo = fopen(ruta, "ab");
 
 	// Obtengo el primer registro de cada archivo
@@ -460,9 +469,8 @@ void apareo(char* temporal,t_list* lista_nodos_archivos){
 		elem = (t_nodo_archivo *) list_get(lista_nodos_archivos,i);
 		registros[i] = obtener_proximo_registro(elem);
 	}
-	registros[i+1] = NULL;
 
-	pos = obtener_posicion_menor_clave(registros);
+	pos = obtener_posicion_menor_clave(registros, cantidad_nodos_archivos);
 	strcpy(registro_actual_1, registros[pos]);
 	elem = (t_nodo_archivo *) list_get(lista_nodos_archivos,pos);
 	registros[pos] = obtener_proximo_registro(elem);
@@ -470,7 +478,7 @@ void apareo(char* temporal,t_list* lista_nodos_archivos){
 	strcpy(clave_actual_1, array_aux[0]);
 	valor_actual_1 = atoi(array_aux[1]);
 
-	pos = obtener_posicion_menor_clave(registros); // esta pos se obtiene para ya tener un 2do valor antes de entrar al while
+	pos = obtener_posicion_menor_clave(registros, cantidad_nodos_archivos); // esta pos se obtiene para ya tener un 2do valor antes de entrar al while
 	// obtener_posicion_menor_clave devuelve -1 una vez que en el array ya son todos campos nulos u EOF
 	while (pos != -1) {
 		strcpy(registro_actual_2, registros[pos]);
@@ -494,7 +502,7 @@ void apareo(char* temporal,t_list* lista_nodos_archivos){
 			strcpy(clave_actual_1, clave_actual_2);
 			valor_actual_1 = valor_actual_2;
 		}
-		pos = obtener_posicion_menor_clave(registros);
+		pos = obtener_posicion_menor_clave(registros, cantidad_nodos_archivos);
 	}
 
 	// guardo en el archivo el ultimo registro con el que estaba trabajando para no perderlo
@@ -522,71 +530,78 @@ char* obtener_proximo_registro(t_nodo_archivo* nodo_archivo) {
 	return resultado;
 }
 
-int obtener_posicion_menor_clave(char** registros) {
+int obtener_posicion_menor_clave(char** registros, int cantidad_nodos_archivos) {
 	int pos, i, aux;
-	char* clave_1 = string_new();
-	char* clave_2 = string_new();
+	char* clave_1;
+	char* clave_2;
 
-	// obtiene primer campo != EOF
-	for (pos=0; (registros[pos]!=NULL) && (string_is_empty(clave_1)); pos++){
-		if (registros[pos]!=EOF) {
-			clave_1 = string_n_split(registros[pos], 2, ";")[0];
-		}
+	// obtiene primer campo != NULL
+	for (pos=0; (registros[pos] != NULL) && (string_is_empty(clave_1) && (pos<cantidad_nodos_archivos)); pos++){
+		clave_1 = string_n_split(registros[pos], 2, ";")[0];
 	}
 
 	if (!string_is_empty(clave_1)) {
-		for (i = pos + 1; registros[i]!=NULL; i++) {
-			if (registros[i]!=EOF) {
-				clave_2 = string_n_split(registros[i], 2, ";")[0];
-				aux = strcmp(clave_1, clave_2);
-				if (aux>0) {
-					pos = i;
-					strcpy(clave_1, clave_2);
-				}
+		for (i = pos + 1; i<cantidad_nodos_archivos; i++) {
+			clave_2 = string_n_split(registros[i], 2, ";")[0];
+			aux = strcmp(clave_1, clave_2);
+			if (aux>0) {
+				pos = i;
+				strcpy(clave_1, clave_2);
 			}
 		}
 	} else {
-		// devuelve -1 una vez que en el array ya son todos campos nulos u EOF
+		// devuelve -1 una vez que en el array ya son todos campos nulos
 		pos = -1;
 	}
 	return pos;
 }
 
 char* obtener_proximo_registro_de_archivo(char* archivo) {
-	char* resultado = string_new();
 	fpos_t* posicion_puntero = obtener_posicion_puntero_arch_tmp(archivo);
+	int bytes_read;
+	size_t buffer_size = 100;
+	char* linea = (char *) calloc(1, buffer_size);
 
 	FILE* file = fopen(archivo, "r");
 	if (file != NULL) {
 		if (posicion_puntero != NULL) {
 			fsetpos(file, posicion_puntero);
 		}
-		resultado = fgets(resultado, 101, file);
-		fgetpos(file, posicion_puntero);
+		bytes_read = getline(&linea, &buffer_size, file);
+		if (bytes_read == -1) {
+			linea = NULL;
+		} else {
+			fgetpos(file, posicion_puntero);
+			actualizar_posicion_puntero_arch_tmp(archivo, posicion_puntero);
+		}
 		fclose(file);
-		actualizar_posicion_puntero_arch_tmp(archivo, posicion_puntero);
 	} else {
 		log_error_consola("No pudo abrirse el archivo temporal");
-		resultado = NULL;
+		linea = NULL;
 	}
-
-	return resultado;
+	return linea;
 }
 
 char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
-	char* resultado;
+	char* resultado = string_new();
 	int socket_tmp;
 	socket_tmp = client_socket(nodo_archivo->ip, nodo_archivo->puerto);
+	if (socket_tmp<0) {
+		// ERROR
+	}
 	t_msg* msg = string_message(GET_NEXT_ROW, nodo_archivo->archivo, 0);
 	enviar_mensaje(socket_tmp, msg);
 	msg = recibir_mensaje(socket_tmp);
-	if (msg->header.id==GET_NEXT_ROW_OK) {
-		strcpy(resultado, msg->stream);
+	if (msg) {
+		if (msg->header.id==GET_NEXT_ROW_OK) {
+			strcpy(resultado, msg->stream);
+		}
+		if (msg->header.id==GET_NEXT_ROW_ERROR) {
+			log_error_consola("El nodo no devolvio el proximo registro. Devolvio ERROR.");
+		}
+	} else {
+		// error
 	}
-	if (msg->header.id==GET_NEXT_ROW_ERROR) {
-		log_error_consola("El nodo no devolvio el proximo registro. Devolvio ERROR.");
-	}
-	// TODO: Fijarse si aca falla re-pedimos el proximo registro o no.
 	return resultado;
 }
 
@@ -616,5 +631,5 @@ void actualizar_posicion_puntero_arch_tmp(char* nombre_archivo, fpos_t* posicion
 	}
 
 	archivo = list_find(archivos_temporales,(void*) _archivo_con_nombre);
-	archivo->posicion_puntero = posicion_puntero; // TODO: preguntar si esto funciona! Asi se estaria actualizando el puntero en el archivo_tmp q se encuentra en la lista??
+	archivo->posicion_puntero = posicion_puntero;
 }
