@@ -26,6 +26,11 @@ void esperarTareas() {
 	while (true) {
 		t_msg* mensaje_actual = recibir_mensaje(marta_sock);
 
+		if (!mensaje_actual) {
+			log_error_consola("Se perdió la conexión con MaRTA IP: %s - Puerto: %d", configuracion->ip_marta, configuracion->puerto_marta);
+			exit(1);
+		}
+
 		log_debug_interno("Se recibió mensaje de MaRTA. Header.Id: %s - Argc: %d - Largo Stream: %d", id_string(mensaje_actual->header.id),
 				mensaje_actual->header.argc, mensaje_actual->header.length);
 
@@ -40,6 +45,12 @@ void esperarTareas() {
 			paramsR->id_operacion = mensaje_actual->argv[1];
 			paramsR->archivo_final = argumentos[2];
 			mensaje_actual = recibir_mensaje(marta_sock);
+
+			if (!mensaje_actual) {
+				log_error_consola("Se perdió la conexión con MaRTA IP: %s - Puerto: %d", configuracion->ip_marta, configuracion->puerto_marta);
+				exit(1);
+			}
+
 			while (mensaje_actual->header.id != FIN_ENVIO_MENSAJE) {
 
 				log_debug_interno("Se recibió mensaje de MaRTA. Header.Id: %s - Argc: %d - Largo Stream: %d", id_string(mensaje_actual->header.id),
@@ -47,6 +58,11 @@ void esperarTareas() {
 
 				queue_push(paramsR->archivos_tmp, (void*) mensaje_actual);
 				mensaje_actual = recibir_mensaje(marta_sock);
+
+				if (!mensaje_actual) {
+					log_error_consola("Se perdió la conexión con MaRTA IP: %s - Puerto: %d", configuracion->ip_marta, configuracion->puerto_marta);
+					exit(1);
+				}
 			}
 			levantarHiloReduce(paramsR);
 		}
@@ -54,7 +70,8 @@ void esperarTareas() {
 			t_params_hiloMap* params = (t_params_hiloMap*) malloc(sizeof(t_params_hiloMap));
 			char** argumentos = string_split(mensaje_actual->stream, "|");
 			strcpy(params->ip, argumentos[0]);
-			params->archivo_final = argumentos[1];
+			strcpy(params->nombre_nodo, argumentos[1]);
+			params->archivo_final = argumentos[2];
 			params->puerto = mensaje_actual->argv[0];
 			params->id_operacion = mensaje_actual->argv[1];
 			params->bloque = mensaje_actual->argv[2];
@@ -133,43 +150,62 @@ void conectarseAMarta() {
 int hiloReduce(void* dato) {
 	t_msg* mensaje;
 	t_msg* mensaje_respuesta;
+	int ret;
 	int i;
 	t_params_hiloReduce* args = (t_params_hiloReduce*) dato;
 	int nodo_sock = client_socket(args->ip, args->puerto);
 
-	mensaje = string_message(EJECUTAR_REDUCE, args->archivo_final, 1, args->id_operacion);
-	enviar_mensaje(nodo_sock, mensaje);
-
-	mensaje = string_message(RUTINA, configuracion->reduce, 0);
-	enviar_mensaje(nodo_sock, mensaje);
-
-	for (i = 0; i < args->archivos_tmp->elements->elements_count; i++) {
-		enviar_mensaje(nodo_sock, (t_msg*) queue_pop(args->archivos_tmp));
-	}
-
-	mensaje = id_message(FIN_ENVIO_MENSAJE);
-	enviar_mensaje(nodo_sock, mensaje);
-
-	mensaje = recibir_mensaje(nodo_sock);
-
-	if (!mensaje) { //Significa que recibir_mensaje devolvió NULL o sea que hubo un error en el recv o el nodo se desconectó
+	if (nodo_sock < 0) {
+		log_error_consola("No se pudo conectar al proceso %s - IP: %s - Puerto: %d", args->nombre_nodo, args->ip, args->puerto);
 		mensaje_respuesta = argv_message(FIN_REDUCE_ERROR, 1, args->id_operacion);
 	} else {
-		switch (mensaje->header.id) {
-		case FIN_REDUCE_ERROR:
-			mensaje_respuesta = string_message(mensaje->header.id, args->nombre_nodo, 1, args->id_operacion);
-			break;
-		case FIN_REDUCE_OK:
+
+		log_debug_consola("Se conectó al proceso %s - IP: %s - Puerto: %d", args->nombre_nodo, args->ip, args->puerto);
+
+		mensaje = string_message(EJECUTAR_REDUCE, args->archivo_final, 1, args->id_operacion);
+
+		log_debug_interno("Enviando mensaje de solicitud de reduce. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id),
+				mensaje->header.argc, mensaje->header.length);
+
+		ret = enviar_mensaje(nodo_sock, mensaje);
+
+		mensaje = string_message(RUTINA, configuracion->reduce, 0);
+
+		log_debug_interno("Enviando mensaje rutina. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id), mensaje->header.argc,
+				mensaje->header.length);
+
+		ret = enviar_mensaje(nodo_sock, mensaje);
+
+		for (i = 0; i < args->archivos_tmp->elements->elements_count; i++) {
+			mensaje = queue_pop(args->archivos_tmp);
+			log_debug_interno("Enviando mensaje archivos de reduce. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id),
+					mensaje->header.argc, mensaje->header.length);
+			ret = enviar_mensaje(nodo_sock, mensaje);
+		}
+
+		mensaje = id_message(FIN_ENVIO_MENSAJE);
+
+		log_debug_interno("Enviando mensaje fin de Mensaje. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id), mensaje->header.argc,
+				mensaje->header.length);
+
+		ret = enviar_mensaje(nodo_sock, mensaje);
+
+		mensaje = recibir_mensaje(nodo_sock);
+
+		if (!mensaje) { //Significa que recibir_mensaje devolvió NULL o sea que hubo un error en el recv o el nodo se desconectó
+			mensaje_respuesta = argv_message(FIN_REDUCE_ERROR, 1, args->id_operacion);
+		} else {
 			mensaje_respuesta = argv_message(mensaje->header.id, 1, args->id_operacion);
-			break;
-		default:
-			log_error_consola("Mensaje Incorrecto: ", mensaje->header.id);
-			break;
+			log_debug_interno("Se recibió mensaje de %s. Header.Id: %s - Argc: %d - Largo Stream: %d", args->nombre_nodo, id_string(mensaje->header.id),
+					mensaje->header.argc, mensaje->header.length);
 		}
 	}
 
 	//Se reenvía el resultado del reduce a marta
-	enviar_mensaje(marta_sock, mensaje_respuesta);
+	log_debug_interno("Enviando mensaje respuesta a MaRTA. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje_respuesta->header.id),
+			mensaje_respuesta->header.argc, mensaje_respuesta->header.length);
+
+	ret = enviar_mensaje(marta_sock, mensaje_respuesta);
 
 	destroy_message(mensaje_respuesta);
 	destroy_message(mensaje);
@@ -182,25 +218,43 @@ int hiloMap(void* dato) {
 	t_msg* mensaje;
 	t_msg* mensaje_respuesta;
 	t_params_hiloMap* args = (t_params_hiloMap*) dato;
-	int ret;
 	int nodo_sock = client_socket(args->ip, args->puerto);
+	int ret;
 
-	mensaje = string_message(EJECUTAR_MAP, args->archivo_final, 1, args->bloque);
-	ret = enviar_mensaje(nodo_sock, mensaje);
-
-	mensaje = string_message(RUTINA, configuracion->mapper, 1, args->id_operacion);
-	ret = enviar_mensaje(nodo_sock, mensaje);
-
-	mensaje = recibir_mensaje(nodo_sock);
-
-	if (!mensaje) { //Significa que recibir_mensaje devolvió NULL o sea que hubo un error en el recv o el nodo se desconectó
+	if (nodo_sock < 0) {
+		log_error_consola("No se pudo conectar al proceso %s - IP: %s - Puerto: %d", args->nombre_nodo, args->ip, args->puerto);
 		mensaje_respuesta = argv_message(FIN_MAP_ERROR, 1, args->id_operacion);
 	} else {
-		mensaje_respuesta = argv_message(mensaje->header.id, 1, args->id_operacion);
-	}
 
+		mensaje = string_message(EJECUTAR_MAP, args->archivo_final, 1, args->bloque);
+
+		log_debug_interno("Enviando mensaje de solicitud de reduce. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id),
+				mensaje->header.argc, mensaje->header.length);
+
+		ret = enviar_mensaje(nodo_sock, mensaje);
+
+		mensaje = string_message(RUTINA, configuracion->mapper, 1, args->id_operacion);
+
+		log_debug_interno("Enviando mensaje de rutina. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id), mensaje->header.argc,
+				mensaje->header.length);
+
+		ret = enviar_mensaje(nodo_sock, mensaje);
+
+		mensaje = recibir_mensaje(nodo_sock);
+
+		if (!mensaje) { //Significa que recibir_mensaje devolvió NULL o sea que hubo un error en el recv o el nodo se desconectó
+			mensaje_respuesta = argv_message(FIN_MAP_ERROR, 1, args->id_operacion);
+		} else {
+			mensaje_respuesta = argv_message(mensaje->header.id, 1, args->id_operacion);
+			log_debug_interno("Se recibió mensaje de %s. Header.Id: %s - Argc: %d - Largo Stream: %d", args->nombre_nodo, id_string(mensaje->header.id),
+					mensaje->header.argc, mensaje->header.length);
+		}
+	}
 	//Se reenvía el resultado del map a marta
-	enviar_mensaje(marta_sock, mensaje_respuesta);
+	log_debug_interno("Enviando mensaje respuesta a MaRTA. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje_respuesta->header.id),
+			mensaje_respuesta->header.argc, mensaje_respuesta->header.length);
+
+	ret = enviar_mensaje(marta_sock, mensaje_respuesta);
 
 	destroy_message(mensaje_respuesta);
 	destroy_message(mensaje);

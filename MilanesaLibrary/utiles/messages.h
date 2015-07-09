@@ -29,7 +29,7 @@ typedef enum {
 
 	EJECUTAR_REDUCE,		//Marta a Job: Ip | nombre_nodo | nombre_arch_temp , puerto, Id_op (autogenerado)
 							//Job a Nodo nombre_arch_temp
-	ARCHIVOS_NODO_REDUCE,	//Marta a Job: Ip | archivos1 | archivo2 ..., puerto
+	ARCHIVOS_NODO_REDUCE,	//Marta a Job: Ip | archivos1 ; archivo2 ..., puerto
 	FIN_REDUCE_OK,			//Id_op
 	FIN_REDUCE_ERROR,		//nombre_nodo ,Id_op
 
