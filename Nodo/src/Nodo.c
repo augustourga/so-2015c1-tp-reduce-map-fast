@@ -277,6 +277,7 @@ void setBloque(int numeroBloque, char* bloque_datos) {
 	log_info_interno( "Fin setBloque(%d)", numeroBloque);
 
 }
+
 char* getBloque(int numeroBloque) {
 	log_info_interno( "Ini getBloque(%d)", numeroBloque);
 	char* bloque = NULL;
@@ -335,6 +336,7 @@ void liberar_Espacio_datos(char* _data,char* ARCHIVO){
 	char* path = file_combine(DIR_TEMP, ARCHIVO);
 	file_mmap_free(_data,path );
 }
+
 t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal,int numeroBloque, int mapid) {
 	log_info_consola("Inicio ejecutarMap ID:%d en el bloque %d", mapid,
 			numeroBloque);
@@ -464,7 +466,7 @@ void apareo(char* temporal,t_list* lista_nodos_archivos){
 		strcpy(clave_actual_2, array_aux[0]);
 		valor_actual_2 = atoi(array_aux[1]);
 
-		if (string_equals_ignore_case(clave_actual_1, clave_actual_2)) {
+		if (strcmp(clave_actual_1, clave_actual_2)==0) {
 			valor_actual_1 = valor_actual_1 + valor_actual_2;
 		} else {
 			string_append(&clave_actual_1, ";");
@@ -473,7 +475,7 @@ void apareo(char* temporal,t_list* lista_nodos_archivos){
 			if (archivo != NULL) {
 				fputs(clave_actual_1, archivo);
 			} else {
-				log_error_interno("No se pudo acceder al archivo temporal para guardar data de apareamiento");
+				log_error_consola("No se pudo acceder al archivo temporal para guardar data de apareamiento");
 			}
 			strcpy(clave_actual_1, clave_actual_2);
 			valor_actual_1 = valor_actual_2;
@@ -488,10 +490,12 @@ void apareo(char* temporal,t_list* lista_nodos_archivos){
 	if (archivo != NULL) {
 		fputs(clave_actual_1, archivo);
 	} else {
-		log_error_interno("No se pudo acceder al archivo temporal para guardar data de apareamiento");
+		log_error_consola("No se pudo acceder al archivo temporal para guardar data de apareamiento");
 	}
 	// TODO: hay q ver de liberar todas las variables usadas aca
 	fclose(archivo);
+	log_info_interno("Se aparearon correctamente los archivos.");
+	log_info_consola("Se aparearon correctamente los archivos.");
 }
 
 char* obtener_proximo_registro(t_nodo_archivo* nodo_archivo) {
@@ -520,25 +524,18 @@ int obtener_posicion_menor_clave(char** registros) {
 		for (i = pos + 1; registros[i]!=NULL; i++) {
 			if (registros[i]!=EOF) {
 				clave_2 = string_n_split(registros[i], 2, ";")[0];
-				aux = obtener_menor(clave_1, clave_2); //devuelve 0 si son iguales, 1 si clave_1 es menor, 2 si clave_2 es menor
-				if (aux==2) {
+				aux = strcmp(clave_1, clave_2);
+				if (aux>0) {
 					pos = i;
 					strcpy(clave_1, clave_2);
 				}
 			}
 		}
 	} else {
+		// devuelve -1 una vez que en el array ya son todos campos nulos u EOF
 		pos = -1;
 	}
-	// devuelve -1 una vez que en el array ya son todos campos nulos u EOF
 	return pos;
-}
-
-int obtener_menor(char* clave_1, char* clave_2) {
-	int resultado;
-	//TODO: devuelve 0 si son iguales, 1 si clave_1 es menor, 2 si clave_2 es menor
-
-	return resultado;
 }
 
 char* obtener_proximo_registro_de_archivo(char* archivo) {
@@ -555,7 +552,7 @@ char* obtener_proximo_registro_de_archivo(char* archivo) {
 		fclose(file);
 		actualizar_posicion_puntero_arch_tmp(archivo, posicion_puntero);
 	} else {
-		log_error_interno("No pudo abrirse el archivo temporal");
+		log_error_consola("No pudo abrirse el archivo temporal");
 		resultado = NULL;
 	}
 
@@ -573,7 +570,7 @@ char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
 		strcpy(resultado, msg->stream);
 	}
 	if (msg->header.id==GET_NEXT_ROW_ERROR) {
-		log_error_interno("El nodo no devolvio el proximo registro. Devolvio ERROR.");
+		log_error_consola("El nodo no devolvio el proximo registro. Devolvio ERROR.");
 	}
 	// TODO: Fijarse si aca falla re-pedimos el proximo registro o no.
 	return resultado;

@@ -79,8 +79,18 @@ char* getFileContent(char* filename);
 char* generar_nombre_temporal( int mapreduce_id, char*map_o_reduce,int numeroBloque);
 char* crear_Espacio_Datos(int , char* , char* );
 void liberar_Espacio_datos(char* _data,char* ARCHIVO);
-void apareo(char* temporal,t_list* colaArchivos);
 t_list* deserealizar_cola(t_queue* colaArchivos);
 t_msg_id ejecutar_map(char*ejecutable,char* nombreArchivoFinal,int numeroBloque,int mapid);
 t_msg_id ejecutar_reduce(char*ejecutable,char*archivo_final,t_queue* colaArchivos,int id_reduce);
+
+/******************APAREO***************************/
+void apareo(char* temporal,t_list* lista_nodos_archivos);
+char* obtener_proximo_registro(t_nodo_archivo* nodo_archivo);
+int obtener_posicion_menor_clave(char** registros);
+char* obtener_proximo_registro_de_archivo(char* archivo);
+char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo);
+void list_add_archivo_tmp(char* nombre_archivo);
+fpos_t* obtener_posicion_puntero_arch_tmp(char* nombre_archivo);
+void actualizar_posicion_puntero_arch_tmp(char* nombre_archivo, fpos_t* posicion_puntero);
+
 #endif /* NODO_NODO_H_ */
