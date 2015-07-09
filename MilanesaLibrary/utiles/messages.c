@@ -137,11 +137,12 @@ t_msg *recibir_mensaje(int sock_fd) {
 	t_msg *msg = malloc(sizeof(t_msg));
 	msg->argv = NULL;
 	msg->stream = NULL;
-
+	log_debug_consola("recibiendo mensaje . Socket: %d",sock_fd);
 	/* Get message info. */
 	int status = recv(sock_fd, &(msg->header), sizeof(t_header), MSG_WAITALL);
 	if (status <= 0) {
 		/* An error has ocurred or remote connection has been closed. */
+		log_error_consola("error obteniendo Header. Socket: %d",sock_fd);
 		free(msg);
 		return NULL;
 	}
@@ -151,6 +152,7 @@ t_msg *recibir_mensaje(int sock_fd) {
 		msg->argv = malloc(msg->header.argc * sizeof(uint32_t));
 
 		if (recv(sock_fd, msg->argv, msg->header.argc * sizeof(uint32_t), MSG_WAITALL) <= 0) {
+			log_error_consola("error obteniendo args. Socket: %d",sock_fd);
 			free(msg->argv);
 			free(msg);
 			return NULL;
@@ -161,6 +163,7 @@ t_msg *recibir_mensaje(int sock_fd) {
 		msg->stream = malloc(msg->header.length + 1);
 
 		if (recv(sock_fd, msg->stream, msg->header.length, MSG_WAITALL) <= 0) {
+			log_error_consola("error obteniendo stream. Socket: %d",sock_fd);
 			free(msg->stream);
 			free(msg->argv);
 			free(msg);
@@ -169,7 +172,7 @@ t_msg *recibir_mensaje(int sock_fd) {
 
 		msg->stream[msg->header.length] = '\0';
 	}
-
+	log_debug_consola("mensaje recibido con exito. Socket: %d",sock_fd);
 	return msg;
 }
 

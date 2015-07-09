@@ -39,9 +39,11 @@ void actualiza_job_map_ok(int id, int socket);
 void actualiza_job_map_error(int id, int socket);
 void actualiza_job_reduce_ok(int id, int socket);
 void actualizar_job_reduce_error(int id, int socket, char* nombre_nodo);
+void eliminar_carga_nodo(t_nodo nodo,int carga_operacion);
 
 void lista_jobs_add(t_job* job);
 void lista_nodos_add(t_nodo_global* nodo);
 void destroy_nodo(t_nodo_global* nodo);
+void finalizar_job_hijo(t_job* job);
 
 #endif /* MARTA_H_ */

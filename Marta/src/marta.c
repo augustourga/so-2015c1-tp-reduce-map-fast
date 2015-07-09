@@ -13,6 +13,8 @@
 
 t_list* lista_nodos;
 t_list* lista_jobs;
+int carga_map;
+int carga_reduce;
 
 pthread_mutex_t mutex_jobs = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_nodos = PTHREAD_MUTEX_INITIALIZER;
@@ -27,7 +29,7 @@ int main(int argc, char* argv[]) {
 
 	log_crear(argv[1], RUTA_LOG, "MaRTA");
 
-	leer_archivo_configuracion(&ip_mdfs, &puerto_mdfs);
+	leer_archivo_configuracion(&ip_mdfs, &puerto_mdfs, &carga_map, &carga_reduce);
 
 	conectarse_a_mdfs(ip_mdfs, puerto_mdfs);
 
@@ -36,9 +38,27 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
-void generar_maps(t_job* job, char* ruta_mdfs) {
+void finalizar_job_a_si_mismo(t_job* job) {
 
+	pthread_mutex_lock(&mutex_jobs);
+
+	bool _job(t_job* jobLista) {
+			return jobLista == job;
+		}
+	list_remove_by_condition(lista_jobs, (void*)_job);
+	pthread_mutex_unlock(&mutex_jobs);
+	pthread_exit(NULL);
+}
+
+void generar_maps(t_job* job, char* ruta_mdfs) {
+	log_debug_interno("Armando Maps para el archivo %s", &ruta_mdfs);
 	char* info_archivo = get_info_archivo(ruta_mdfs);
+
+	if (info_archivo == NULL) {
+		log_info_consola("Error al obtener informacion del FS. Terminando ejecucion Job: %d", job->socket);
+		finalizar_job_a_si_mismo(job);
+	}
+
 	int bloque_archivo = 0;
 
 	char** bloques_archivo = string_split(info_archivo, "|");
@@ -73,17 +93,30 @@ void generar_maps(t_job* job, char* ruta_mdfs) {
 
 }
 
-void _planifica_map(t_map* map) {
-	if (map->estado == PENDIENTE || map->estado == FIN_ERROR) {
-		t_temp arch_tmp;
-		arch_tmp.nombre = getRandName(map->archivo.nombre, "????"); //TODO: No se qué va acá
-		arch_tmp.nodo = get_nodo_menos_cargado(map->archivo.copias);
-		map->arch_tmp = arch_tmp;
-	}
-}
+
 
 void planifica_maps(t_job* job) {
+	log_debug_consola("Planificando maps Job: %d", job->socket);
+
+
+	void _planifica_map(t_map* map) {
+		if (map->estado == PENDIENTE || map->estado == FIN_ERROR) {
+			t_temp arch_tmp;
+			arch_tmp.nombre = getRandName(map->archivo.nombre,
+					string_itoa(map->archivo.bloque));
+			arch_tmp.nodo = get_nodo_menos_cargado(map->archivo.copias);
+
+			if(arch_tmp.nodo.nombre == NULL){
+				log_error_consola("Error encontrando Nodo Disponible. Job %d Cancelado.", job->socket);
+				finalizar_job_a_si_mismo(job);
+			}
+
+			map->arch_tmp = arch_tmp;
+		}
+	}
+
 	list_iterate(job->maps, (void*) _planifica_map);
+	log_debug_consola("FIN planificacion maps Job: %d", job->socket);
 }
 
 void planificar_reduces_con_combiner(t_job* job) {
@@ -144,7 +177,8 @@ void planificar_reduces_sin_combiner(t_job* job) {
 
 	void _contabilizar_nodos(t_map* map) {
 		if (dictionary_has_key(dictionary, map->arch_tmp.nodo.nombre)) {
-			dictionary_put(dictionary, map->arch_tmp.nodo.nombre, dictionary_get(dictionary, map->arch_tmp.nodo.nombre) + 1);
+			dictionary_put(dictionary, map->arch_tmp.nodo.nombre,
+					dictionary_get(dictionary, map->arch_tmp.nodo.nombre) + 1);
 		} else {
 			dictionary_put(dictionary, map->arch_tmp.nodo.nombre, (void*) 1);
 		}
@@ -166,13 +200,15 @@ void planificar_reduces_sin_combiner(t_job* job) {
 	pthread_mutex_lock(&mutex_nodos);
 
 	bool _nodo_por_nombre(t_nodo_global* nodo_global_actual) {
-		return !strcmp(nodo_global_actual->nodo.nombre, nombre_nodo_con_mas_archivos);
+		return !strcmp(nodo_global_actual->nodo.nombre,
+				nombre_nodo_con_mas_archivos);
 	}
 
-	t_nodo_global* nodo_global = list_find(lista_nodos, (void*) _nodo_por_nombre);
+	t_nodo_global* nodo_global = list_find(lista_nodos,
+			(void*) _nodo_por_nombre);
 
 	reduce->arch_tmp.nodo = nodo_global->nodo;
-	reduce->arch_tmp.nombre = getRandName("pepe", "????"); //TODO: No se qué va acá, generar un nombre para las salidas de los reduces
+	reduce->arch_tmp.nombre = getRandName(string_itoa(job->socket), "RD_FINAL"); //TODO: No se qué va acá, generar un nombre para las salidas de los reduces
 
 	bool _ordena_por_nombre(t_map* map1, t_map* map2) {
 		return map1->arch_tmp.nombre <= map2->arch_tmp.nombre;
@@ -187,20 +223,21 @@ void planificar_reduces_sin_combiner(t_job* job) {
 	void _genera_temporales(t_map* map) {
 		if (!strcmp(nombre_actual, map->arch_tmp.nodo.nombre)) {
 			string_append(&temp_actual->nombre, map->arch_tmp.nombre);
-			string_append(&temp_actual->nombre, "|");
+			string_append(&temp_actual->nombre, ";");
 		} else {
 			list_add(reduce->temporales, temp_actual);
 			temp_actual = malloc(sizeof(t_temp));
 			nombre_actual = string_duplicate(map->arch_tmp.nodo.nombre);
 			temp_actual->nodo = map->arch_tmp.nodo;
 			temp_actual->nombre = string_duplicate(map->arch_tmp.nombre);
-			string_append(&temp_actual->nombre, "|");
+			string_append(&temp_actual->nombre, ";");
 		}
 	}
 
 	list_iterate(job->maps, (void*) _genera_temporales);
 
 	job->reduce_final = reduce;
+	nodo_global->carga_trabajo += carga_reduce;
 
 	pthread_mutex_unlock(&mutex_nodos);
 
@@ -209,11 +246,13 @@ void planificar_reduces_sin_combiner(t_job* job) {
 void planifica_reduces(t_job* job) {
 
 	if (job->combiner) {
+		log_debug_consola("planificando reduces CON combiner. job: %d", job->socket);
 		planificar_reduces_con_combiner(job);
 	} else {
+		log_debug_consola("planificando reduces SIN combiner. job:  %d", job->socket);
 		planificar_reduces_sin_combiner(job);
 	}
-
+	log_debug_consola("reduces planificados. job: %d", job->socket);
 }
 
 void procesa_job(void* argumentos) {
@@ -259,32 +298,43 @@ t_nodo get_nodo_menos_cargado(t_nodo nodos[3]) {
 
 	pthread_mutex_lock(&mutex_nodos);
 
-	t_nodo_global* nodo_global[3] = { 0 };
 	t_nodo ret;
+
+	t_list* lista_nodos_globales_bloque = list_create();
 
 	int i;
 	for (i = 0; i < 3; i++) {
-
 		bool _nodo_valido(t_nodo_global* nodo) {
 			return !strcmp(nodo->nodo.nombre, nodos[i].nombre);
 		}
 
 		if (nodos[i].nombre != NULL) {
-			nodo_global[i] = list_find(lista_nodos, (void*) _nodo_valido);
+			t_nodo_global* nodo_global_activo = list_find(lista_nodos,
+					(void*) _nodo_valido);
+			if (nodo_global_activo != NULL) {
+				list_add(lista_nodos_globales_bloque, nodo_global_activo);
+			}
 		}
 	}
 
-//TODO: Capaz cambiarlo porque esta BIEN choto
-	if (nodo_global[0]->carga_trabajo <= nodo_global[1]->carga_trabajo && nodo_global[0]->carga_trabajo <= nodo_global[2]->carga_trabajo) {
-		ret = nodos[0];
-	}
-	if (nodo_global[1]->carga_trabajo <= nodo_global[0]->carga_trabajo && nodo_global[1]->carga_trabajo <= nodo_global[2]->carga_trabajo) {
-		ret = nodos[1];
-	}
-	if (nodo_global[2]->carga_trabajo <= nodo_global[0]->carga_trabajo && nodo_global[2]->carga_trabajo <= nodo_global[1]->carga_trabajo) {
-		ret = nodos[2];
+	bool _menor_carga(t_nodo_global* nodo_global1, t_nodo_global* nodo_global2) {
+		return nodo_global1->carga_trabajo < nodo_global2->carga_trabajo;
 	}
 
+	list_sort(lista_nodos_globales_bloque, (void *) _menor_carga);
+
+	int empty_list = list_is_empty(lista_nodos_globales_bloque);
+
+	if (empty_list) {
+		log_error_consola("ERROR - No se encontro nodo activo.");
+		ret.nombre = NULL;
+	} else {
+		t_nodo_global* nodo_global = list_get(lista_nodos_globales_bloque, 0);
+		log_debug_consola("Nodo con menor carga: %s, carga: %d",
+				nodo_global->nodo.nombre, nodo_global->carga_trabajo);
+		nodo_global->carga_trabajo += carga_map;
+		ret = nodo_global->nodo;
+	}
 	pthread_mutex_unlock(&mutex_nodos);
 	return ret;
 }
@@ -375,18 +425,18 @@ t_reduce* reduce_por_id(int id, t_job* job) {
 
 void actualiza_job_map_ok(int id, int socket) {
 	pthread_mutex_lock(&mutex_jobs);
-
+	log_debug_interno("actualizando job, map ok. job: %d, map: %d", socket, id);
 	t_job* job_actual = job_por_socket(socket);
 
 	if (!job_actual) {
-		log_error_consola("El job no existe");
+		log_error_consola("El job no existe. job: %d, map: %d", socket, id);
 		exit(1);
 	}
 
 	t_map* map_actual = map_por_id(id, job_actual);
 
 	if (!map_actual) {
-		log_error_consola("El map no existe");
+		log_error_consola("El map no existe. job: %d, map: %d", socket, id);
 		exit(1);
 	}
 
@@ -399,25 +449,53 @@ void actualiza_job_map_ok(int id, int socket) {
 	if (list_all_satisfy(job_actual->maps, (void*) _finalizo_ok)) {
 		sem_post(&job_actual->sem_maps_fin);
 	}
-
 	pthread_mutex_unlock(&mutex_jobs);
+
+
+	eliminar_carga_nodo(map_actual->arch_tmp.nodo,carga_map);
+	log_debug_interno("job actualizado, map ok. job: %d, map: %d", socket, id);
+}
+
+void eliminar_carga_nodo(t_nodo nodo,int carga_operacion){
+
+	pthread_mutex_lock(&mutex_nodos);
+	log_debug_consola("eliminando carga de nodo: %s", nodo.nombre);
+	bool _nodo_por_nombre(t_nodo_global* nodo_global_actual) {
+		return !strcmp(nodo_global_actual->nodo.nombre,nodo.nombre);
+	}
+
+	t_nodo_global* nodo_global = list_find(lista_nodos,
+			(void*) _nodo_por_nombre);
+
+	if (nodo_global != NULL) {
+		nodo_global->carga_trabajo-= carga_operacion;
+		log_debug_consola("se elimino carga del nodo: %s. carga actual: %d", nodo.nombre, nodo_global->carga_trabajo);
+	} else {
+		log_debug_consola("nodo: %s no esta activo", nodo.nombre);
+	}
+
+	pthread_mutex_unlock(&mutex_nodos);
+
 }
 
 void elimina_nodo_desconectado(char* nombre_nodo) {
+	log_debug_interno("eliminando nodo inactivo. nodo: %s", nombre_nodo);
 	pthread_mutex_lock(&mutex_nodos);
 
 	bool _nodo_por_nombre(t_nodo_global* nodo_global_actual) {
 		return !strcmp(nodo_global_actual->nodo.nombre, nombre_nodo);
 	}
 
-	list_remove_and_destroy_by_condition(lista_nodos, (void*) _nodo_por_nombre, (void*) destroy_nodo);
+	list_remove_and_destroy_by_condition(lista_nodos, (void*) _nodo_por_nombre,
+			(void*) destroy_nodo);
 
+	log_debug_interno(" nodo inactivo eliminado. nodo: %s", nombre_nodo);
 	pthread_mutex_unlock(&mutex_nodos);
 }
 
 void actualiza_job_map_error(int id, int socket) {
 	pthread_mutex_lock(&mutex_jobs);
-
+	log_debug_interno("actualizando job, map error. job: %d, map: %d", socket, id);
 	t_job* job_actual = job_por_socket(socket);
 
 	if (!job_actual) {
@@ -434,29 +512,47 @@ void actualiza_job_map_error(int id, int socket) {
 
 	map_actual->estado = FIN_ERROR;
 
+	log_debug_interno("job actualizado, map error. job: %d, map: %d -> replanificando", socket, id);
+
 	elimina_nodo_desconectado(map_actual->arch_tmp.nodo.nombre);
 
-	_planifica_map(map_actual);
+	void _planifica_map(t_map* map) {
+		if (map->estado == PENDIENTE || map->estado == FIN_ERROR) {
+			t_temp arch_tmp;
+			arch_tmp.nombre = getRandName(map->archivo.nombre,
+					string_itoa(map->archivo.bloque));
+			arch_tmp.nodo = get_nodo_menos_cargado(map->archivo.copias);
+
+			if(arch_tmp.nodo.nombre == NULL){
+				log_error_consola("Error encontrando Nodo Disponible. Job %d Cancelado.", job_actual->socket);
+				finalizar_job_a_si_mismo(job_actual);
+			}
+
+			map->arch_tmp = arch_tmp;
+		}
+	}
 
 	ejecuta_maps(job_actual);
 
 	pthread_mutex_unlock(&mutex_jobs);
+
+	eliminar_carga_nodo(map_actual->arch_tmp.nodo,carga_map);
 }
 
 void actualiza_job_reduce_ok(int id, int socket) {
 	pthread_mutex_lock(&mutex_jobs);
-
+	log_debug_interno("actualizando job, REDUCE ok. job: %d, reduce: %d", socket, id);
 	t_job* job_actual = job_por_socket(socket);
 
 	if (!job_actual) {
-		log_error_consola("El job no existe");
+		log_error_consola("El job no existe. job: %d, reduce: %d", socket, id);
 		exit(1);
 	}
 
 	t_reduce* reduce_actual = reduce_por_id(id, job_actual);
 
 	if (!reduce_actual) {
-		log_error_consola("El map no existe");
+		log_error_consola("El reduce no existe. job: %d, reduce: %d", socket, id);
 		exit(1);
 	}
 
@@ -475,10 +571,40 @@ void actualiza_job_reduce_ok(int id, int socket) {
 		}
 	}
 	pthread_mutex_unlock(&mutex_jobs);
+	log_debug_interno("job actualizado, REDUCE ok. job: %d, reduce: %d", socket, id);
+	eliminar_carga_nodo(reduce_actual->arch_tmp.nodo,carga_reduce);
+
 }
 
 void actualizar_job_reduce_error(int id, int socket, char* nombre_nodo) {
 	//TODO: Ejecutar tareas de limpieza por cancelación de job
+	log_error_interno("fin reduce error. job: %d, reduce: %d. Cancelando Job", socket, id);
+	t_job* job = job_por_socket(socket);
+	finalizar_job_hijo(job); 	//TODO eliminar hilo job
+
+	if (!job) {
+			log_error_consola("El job no existe. job: %d, reduce: %d", socket, id);
+			exit(1);
+		}
+
+	t_reduce* reduce_actual = reduce_por_id(id, job);
+
+		if (!reduce_actual) {
+			log_error_consola("El reduce no existe. job: %d, reduce: %d", socket, id);
+			exit(1);
+		}
+
+	eliminar_carga_nodo(reduce_actual->arch_tmp.nodo,carga_reduce);
+}
+
+void finalizar_job_hijo(t_job* job){
+	pthread_mutex_lock(&mutex_jobs);
+	bool _job(t_job* jobLista) {
+			return jobLista == job;
+		}
+	list_remove_by_condition(lista_jobs, (void*)_job);
+	pthread_mutex_unlock(&mutex_jobs);
+
 }
 
 void lista_jobs_add(t_job* job) {

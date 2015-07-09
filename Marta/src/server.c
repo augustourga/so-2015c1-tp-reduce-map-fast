@@ -29,16 +29,18 @@ void iniciar_server(uint16_t puerto_listen) {
 	// main loop
 	while (1) {
 		read_fds = master; // copy it
+		log_debug_consola("Esperando nuevo mensaje");
 		if (select(fdmax + 1, &read_fds, NULL, NULL, NULL) == -1) {
 			log_error_consola("Falló el select");
 			perror("Falló el select. Error");
 			exit(3);
 		}
-
+		log_debug_consola("Nuevo mensaje recibido. procesandolo..");
 		// run through the existing connections looking for data to read
 		for (socket_actual = 0; socket_actual <= fdmax; socket_actual++) {
 			if (FD_ISSET(socket_actual, &read_fds)) { // we got one!!
 				if (socket_actual == listen_socket) {
+					log_info_consola("Nueva conexion entrante");
 					// handle new connections
 					addrlen = sizeof addr_client;
 					newfd = accept(listen_socket, (struct sockaddr *) &addr_client, &addrlen);
@@ -46,20 +48,24 @@ void iniciar_server(uint16_t puerto_listen) {
 						log_error_consola("Falló el accept");
 						perror("Falló el accept. Error");
 					} else {
+						log_debug_consola("Conexion nueva aceptada.");
 						if (newfd > fdmax) {    // keep track of the max
 							fdmax = newfd;
 						}
 						t_msg* mensaje = recibir_mensaje(newfd);
 						if (mensaje->header.id == CONEXION_JOB) {
+							log_info_consola("Creando nuevo hilo Job. job_id=%d",newfd);
 							FD_SET(newfd, &master); // add to master set
 							crear_hilo_job(newfd, mensaje);
 						}
 						destroy_message(mensaje);
 					}
 				} else if (!socket_conectado(socket_actual)) {
+					log_info_consola("Desconectando socket: %d", socket_actual);
 					//manejar_desconexion(socket_actual); //TODO: Manejardesconexion
 					FD_CLR(socket_actual, &master);
 				} else {
+					log_info_consola("mensaje del socket: %d", socket_actual);
 					t_msg* mensaje = recibir_mensaje(socket_actual);
 					decodificar_mensaje(mensaje, socket_actual);
 				}
@@ -72,16 +78,20 @@ void decodificar_mensaje(t_msg* mensaje, int socket) {
 
 	switch (mensaje->header.id) {
 	case FIN_MAP_OK:
-	 actualiza_job_map_ok(mensaje->argv[0], socket);
+		 log_info_consola("FIN DE MAP OK. Socket: %d", socket);
+		 actualiza_job_map_ok(mensaje->argv[0], socket);
 	 break;
 	 case FIN_MAP_ERROR:
-	 actualiza_job_map_error(mensaje->argv[0], socket);
+		 log_info_consola("ERROR EN MAP. Socket: %d", socket);
+		 actualiza_job_map_error(mensaje->argv[0], socket);
 	 break;
 	 case FIN_REDUCE_OK:
-	 actualiza_job_reduce_ok(mensaje->argv[0], socket);
+		 log_info_consola("FIN DE REDUCE OK. Socket: %d", socket);
+		 actualiza_job_reduce_ok(mensaje->argv[0], socket);
 	 break;
 	 case FIN_REDUCE_ERROR:
-	 actualizar_job_reduce_error(mensaje->argv[0], socket, mensaje->stream);
+		 log_info_consola("ERROR EN REDUCE. Socket: %d", socket);
+		 actualizar_job_reduce_error(mensaje->argv[0], socket, mensaje->stream);
 	 break;
 	default:
 		log_error_interno("Mensaje Incorrecto");
@@ -100,6 +110,7 @@ int socket_conectado(int socket) {
 
 void conectarse_a_mdfs(char* ip_mdfs, uint16_t puerto_mdfs) {
 
+	log_debug_consola("Conectando al MDFS.");
 	if ((socket_mdfs = client_socket(ip_mdfs, puerto_mdfs)) < 0) {
 		log_error_consola("Error al conectarse a MDFS");
 		exit(1);
@@ -109,21 +120,26 @@ void conectarse_a_mdfs(char* ip_mdfs, uint16_t puerto_mdfs) {
 	enviar_mensaje(socket_mdfs, mensaje);
 
 	destroy_message(mensaje);
-
+	log_debug_consola("Conexion con MFDS OK.");
 }
 
 char* get_info_archivo(char* ruta_mdfs) {
 
 	char* ret;
-
+	log_info_interno("Se busca la info del MDFS para el arhivo: %s", &ruta_mdfs);
 	t_msg* message = string_message(INFO_ARCHIVO, ruta_mdfs, 0);
 	enviar_mensaje(socket_mdfs, message);
 	t_msg* respuesta = recibir_mensaje(socket_mdfs);
 
+	if(respuesta == NULL) {
+		log_error_consola("Error al obtener la informacion del archivo: %s", &ruta_mdfs);
+		return ret;
+	}
 	if (respuesta->header.id == INFO_ARCHIVO_OK) {
 		ret = string_duplicate(respuesta->stream);
+		log_info_interno("Info obtenida: %s. arhivo: %s",&ret, ruta_mdfs);
 	} else {
-		log_error_consola("No se pudo realizar el job");
+		log_error_consola("No se pudo obtener informacion del archivo: %s", &ruta_mdfs);
 		ret = NULL;
 	}
 
@@ -133,6 +149,8 @@ char* get_info_archivo(char* ruta_mdfs) {
 }
 
 void copiar_archivo_final(t_job* job) {
+	log_info_consola("Copiando archivo final. Temporal: %s Nombre Final: %s",
+			job->reduce_final->arch_tmp.nodo.nombre ,job->archivo_final);
 	char* stream = string_duplicate(job->archivo_final);
 	string_append(&stream, "|");
 	string_append(&stream, job->reduce_final->arch_tmp.nodo.nombre);

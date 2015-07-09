@@ -1,6 +1,6 @@
 #include "config.h"
 
-void leer_archivo_configuracion(char** ip_mdfs, uint16_t* puerto_mdfs) {
+void leer_archivo_configuracion(char** ip_mdfs, uint16_t* puerto_mdfs, int* carga_map, int* carga_reduce) {
 	t_config* config = NULL;
 
 	config = config_create(ARCHIVO_CONFIG);
@@ -22,6 +22,18 @@ void leer_archivo_configuracion(char** ip_mdfs, uint16_t* puerto_mdfs) {
 		(*puerto_mdfs) = config_get_int_value(config, "PUERTO_MDFS");
 	} else {
 		log_error_consola("El archivo de configuración debe tener un PUERTO_MDFS");
+		exit(1);
+	}
+	if (config_has_property(config, "CARGA_MAP")) {
+		(*carga_map) = config_get_int_value(config, "CARGA_MAP");
+	} else {
+		log_error_consola("El archivo de configuración debe tener un CARGA_MAP");
+		exit(1);
+	}
+	if (config_has_property(config, "CARGA_REDUCE")) {
+		(*carga_reduce) = config_get_int_value(config, "CARGA_REDUCE");
+	} else {
+		log_error_consola("El archivo de configuración debe tener un CARGA_REDUCE");
 		exit(1);
 	}
 
