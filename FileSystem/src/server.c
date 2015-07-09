@@ -161,12 +161,11 @@ int mensaje_set_bloque(void* argumentos) {
 	log_debug_interno("Empieza set_bloque");
 	struct arg_set_bloque* args = argumentos;
 
-	int bloque = args->bloque_nodo;
 	int socket = args->socket;
-	char* chunk = args->chunk;
 
-	t_msg* msg_solicitud = string_message(SET_BLOQUE, chunk, 1, bloque);
+	t_msg* msg_solicitud = string_message(SET_BLOQUE, args->chunk, 1, args->bloque_nodo, strlen(args->chunk));
 	enviar_mensaje(socket, msg_solicitud);
+	free(args->chunk);
 	t_msg* respuesta = recibir_mensaje(socket);
 
 	switch (respuesta->header.id) {

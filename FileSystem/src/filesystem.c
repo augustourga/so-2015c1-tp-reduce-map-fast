@@ -288,6 +288,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 			struct arg_set_bloque args;
 			args.bloque_nodo = numero_bloque;
 			args.socket = nodo_actual->socket;
+			args.chunk = malloc(chunks[numero_bloque].tamanio);
 			memcpy(args.chunk, chunks[numero_bloque].inicio, chunks[numero_bloque].tamanio);
 			pthread_t th_set;
 			pthread_create(&th_set, NULL, (void*) mensaje_set_bloque, (void*) &args);
