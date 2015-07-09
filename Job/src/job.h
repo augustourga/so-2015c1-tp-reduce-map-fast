@@ -23,17 +23,13 @@
 #include <commons/collections/queue.h>
 #include <utiles/messages.h>
 #include <utiles/files.h>
-#include <utiles/sockets.h>
+#include <utiles/log.h>
 
 /*********Constantes*****/
-#define CONFIG_PATH "/home/augusto/workspace/tp-2015-1c-milanesa/Job/Job.config"
-#define LOG_FILE "/home/utnso/Job_log.txt"
+#define LOG_FILE "log/job.log"
 #define PROCESO "Job"
-#define MAXSIZE 1024
 
-
-typedef struct
-{
+typedef struct {
 	char* ip_marta;
 	uint16_t puerto_marta;
 	char* archivos;
@@ -43,8 +39,7 @@ typedef struct
 	char* reduce;
 } t_Datos_configuracion;
 
-typedef struct
-{
+typedef struct {
 	char ip[15];
 	uint16_t puerto;
 	char* archivo_final;
@@ -52,8 +47,7 @@ typedef struct
 	int bloque;
 } t_params_hiloMap;
 
-typedef struct
-{
+typedef struct {
 	char ip[15];
 	uint16_t puerto;
 	char* nombre_nodo;
@@ -62,28 +56,18 @@ typedef struct
 	t_queue* archivos_tmp;
 } t_params_hiloReduce;
 
-
-int obtenerConfiguracion();
-void loguearLinea(char* linea,t_log_level);
-void mostrarPorPantalla();
-int conexionMaRTA();
-int HiloMap(void*);
-int HiloReduce(void*);
-int handshake_marta();
-int levantar_hilo_mapper(t_params_hiloMap* nodo);
-int levantar_hilo_reduce(t_params_hiloReduce* nodo);
+void obtenerConfiguracion();
+void conectarseAMarta();
+void esperarTareas();
+int hiloMap(void*);
+int hiloReduce(void*);
+void handshakeMarta();
+void levantarHiloMapper(t_params_hiloMap* nodo);
+void levantarHiloReduce(t_params_hiloReduce* nodo);
 
 /*********Variables globales******************/
 t_Datos_configuracion* configuracion;
-t_log* Log_job;
-pthread_t* th_hilo_map;
-pthread_t* th_hilo_reduce;
-t_msg * mensaje_actual;
 int marta_sock;
-pthread_mutex_t * marta_mutex;
-
 /********************************************/
-
-
 
 #endif /* JOB_JOB_H_ */

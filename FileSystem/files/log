@@ -1,8 +1,0 @@
-[INFO] 21:46:07:589 FileSystem/(19170:19170): Archivo de configuración cargado correctamente
-[INFO] 21:46:22:218 FileSystem/(19170:19175): Se reconectó el nodo nodoA: BT: 50 - BL: 50 - BO: 0 - Conexión: 127.0.0.1:60012
-[INFO] 21:47:24:405 FileSystem/(19170:19175): Se reconectó el nodo nodoB: BT: 50 - BL: 50 - BO: 0 - Conexión: 127.0.0.1:60014
-[ERROR] 21:50:04:983 FileSystem/(19170:19175): El nodo no se encuentra operativo para solicitarle un archivo temporal
-[INFO] 21:51:09:610 FileSystem/(19418:19418): Archivo de configuración cargado correctamente
-[INFO] 21:52:13:29 FileSystem/(19418:19423): Se reconectó el nodo nodoA: BT: 50 - BL: 50 - BO: 0 - Conexión: 127.0.0.1:60022
-[INFO] 21:52:41:937 FileSystem/(19418:19423): Se reconectó el nodo nodoB: BT: 50 - BL: 50 - BO: 0 - Conexión: 127.0.0.1:60024
-[ERROR] 21:53:31:576 FileSystem/(19418:19423): El nodo no se encuentra operativo para solicitarle un archivo temporal
