@@ -42,6 +42,7 @@ typedef struct {
 typedef struct {
 	char ip[15];
 	uint16_t puerto;
+	char* nombre_nodo;
 	char* archivo_final;
 	int id_operacion;
 	int bloque;
