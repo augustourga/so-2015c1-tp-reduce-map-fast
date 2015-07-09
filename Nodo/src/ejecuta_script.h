@@ -14,6 +14,9 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <fcntl.h>
+#include <stdlib.h>
+#include <commons/string.h>
+#include <commons/temporal.h>
 #define BLOCK_SIZE_20MB 20971520
 
 void error(char *s);

@@ -130,10 +130,10 @@ void levantarNuevoServer() {
 	pthread_t thread;
 	int listener, nuevaConexion;
 	listener = server_socket(PUERTO_NODO);
-	printf("Esperando conexiones entrantes\n");
+	log_info_interno("Escuchando conexiones entrantes");
+
 	while (true) {
 		nuevaConexion = accept_connection(listener);
-		log_info_consola("Se ha conectado un proceso al socket %d",nuevaConexion);
 		log_info_interno("Se ha conectado un proceso al socket %d",nuevaConexion);
 		pthread_create(&thread, NULL, atenderConexiones, &nuevaConexion);
 	}
@@ -209,14 +209,10 @@ void *atenderConexiones(void *parametro) {
 				fin = ejecutar_map(mensaje2->stream, codigo->stream,codigo->argv[0],mensaje2->argv[0]);
 				switch (fin) {
 				case FIN_MAP_ERROR:
-					log_error_consola("Hubo errores en el map %d en el bloque %d.",
-							mensaje2->argv[0], codigo->argv[0]);
 					log_error_interno("Hubo errores en el map %d en el bloque %d.",
 							mensaje2->argv[0], codigo->argv[0]);
 					break;
 				case FIN_MAP_OK:
-					log_info_consola("Map %d en el bloque %d exitoso",
-							mensaje2->argv[0], codigo->argv[0]);
 					log_info_interno("Map %d en el bloque %d exitoso",
 							mensaje2->argv[0], codigo->argv[0]);
 					break;
@@ -282,7 +278,6 @@ void *atenderConexiones(void *parametro) {
 			}
 
 		} else {
-			log_error_consola("Se ha desconectado un proceso del socket %d",sock_conexion);
 			log_error_interno("Se ha desconectado un proceso del socket %d",sock_conexion);
 			break;
 		}
@@ -362,8 +357,6 @@ void liberar_Espacio_datos(char* _data,char* ARCHIVO){
 }
 
 t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal,int numeroBloque, int mapid) {
-	log_info_consola("Inicio ejecutarMap ID:%d en el bloque %d", mapid,
-			numeroBloque);
 	log_info_interno("Inicio ejecutarMap ID:%d en el bloque %d", mapid,
 			numeroBloque);
 	char*bloque = NULL;
@@ -385,8 +378,6 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal,int numeroBloque
 	remove(temporal);
 	free(bloque);
 	return FIN_MAP_OK;
-	log_info_consola("Fin ejecutarMap ID:%d en el bloque %d", mapid,
-			numeroBloque);
 	log_info_interno("Fin ejecutarMap ID:%d en el bloque %d", mapid,
 			numeroBloque);
 }
@@ -394,26 +385,29 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal,int numeroBloque
 t_msg_id ejecutar_reduce(char*ejecutable, char* nombreArchivoFinal,
 		t_queue* colaArchivos, int id_reduce) {
 
-	log_info_consola("Inicio ejecutar Reduce ID:%d ", id_reduce);
-	log_info_consola("Inicio ejecutar Reduce ID:%d ", id_reduce);
+	log_info_interno("Inicio ejecutar Reduce ID:%d ", id_reduce);
 
 	t_list* lista_nodos;
 
 	char* path_ejecutable = generar_nombre_rutina("reduce");
 	write_file(path_ejecutable, ejecutable, strlen(ejecutable));
 	chmod(path_ejecutable, S_IRWXU);
-	char*temporal = generar_nombre_temporal(id_reduce, "reduce", 5);
+	char*temporal = generar_nombre_temporal(id_reduce, "reduce", 667);
 
 	lista_nodos = deserealizar_cola(colaArchivos);
-
-	apareo(temporal, lista_nodos);
-	char* data = read_whole_file(temporal);
-	if (ejecutar(data, path_ejecutable, nombreArchivoFinal)) {
+	int res;
+	res = apareo(temporal, lista_nodos);
+	if (res == -1) {
+		remove(temporal);
 		return FIN_REDUCE_ERROR;
 	}
-
-	log_info_consola("Fin ejecutar Reduce ID:%d ", id_reduce);
-	log_info_consola("Fin ejecutar Reduce ID:%d ", id_reduce);
+	char* data = read_whole_file(temporal);
+	if (ejecutar(data, path_ejecutable, nombreArchivoFinal)) {
+		remove(temporal);
+		return FIN_REDUCE_ERROR;
+	}
+	remove(temporal);
+	log_info_interno("Fin ejecutar Reduce ID:%d ", id_reduce);
 	return FIN_REDUCE_OK;
 }
 
@@ -451,13 +445,15 @@ t_list* deserealizar_cola(t_queue* colaArchivos) {
 	return lista_nodos;
 }
 
-void apareo(char* temporal,t_list* lista_nodos_archivos){
+int apareo(char* temporal,t_list* lista_nodos_archivos){
 	char** registros = malloc(sizeof(int));
 	int i, pos, valor_actual_1, valor_actual_2;
+	int res = 0;
 	char* clave_actual_1 = string_new();
 	char* clave_actual_2 = string_new();
 	char* registro_actual_1 = string_new();
 	char* registro_actual_2 = string_new();
+	char* aux_string;
 
 	char* ruta = file_combine(DIR_TEMP, temporal);
 	FILE* archivo = fopen(ruta, "ab");
@@ -467,13 +463,25 @@ void apareo(char* temporal,t_list* lista_nodos_archivos){
 	t_nodo_archivo* elem =(t_nodo_archivo*) malloc(sizeof(t_nodo_archivo));
 	for (i=0; i<cantidad_nodos_archivos; i++) {
 		elem = (t_nodo_archivo *) list_get(lista_nodos_archivos,i);
-		registros[i] = obtener_proximo_registro(elem);
+		aux_string = obtener_proximo_registro(elem);
+		if (string_equals_ignore_case(aux_string, "error.rmf")){
+			res = -1;
+			return res;
+		} else {
+			registros[i] = aux_string;
+		}
 	}
 
 	pos = obtener_posicion_menor_clave(registros, cantidad_nodos_archivos);
 	strcpy(registro_actual_1, registros[pos]);
 	elem = (t_nodo_archivo *) list_get(lista_nodos_archivos,pos);
-	registros[pos] = obtener_proximo_registro(elem);
+	aux_string = obtener_proximo_registro(elem);
+	if (string_equals_ignore_case(aux_string, "error.rmf")){
+		res = -1;
+		return res;
+	} else {
+		registros[pos] = aux_string;
+	}
 	char** array_aux = string_n_split(registro_actual_1, 2, ";");
 	strcpy(clave_actual_1, array_aux[0]);
 	valor_actual_1 = atoi(array_aux[1]);
@@ -483,7 +491,13 @@ void apareo(char* temporal,t_list* lista_nodos_archivos){
 	while (pos != -1) {
 		strcpy(registro_actual_2, registros[pos]);
 		elem = (t_nodo_archivo *) list_get(lista_nodos_archivos,pos);
-		registros[pos] = obtener_proximo_registro(elem);
+		aux_string = obtener_proximo_registro(elem);
+		if (string_equals_ignore_case(aux_string, "error.rmf")){
+			res = -1;
+			return res;
+		} else {
+			registros[pos] = aux_string;
+		}
 		char** array_aux = string_n_split(registro_actual_2, 2, ";");
 		strcpy(clave_actual_2, array_aux[0]);
 		valor_actual_2 = atoi(array_aux[1]);
@@ -498,6 +512,8 @@ void apareo(char* temporal,t_list* lista_nodos_archivos){
 				fputs(clave_actual_1, archivo);
 			} else {
 				log_error_consola("No se pudo acceder al archivo temporal para guardar data de apareamiento");
+				res = -1;
+				return res;
 			}
 			strcpy(clave_actual_1, clave_actual_2);
 			valor_actual_1 = valor_actual_2;
@@ -513,11 +529,13 @@ void apareo(char* temporal,t_list* lista_nodos_archivos){
 		fputs(clave_actual_1, archivo);
 	} else {
 		log_error_consola("No se pudo acceder al archivo temporal para guardar data de apareamiento");
+		res = -1;
+		return res;
 	}
 	// TODO: hay q ver de liberar todas las variables usadas aca
 	fclose(archivo);
 	log_info_interno("Se aparearon correctamente los archivos.");
-	log_info_consola("Se aparearon correctamente los archivos.");
+	return res;
 }
 
 char* obtener_proximo_registro(t_nodo_archivo* nodo_archivo) {
@@ -587,7 +605,9 @@ char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
 	int socket_tmp;
 	socket_tmp = client_socket(nodo_archivo->ip, nodo_archivo->puerto);
 	if (socket_tmp<0) {
-		// ERROR
+		log_error_consola("No se pudo establecer conexion con el otro nodo para aparear");
+		strcpy(resultado, "error.rmf");
+		return resultado;
 	}
 	t_msg* msg = string_message(GET_NEXT_ROW, nodo_archivo->archivo, 0);
 	enviar_mensaje(socket_tmp, msg);
@@ -600,7 +620,9 @@ char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
 			log_error_consola("El nodo no devolvio el proximo registro. Devolvio ERROR.");
 		}
 	} else {
-		// error
+		log_error_consola("No se pudo establecer conexion con el otro nodo para aparear");
+		strcpy(resultado, "error.rmf");
+		return resultado;
 	}
 	return resultado;
 }

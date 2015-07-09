@@ -28,11 +28,11 @@
 #include "ejecuta_script.h"
 
 /******************Constantes********************/
-#define PATH_CONFIG "../files/NODO_CONFIG.config"
-#define LOG_FILE "../files/NODO_LOG.txt"
+#define PATH_CONFIG "files/NODO_CONFIG.config"
+#define LOG_FILE "files/NODO_LOG.txt"
 #define PROCESO "Nodo"
 #define BUFF_SIZE 1024
-#define DISCO "../files/miarchivo.bin"
+#define DISCO "files/miarchivo.bin"
 #define RUTA "/home/utnso/git/tp-2015-1c-milanesa/Nodo"
 /****************Registros***********************/
 typedef struct{
@@ -84,7 +84,7 @@ t_msg_id ejecutar_map(char*ejecutable,char* nombreArchivoFinal,int numeroBloque,
 t_msg_id ejecutar_reduce(char*ejecutable,char*archivo_final,t_queue* colaArchivos,int id_reduce);
 
 /******************APAREO***************************/
-void apareo(char* temporal,t_list* lista_nodos_archivos);
+int apareo(char* temporal,t_list* lista_nodos_archivos);
 char* obtener_proximo_registro(t_nodo_archivo* nodo_archivo);
 int obtener_posicion_menor_clave(char** registros, int cantidad_nodos_archivos);
 char* obtener_proximo_registro_de_archivo(char* archivo);
