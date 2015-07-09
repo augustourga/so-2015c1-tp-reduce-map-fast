@@ -147,6 +147,7 @@ void *atenderConexiones(void *parametro) {
 	char*rutina_reduce;
 
 
+
 	while (1) {
 		if ((codigo = recibir_mensaje(sock_conexion)) != NULL ) {
 
@@ -227,34 +228,47 @@ void *atenderConexiones(void *parametro) {
 			case EJECUTAR_REDUCE:
 //
 
-							//Se recibe la rutina
-							mensaje2 = recibir_mensaje(sock_conexion);
-							size_t tamanioEjecutable=strlen(mensaje2->stream);
-							rutina_reduce = malloc(tamanioEjecutable);
-							memcpy(rutina_reduce, mensaje2->stream, tamanioEjecutable);
-							destroy_message(mensaje2);
+				//Se recibe la rutina
+				mensaje2 = recibir_mensaje(sock_conexion);
+				size_t tamanioEjecutable = strlen(mensaje2->stream);
+				rutina_reduce = malloc(tamanioEjecutable);
+				memcpy(rutina_reduce, mensaje2->stream, tamanioEjecutable);
+				destroy_message(mensaje2);
 
-							//el primero va a ser el nodo local
-							while(mensaje2->header.id!=FIN_ENVIO_MENSAJE){
-								mensaje2 = recibir_mensaje(sock_conexion);
-								nodo_arch=(t_nodo_archivo*) malloc(sizeof(t_nodo_archivo));
-								nodo_arch->ip =string_n_split(mensaje2->stream,2,"|")[0];
-								nodo_arch->archivo = string_n_split(mensaje2->stream,2,"|")[1];
-								nodo_arch->puerto= mensaje2->argv[0];
-								queue_push(cola_nodos,(void*) nodo_arch);
+				//el primero va a ser el nodo local
+				while (mensaje2->header.id != FIN_ENVIO_MENSAJE) {
+					mensaje2 = recibir_mensaje(sock_conexion);
+					nodo_arch = (t_nodo_archivo*) malloc(
+							sizeof(t_nodo_archivo));
+					nodo_arch->ip = string_n_split(mensaje2->stream, 2, "|")[0];
+					nodo_arch->archivo = string_n_split(mensaje2->stream, 2,
+							"|")[1];
+					nodo_arch->puerto = mensaje2->argv[0];
+					queue_push(cola_nodos, (void*) nodo_arch);
 
-							}
-							/*
-							 * EJECUTAR REDUCE
-//							 */
-		                    fin = ejecutar_reduce(rutina_reduce,codigo->stream,cola_nodos,codigo->argv[0]);
-							mensaje2=id_message(fin);
-							enviar_mensaje(sock_conexion,mensaje2);
-							destroy_message(mensaje2);
-							destroy_message(codigo);
-							free(rutina_reduce);
-							break;
+				}
 
+				fin = ejecutar_reduce(rutina_reduce, codigo->stream, cola_nodos,
+						codigo->argv[0]);
+				mensaje2 = id_message(fin);
+				enviar_mensaje(sock_conexion, mensaje2);
+				destroy_message(mensaje2);
+				destroy_message(codigo);
+				free(rutina_reduce);
+				break;
+
+			case GET_NEXT_ROW:
+				bloque = obtener_proximo_registro_de_archivo(codigo->stream);
+				if (bloque != NULL) {
+					mensaje2 = string_message(GET_NEXT_ROW_OK, bloque, 0);
+				} else {
+					mensaje2 = string_message(GET_NEXT_ROW_ERROR, bloque, 0);
+				}
+				enviar_mensaje(sock_conexion, mensaje2);
+				destroy_message(mensaje2);
+				destroy_message(codigo);
+
+				break;
 			}
 
 		} else {
