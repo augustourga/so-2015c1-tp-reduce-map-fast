@@ -96,7 +96,6 @@ t_archivo* archivo_deserealizar(char* archivo_serializado) {
 		for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias; numero_copia++) {
 			archivo->bloques[numero_bloque].copias[numero_copia].conectado = false;
 		}
-		offset += bytes_a_copiar;
 	}
 
 	return archivo;

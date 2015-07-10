@@ -38,7 +38,7 @@ struct arg_get_bloque {
 struct arg_set_bloque {
 	int socket;
 	int bloque_nodo;
-	char* chunk;
+	t_chunk chunk;
 };
 
 void iniciar_server(void* argumentos);

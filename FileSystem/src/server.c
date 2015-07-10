@@ -1,5 +1,7 @@
 #include "server.h"
 
+extern pthread_mutex_t mutex_args;
+
 void iniciar_server(void* argumentos) {
 
 	struct arg_struct *args = argumentos;
@@ -131,12 +133,12 @@ char* mensaje_get_bloque(void* argumentos) {
 
 	int bloque = args->bloque_nodo;
 	int socket = args->socket;
-	int offset = 0;
-	int bytes_a_copiar;
 
 	t_msg* msg_solicitud = argv_message(GET_BLOQUE, 1, bloque);
 	enviar_mensaje(socket, msg_solicitud);
+	destroy_message(msg_solicitud);
 	t_msg* respuesta = recibir_mensaje(socket);
+	pthread_mutex_unlock(&mutex_args);
 
 	switch (respuesta->header.id) {
 	case GET_BLOQUE_ERROR:
@@ -145,8 +147,7 @@ char* mensaje_get_bloque(void* argumentos) {
 		break;
 	case GET_BLOQUE_OK:
 		stream_bloque = malloc(respuesta->header.length);
-		bytes_a_copiar = respuesta->header.length;
-		memcpy(stream_bloque, respuesta->stream + offset, bytes_a_copiar);
+		memcpy(stream_bloque, respuesta->stream, respuesta->header.length);
 		free(respuesta->stream);
 		return stream_bloque;
 		break;
@@ -162,11 +163,13 @@ int mensaje_set_bloque(void* argumentos) {
 	struct arg_set_bloque* args = argumentos;
 
 	int socket = args->socket;
-
-	t_msg* msg_solicitud = string_message(SET_BLOQUE, args->chunk, 1, args->bloque_nodo, strlen(args->chunk));
+	char* stream = malloc(args->chunk.tamanio);
+	memcpy(stream, args->chunk.inicio, args->chunk.tamanio);
+	t_msg* msg_solicitud = string_message(SET_BLOQUE, stream, 2, args->bloque_nodo, args->chunk.tamanio);
 	enviar_mensaje(socket, msg_solicitud);
-	free(args->chunk);
-	t_msg* respuesta = recibir_mensaje(socket);
+	destroy_message(msg_solicitud);
+	pthread_mutex_unlock(&mutex_args);
+/*	t_msg* respuesta = recibir_mensaje(socket);
 
 	switch (respuesta->header.id) {
 	case SET_BLOQUE_ERROR:
@@ -181,7 +184,8 @@ int mensaje_set_bloque(void* argumentos) {
 	default:
 		log_error_interno("Respuesta Incorrecta");
 		return 2;
-	}
+	}*/
+	return 0;
 }
 
 t_msg* mensaje_info_archivo(char* ruta_archivo) {

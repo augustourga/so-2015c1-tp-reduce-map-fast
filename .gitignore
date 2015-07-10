@@ -42,4 +42,4 @@ Debug/
 *.db
 
 # Archivo data.bin de Nodo
-data.bin
+*.bin

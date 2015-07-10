@@ -24,6 +24,7 @@
 #include "database.h"
 #include "server.h"
 #include <utiles/log.h>
+#include <utiles/files.h>
 
 #define BLOQUE_SIZE_20MB 20*1024*1024
 

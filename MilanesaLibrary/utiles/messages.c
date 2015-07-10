@@ -1,5 +1,7 @@
 #include "messages.h"
 
+pthread_mutex_t mutex_enviar = PTHREAD_MUTEX_INITIALIZER;
+
 t_msg *id_message(t_msg_id id) {
 
 	t_msg *new = malloc(sizeof *new);
@@ -177,6 +179,7 @@ t_msg *recibir_mensaje(int sock_fd) {
 }
 
 int enviar_mensaje(int sock_fd, t_msg *msg) {
+	pthread_mutex_lock(&mutex_enviar);
 	int total = 0;
 	int pending = msg->header.length + sizeof(t_header) + msg->header.argc * sizeof(uint32_t);
 	char *buffer = malloc(pending);
@@ -196,6 +199,7 @@ int enviar_mensaje(int sock_fd, t_msg *msg) {
 		int sent = send(sock_fd, buffer, msg->header.length + sizeof msg->header + msg->header.argc * sizeof(uint32_t), MSG_NOSIGNAL);
 		if (sent < 0) {
 			free(buffer);
+			pthread_mutex_unlock(&mutex_enviar);
 			return -1;
 		}
 		total += sent;
@@ -203,7 +207,7 @@ int enviar_mensaje(int sock_fd, t_msg *msg) {
 	}
 
 	free(buffer);
-
+	pthread_mutex_unlock(&mutex_enviar);
 	return total;
 }
 

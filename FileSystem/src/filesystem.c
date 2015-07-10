@@ -20,6 +20,7 @@ pthread_mutex_t mutex_nodos_operativos = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_nodos_aceptados = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_nodos_pendientes = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_filesysem_operativo = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex_args = PTHREAD_MUTEX_INITIALIZER;
 
 bool filesystem_operativo = false;
 int cantidad_nodos_minima = 0;
@@ -75,8 +76,7 @@ int renombrar_directorio(char* ruta_directorio, char* nombre_nuevo) {
 	t_directorio* directorio_padre = directorio_por_id(directorio->padreId);
 	pthread_rwlock_rdlock(&directorio_padre->lock);
 
-	if (existe_directorio_con_nombre_en_directorio(nombre_nuevo,
-			directorio_padre)) {
+	if (existe_directorio_con_nombre_en_directorio(nombre_nuevo, directorio_padre)) {
 		log_error_ya_existe_directorio(nombre_nuevo, directorio_padre->nombre);
 		pthread_rwlock_unlock(&directorio->lock);
 		pthread_rwlock_unlock(&directorio_padre->lock);
@@ -114,10 +114,8 @@ int mover_directorio(char* ruta_directorio, char* ruta_padre_nuevo) {
 	}
 	pthread_rwlock_rdlock(&directorio_padre_nuevo->lock);
 
-	if (existe_directorio_con_nombre_en_directorio(directorio->nombre,
-			directorio_padre_nuevo)) {
-		log_error_ya_existe_directorio(ruta_directorio,
-				directorio_padre_nuevo->nombre);
+	if (existe_directorio_con_nombre_en_directorio(directorio->nombre, directorio_padre_nuevo)) {
+		log_error_ya_existe_directorio(ruta_directorio, directorio_padre_nuevo->nombre);
 		pthread_rwlock_unlock(&directorio->lock);
 		pthread_rwlock_unlock(&directorio_padre_nuevo->lock);
 		return 1;
@@ -144,8 +142,7 @@ int eliminar_directorio(char* ruta_directorio) { //TODO: Ver de agregar un bool 
 	}
 	pthread_rwlock_wrlock(&directorio->lock);
 
-	if (directorio_tiene_directorios_hijos(directorio)
-			|| directorio_tiene_archivos_hijos(directorio)) {
+	if (directorio_tiene_directorios_hijos(directorio) || directorio_tiene_archivos_hijos(directorio)) {
 		log_error_consola("El directorio %s no está vacío", ruta_directorio);
 		pthread_rwlock_unlock(&directorio->lock);
 		return 1;
@@ -158,8 +155,7 @@ int eliminar_directorio(char* ruta_directorio) { //TODO: Ver de agregar un bool 
 	db_recno_t id_a_borrar = directorio->id;
 
 	pthread_rwlock_unlock(&directorio->lock);
-	list_remove_and_destroy_by_condition(lista_directorios,
-			(void *) _directorio_por_id, (void *) directorio_eliminar);
+	list_remove_and_destroy_by_condition(lista_directorios, (void *) _directorio_por_id, (void *) directorio_eliminar);
 
 	ret = borrar_directorio(id_a_borrar);
 	return ret;
@@ -201,8 +197,9 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 
 	string_iterate_lines(nombres, (void*) _nombre_archivo);
 
-	if (existe_archivo_con_nombre_en_directorio(nombre_archivo,
-			directorio_padre)) {
+	free_puntero_puntero(nombres);
+
+	if (existe_archivo_con_nombre_en_directorio(nombre_archivo, directorio_padre)) {
 		log_error_consola("Ya existe el archivo %s", nombre_archivo);
 		pthread_rwlock_unlock(&directorio_padre->lock);
 		return 1;
@@ -233,7 +230,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 			pos_actual = offset_actual;
 		} else {
 			//Significa que o entró en un solo bloque, o es el último bloque
-			chunks[num_block].inicio = map + pos_actual;
+			chunks[num_block].inicio = map + offset_actual;
 			chunks[num_block].tamanio = archivo_size - offset_actual;
 			pos_actual = archivo_size;
 			break;
@@ -247,8 +244,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 	archivo_nuevo->bloques = malloc(cantidad_bloques * sizeof(t_bloque));
 
 	if (cantidad_bloques * 3 > cantidad_bloques_libres()) {
-		log_error_consola("No hay espacio suficiente para el archivo %s\n",
-				archivo_nuevo->nombre);
+		log_error_consola("No hay espacio suficiente para el archivo %s\n", archivo_nuevo->nombre);
 		pthread_rwlock_unlock(&directorio_padre->lock);
 		archivo_eliminar(archivo_nuevo);
 		free(chunks);
@@ -267,29 +263,23 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 		int redundancia;
 		archivo_nuevo->cantidad_copias_totales += 3;
 		archivo_nuevo->bloques[numero_bloque].cantidad_copias = 3;
-		archivo_nuevo->bloques[numero_bloque].copias =
-				malloc(
-						sizeof(t_copia)
-								* archivo_nuevo->bloques[numero_bloque].cantidad_copias);
+		archivo_nuevo->bloques[numero_bloque].copias = malloc(sizeof(t_copia) * archivo_nuevo->bloques[numero_bloque].cantidad_copias);
 		for (redundancia = 0; redundancia < 3; redundancia++) {
 			nodo_actual = nodos[redundancia];
-			strcpy(
-					archivo_nuevo->bloques[numero_bloque].copias[redundancia].nombre_nodo,
-					nodo_actual->nombre);
-			archivo_nuevo->bloques[numero_bloque].copias[redundancia].bloque_nodo =
-					nodo_asignar_bloque_disponible(nodo_actual);
+			strcpy(archivo_nuevo->bloques[numero_bloque].copias[redundancia].nombre_nodo, nodo_actual->nombre);
+			int bloque_nodo = nodo_asignar_bloque_disponible(nodo_actual);
+			archivo_nuevo->bloques[numero_bloque].copias[redundancia].bloque_nodo = bloque_nodo;
 			archivo_nuevo->bloques[numero_bloque].copias[redundancia].conectado =
 			true;
-			archivo_nuevo->bloques[numero_bloque].copias[redundancia].tamanio_bloque =
-					chunks[numero_bloque].tamanio;
+			archivo_nuevo->bloques[numero_bloque].copias[redundancia].tamanio_bloque = chunks[numero_bloque].tamanio;
 			insertar_nodo(nodo_actual);
 			pthread_rwlock_unlock(&(nodo_actual->lock));
 
 			struct arg_set_bloque args;
-			args.bloque_nodo = numero_bloque;
+			pthread_mutex_lock(&mutex_args);
+			args.bloque_nodo = bloque_nodo;
 			args.socket = nodo_actual->socket;
-			args.chunk = malloc(chunks[numero_bloque].tamanio);
-			memcpy(args.chunk, chunks[numero_bloque].inicio, chunks[numero_bloque].tamanio);
+			args.chunk = chunks[numero_bloque];
 			pthread_t th_set;
 			pthread_create(&th_set, NULL, (void*) mensaje_set_bloque, (void*) &args);
 		}
@@ -297,7 +287,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 
 	archivo_asignar_estado(archivo_nuevo, true);
 
-	munmap(map, archivo_size);
+	//munmap(map, archivo_size);
 
 	list_add_archivo(archivo_nuevo);
 
@@ -305,7 +295,6 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 	pthread_rwlock_unlock(&directorio_padre->lock);
 
 	close(fildes_local);
-	free_puntero_puntero(nombres);
 	return ret;
 }
 
@@ -337,8 +326,10 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 	ftruncate(fildes_local, tamanio_archivo);
 	int offset_actual = 0;
 
-	char* map = mmap(0, tamanio_archivo, PROT_WRITE | PROT_READ, MAP_SHARED,
-			fildes_local, 0);
+	char* map = mmap(0, tamanio_archivo, PROT_WRITE, MAP_SHARED, fildes_local, 0);
+
+	//char* map = file_get_mapped(ruta_local);
+
 	if (map == MAP_FAILED) {
 		log_error_consola("Error de map");
 		pthread_rwlock_unlock(&archivo_mdfs->lock);
@@ -350,11 +341,9 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 
 	struct arg_get_bloque args[archivo_mdfs->cantidad_bloques];
 	pthread_t th_bloque[archivo_mdfs->cantidad_bloques];
-	for (numero_bloque = 0; numero_bloque < archivo_mdfs->cantidad_bloques;
-			numero_bloque++) {
+	for (numero_bloque = 0; numero_bloque < archivo_mdfs->cantidad_bloques; numero_bloque++) {
 		t_bloque bloque_actual = archivo_mdfs->bloques[numero_bloque];
-		for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias;
-				numero_copia++) {
+		for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias; numero_copia++) {
 			t_copia copia_actual = bloque_actual.copias[numero_copia];
 			t_nodo* nodo;
 			if (copia_actual.conectado) {
@@ -362,14 +351,12 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 				if (nodo != NULL) {
 					pthread_rwlock_rdlock(&nodo->lock);
 
+					pthread_mutex_lock(&mutex_args);
 					args[numero_bloque].bloque_nodo = copia_actual.bloque_nodo;
 					args[numero_bloque].socket = nodo->socket;
-					args[numero_bloque].nombre_nodo = strdup(
-							copia_actual.nombre_nodo);
+					args[numero_bloque].nombre_nodo = strdup(copia_actual.nombre_nodo);
 
-					pthread_create(&th_bloque[numero_bloque], NULL,
-							(void *) mensaje_get_bloque,
-							(void*) &args[numero_bloque]);
+					pthread_create(&th_bloque[numero_bloque], NULL, (void *) mensaje_get_bloque, (void*) &args[numero_bloque]);
 
 					pthread_rwlock_unlock(&nodo->lock);
 				}
@@ -377,9 +364,8 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 			}
 		}
 	}
-	for (numero_bloque = 0; numero_bloque < archivo_mdfs->cantidad_bloques;
-			numero_bloque++) {
-		char* dato_bloque = malloc(10000);
+	for (numero_bloque = 0; numero_bloque < archivo_mdfs->cantidad_bloques; numero_bloque++) {
+		char* dato_bloque;
 		pthread_join(th_bloque[numero_bloque], (void*) &dato_bloque);
 
 		if (dato_bloque == NULL) {
@@ -440,10 +426,8 @@ int renombrar_archivo(char* ruta_archivo, char* nombre_nuevo) {
 
 	pthread_rwlock_rdlock(&directorio_padre->lock);
 
-	if (existe_archivo_con_nombre_en_directorio(nombre_nuevo,
-			directorio_padre)) {
-		log_error_consola("Ya existe el archivo %s en el directorio indicado",
-				nombre_nuevo);
+	if (existe_archivo_con_nombre_en_directorio(nombre_nuevo, directorio_padre)) {
+		log_error_consola("Ya existe el archivo %s en el directorio indicado", nombre_nuevo);
 		pthread_rwlock_unlock(&archivo->lock);
 		pthread_rwlock_unlock(&directorio_padre->lock);
 		return 1;
@@ -484,10 +468,8 @@ int mover_archivo(char* ruta_archivo, char* ruta_padre_nuevo) {
 
 	pthread_rwlock_rdlock(&directorio_padre_nuevo->lock);
 
-	if (existe_archivo_con_nombre_en_directorio(archivo->nombre,
-			directorio_padre_nuevo)) {
-		log_error_consola("Ya existe el archivo %s en el directorio indicado",
-				archivo->nombre);
+	if (existe_archivo_con_nombre_en_directorio(archivo->nombre, directorio_padre_nuevo)) {
+		log_error_consola("Ya existe el archivo %s en el directorio indicado", archivo->nombre);
 		pthread_rwlock_unlock(&archivo->lock);
 		pthread_rwlock_unlock(&directorio_padre_nuevo->lock);
 		return 1;
@@ -524,8 +506,7 @@ int eliminar_archivo(char* ruta_archivo) {
 
 	pthread_rwlock_unlock(&archivo->lock);
 
-	list_remove_and_destroy_by_condition(lista_archivos,
-			(void *) _archivo_por_id, (void *) archivo_eliminar);
+	list_remove_and_destroy_by_condition(lista_archivos, (void *) _archivo_por_id, (void *) archivo_eliminar);
 
 	ret = borrar_archivo(id_a_borrar);
 	return ret;
@@ -553,8 +534,7 @@ int inicializar_filesystem(bool formatea, int cantidad_nodos) {
 	int cantidad_archivos = recuperar_archivos();
 	recuperar_nodos();
 
-	log_debug_consola("Se recuperaron %d directorios y %d archivos de la DB",
-			cantidad_directorios, cantidad_archivos);
+	log_debug_consola("Se recuperaron %d directorios y %d archivos de la DB", cantidad_directorios, cantidad_archivos);
 
 	int i;
 	for (i = 0; i < cantidad_directorios; i++) {
@@ -582,8 +562,7 @@ t_directorio* hijo_de_con_nombre(t_directorio* padre, char* nombre) {
 	t_directorio* directorio_actual;
 
 	bool _hijo_de_con_nombre(t_directorio* directorio) {
-		return string_equals_ignore_case(directorio->nombre, nombre)
-				&& directorio->padreId == padre->id;
+		return string_equals_ignore_case(directorio->nombre, nombre) && directorio->padreId == padre->id;
 	}
 
 	directorio_actual = list_find_directorio((void*) _hijo_de_con_nombre);
@@ -595,8 +574,7 @@ t_archivo* archivo_hijo_de_con_nombre(t_directorio* padre, char* nombre) {
 	t_archivo* archivo_actual;
 
 	bool _archivo_hijo_de_con_nombre(t_archivo* archivo) {
-		return string_equals_ignore_case(archivo->nombre, nombre)
-				&& archivo->padreId == padre->id;
+		return string_equals_ignore_case(archivo->nombre, nombre) && archivo->padreId == padre->id;
 	}
 
 	archivo_actual = list_find_archivo((void*) _archivo_hijo_de_con_nombre);
@@ -651,8 +629,7 @@ t_directorio* directorio_por_id(db_recno_t id) {
 	return directorio;
 }
 
-bool existe_directorio_con_nombre_en_directorio(char* nombre,
-		t_directorio* directorio_padre) {
+bool existe_directorio_con_nombre_en_directorio(char* nombre, t_directorio* directorio_padre) {
 	t_directorio* directorio;
 
 	directorio = hijo_de_con_nombre(directorio_padre, nombre);
@@ -660,8 +637,7 @@ bool existe_directorio_con_nombre_en_directorio(char* nombre,
 	return (directorio != NULL);
 }
 
-bool existe_archivo_con_nombre_en_directorio(char* nombre,
-		t_directorio* directorio_padre) {
+bool existe_archivo_con_nombre_en_directorio(char* nombre, t_directorio* directorio_padre) {
 	t_archivo* archivo;
 
 	archivo = archivo_hijo_de_con_nombre(directorio_padre, nombre);
@@ -699,8 +675,7 @@ t_list* directorios_hijos_de_directorio(t_directorio* directorio_actual) {
 		return directorio->padreId == directorio_actual->id;
 	}
 
-	t_list* hijos = list_filter(lista_directorios,
-			(void*) _directorios_hijos_de_directorio);
+	t_list* hijos = list_filter(lista_directorios, (void*) _directorios_hijos_de_directorio);
 
 	return hijos;
 }
@@ -711,8 +686,7 @@ t_list* archivos_hijos_de_directorio(t_directorio* directorio_actual) {
 		return archivo->padreId == directorio_actual->id;
 	}
 
-	t_list* hijos = list_filter(lista_archivos,
-			(void*) _archivos_hijos_de_directorio);
+	t_list* hijos = list_filter(lista_archivos, (void*) _archivos_hijos_de_directorio);
 
 	return hijos;
 }
@@ -780,8 +754,7 @@ int agregar_nodo(char* nombre_nodo) {
 	t_nodo* nodo_aux = nodo_aceptado_por_nombre(nombre_nodo);
 	if (nodo_aux != NULL) {
 		pthread_mutex_lock(&mutex_nodos_aceptados);
-		list_remove_by_condition(lista_nodos_aceptados,
-				(void*) _nodo_por_nombre);
+		list_remove_by_condition(lista_nodos_aceptados, (void*) _nodo_por_nombre);
 		pthread_mutex_unlock(&mutex_nodos_aceptados);
 	}
 	list_add_nodos_aceptados(nodo);
@@ -904,8 +877,7 @@ int ver_bloque_de_archivo(int numero_bloque_archivo, char* ruta_archivo) {
 	while (!archivo->bloques[numero_bloque_archivo].copias[redundancia].conectado) {
 		redundancia++;
 	}
-	t_copia copia_actual =
-			archivo->bloques[numero_bloque_archivo].copias[redundancia];
+	t_copia copia_actual = archivo->bloques[numero_bloque_archivo].copias[redundancia];
 	pthread_rwlock_unlock(&archivo->lock);
 	t_nodo* nodo = nodo_operativo_por_nombre(copia_actual.nombre_nodo);
 
@@ -921,8 +893,7 @@ int ver_bloque_de_archivo(int numero_bloque_archivo, char* ruta_archivo) {
 	args.bloque_nodo = copia_actual.bloque_nodo;
 	args.socket = nodo->socket;
 
-	pthread_create(&th_bloque, NULL, (void *) mensaje_get_bloque,
-			(void*) &args);
+	pthread_create(&th_bloque, NULL, (void *) mensaje_get_bloque, (void*) &args);
 	char* dato_bloque = malloc(10000);
 	pthread_join(th_bloque, (void*) &dato_bloque);
 	pthread_rwlock_unlock(&nodo->lock);
@@ -1007,15 +978,11 @@ int borrar_bloque_de_nodo(int numero_bloque_nodo, char* nombre_nodo) {
 	bool _archivo_de_bloque(t_archivo* archivo) {
 		int numero_bloque;
 		int numero_copia;
-		for (numero_bloque = 0; numero_bloque < archivo->cantidad_bloques;
-				numero_bloque++) {
+		for (numero_bloque = 0; numero_bloque < archivo->cantidad_bloques; numero_bloque++) {
 			t_bloque bloque_actual = archivo->bloques[numero_bloque];
-			for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias;
-					numero_copia++) {
+			for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias; numero_copia++) {
 				t_copia copia_actual = bloque_actual.copias[numero_copia];
-				if (string_equals_ignore_case(copia_actual.nombre_nodo,
-						nodo->nombre)
-						&& copia_actual.bloque_nodo == numero_bloque_nodo) {
+				if (string_equals_ignore_case(copia_actual.nombre_nodo, nodo->nombre) && copia_actual.bloque_nodo == numero_bloque_nodo) {
 					numero_bloque_eliminado = numero_bloque;
 					numero_copia_eliminada = numero_copia;
 					return true;
@@ -1036,16 +1003,12 @@ int borrar_bloque_de_nodo(int numero_bloque_nodo, char* nombre_nodo) {
 	pthread_rwlock_wrlock(&archivo->lock);
 
 	t_bloque bloque_actual = archivo->bloques[numero_bloque_eliminado];
-	t_copia* aux = calloc(
-			archivo->bloques[numero_bloque_eliminado].cantidad_copias,
-			sizeof(t_copia));
+	t_copia* aux = calloc(archivo->bloques[numero_bloque_eliminado].cantidad_copias, sizeof(t_copia));
 
 	memcpy(aux, bloque_actual.copias, sizeof(t_copia) * numero_copia_eliminada);
 
-	memcpy(aux + numero_copia_eliminada,
-			bloque_actual.copias + numero_copia_eliminada + 1,
-			(bloque_actual.cantidad_copias - numero_copia_eliminada - 1)
-					* sizeof(t_copia));
+	memcpy(aux + numero_copia_eliminada, bloque_actual.copias + numero_copia_eliminada + 1,
+			(bloque_actual.cantidad_copias - numero_copia_eliminada - 1) * sizeof(t_copia));
 
 	archivo->cantidad_copias_totales--;
 	archivo->bloques[numero_bloque_eliminado].cantidad_copias--;
@@ -1053,10 +1016,7 @@ int borrar_bloque_de_nodo(int numero_bloque_nodo, char* nombre_nodo) {
 
 	int numero_copia;
 	bool deshabilitar = true;
-	for (numero_copia = 0;
-			numero_copia
-					< archivo->bloques[numero_bloque_eliminado].cantidad_copias;
-			numero_copia++) {
+	for (numero_copia = 0; numero_copia < archivo->bloques[numero_bloque_eliminado].cantidad_copias; numero_copia++) {
 		t_copia copia_actual = bloque_actual.copias[numero_copia];
 		if (copia_actual.conectado) {
 			deshabilitar = false;
@@ -1073,8 +1033,7 @@ int borrar_bloque_de_nodo(int numero_bloque_nodo, char* nombre_nodo) {
 	return 0;
 }
 
-int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo,
-		char* nombre_nodo_origen, char* nombre_nodo_destino) {
+int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_origen, char* nombre_nodo_destino) {
 	t_nodo* nodo_origen;
 	t_nodo* nodo_destino;
 
@@ -1118,8 +1077,7 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo,
 	}
 
 	pthread_rwlock_wrlock(&nodo_destino->lock);
-	int numero_bloque_nodo_destino = nodo_asignar_bloque_disponible(
-			nodo_destino);
+	int numero_bloque_nodo_destino = nodo_asignar_bloque_disponible(nodo_destino);
 
 	//TODO: Testear que esto funcione
 	pthread_t th_bloque;
@@ -1128,9 +1086,8 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo,
 	args.bloque_nodo = numero_bloque_nodo;
 	args.socket = nodo_origen->socket;
 
-	pthread_create(&th_bloque, NULL, (void *) mensaje_get_bloque,
-			(void*) &args);
-	char* dato_bloque = malloc(10000);
+	pthread_create(&th_bloque, NULL, (void *) mensaje_get_bloque, (void*) &args);
+	char* dato_bloque = malloc(10000); //TODO: Es cualquiera esto hardcodeado jajaj
 	pthread_join(th_bloque, (void*) &dato_bloque);
 	pthread_rwlock_unlock(&nodo_origen->lock);
 	if (dato_bloque == NULL) {
@@ -1139,18 +1096,17 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo,
 	}
 
 	pthread_t th_bloque_2;
-	struct arg_set_bloque* args2;
-	args2->bloque_nodo = numero_bloque_nodo_destino;
-	args2->socket = nodo_destino->socket;
-	args2->chunk = dato_bloque;
+	struct arg_set_bloque args2;
+	args2.bloque_nodo = numero_bloque_nodo_destino;
+	args2.socket = nodo_destino->socket;
+	args2.chunk.inicio = dato_bloque;
+	args2.chunk.tamanio = 10000; //TODO: arrastrando el hardcodeo jaja
 
-	pthread_create(&th_bloque_2, NULL, (void *) mensaje_set_bloque,
-			(void*) &args2);
+	pthread_create(&th_bloque_2, NULL, (void *) mensaje_set_bloque, (void*) &args2);
 	int resultado;
 	pthread_join(th_bloque_2, (void*) &resultado);
 	if (resultado != 0) {
-		log_error_consola(
-				"Ocurrió un error al setear el bloque del archivo en el nodo destino");
+		log_error_consola("Ocurrió un error al setear el bloque del archivo en el nodo destino");
 		return 1;
 	}
 	insertar_nodo(nodo_destino);
@@ -1162,15 +1118,11 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo,
 	bool _archivo_de_bloque(t_archivo* archivo) {
 		int numero_bloque;
 		int numero_copia;
-		for (numero_bloque = 0; numero_bloque < archivo->cantidad_bloques;
-				numero_bloque++) {
+		for (numero_bloque = 0; numero_bloque < archivo->cantidad_bloques; numero_bloque++) {
 			t_bloque bloque_actual = archivo->bloques[numero_bloque];
-			for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias;
-					numero_copia++) {
+			for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias; numero_copia++) {
 				t_copia copia_actual = bloque_actual.copias[numero_copia];
-				if (string_equals_ignore_case(copia_actual.nombre_nodo,
-						nodo_origen->nombre)
-						&& copia_actual.bloque_nodo == numero_bloque_nodo) {
+				if (string_equals_ignore_case(copia_actual.nombre_nodo, nodo_origen->nombre) && copia_actual.bloque_nodo == numero_bloque_nodo) {
 					numero_bloque_copiado = numero_bloque;
 					tamanio_bloque_copiado = copia_actual.tamanio_bloque;
 					return true;
@@ -1193,20 +1145,13 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo,
 	archivo->cantidad_copias_totales++;
 	archivo->bloques[numero_bloque_copiado].cantidad_copias++;
 
-	archivo->bloques[numero_bloque_copiado].copias = realloc(
-			archivo->bloques[numero_bloque_copiado].copias,
-			archivo->bloques[numero_bloque_copiado].cantidad_copias
-					* sizeof(t_copia));
+	archivo->bloques[numero_bloque_copiado].copias = realloc(archivo->bloques[numero_bloque_copiado].copias,
+			archivo->bloques[numero_bloque_copiado].cantidad_copias * sizeof(t_copia));
 
-	archivo->bloques[numero_bloque_copiado].copias[archivo->bloques[numero_bloque_copiado].cantidad_copias
-			- 1].conectado = true;
-	archivo->bloques[numero_bloque_copiado].copias[archivo->bloques[numero_bloque_copiado].cantidad_copias
-			- 1].bloque_nodo = numero_bloque_nodo_destino;
-	archivo->bloques[numero_bloque_copiado].copias[archivo->bloques[numero_bloque_copiado].cantidad_copias
-			- 1].tamanio_bloque = tamanio_bloque_copiado;
-	strcpy(
-			archivo->bloques[numero_bloque_copiado].copias[archivo->bloques[numero_bloque_copiado].cantidad_copias
-					- 1].nombre_nodo, nombre_nodo_destino);
+	archivo->bloques[numero_bloque_copiado].copias[archivo->bloques[numero_bloque_copiado].cantidad_copias - 1].conectado = true;
+	archivo->bloques[numero_bloque_copiado].copias[archivo->bloques[numero_bloque_copiado].cantidad_copias - 1].bloque_nodo = numero_bloque_nodo_destino;
+	archivo->bloques[numero_bloque_copiado].copias[archivo->bloques[numero_bloque_copiado].cantidad_copias - 1].tamanio_bloque = tamanio_bloque_copiado;
+	strcpy(archivo->bloques[numero_bloque_copiado].copias[archivo->bloques[numero_bloque_copiado].cantidad_copias - 1].nombre_nodo, nombre_nodo_destino);
 
 	actualizar_archivo(archivo);
 
@@ -1242,14 +1187,11 @@ int proximos_nodos_disponibles(t_nodo* nodos[]) {
 
 	pthread_mutex_lock(&mutex_nodos_operativos);
 	bool _cantidad_bloques_libres(t_nodo* nodo1, t_nodo* nodo2) {
-		return (nodo1->cantidad_bloques_totales - nodo1->cantidad_bloques_libres)
-				< (nodo2->cantidad_bloques_totales
-						- nodo2->cantidad_bloques_libres);
+		return (nodo1->cantidad_bloques_totales - nodo1->cantidad_bloques_libres) < (nodo2->cantidad_bloques_totales - nodo2->cantidad_bloques_libres);
 	}
 
 	list_sort(lista_nodos_operativos, (void *) _cantidad_bloques_libres);
-	t_list * lista_nodos_no_llenos = list_filter(lista_nodos_operativos,
-			(void*) nodo_con_espacio);
+	t_list * lista_nodos_no_llenos = list_filter(lista_nodos_operativos, (void*) nodo_con_espacio);
 
 	if (lista_nodos_no_llenos->elements_count < 3) {
 		pthread_mutex_unlock(&mutex_nodos_operativos);
@@ -1306,8 +1248,7 @@ t_archivo* list_find_archivo_disponible(bool (*closure)(void*)) {
 	}
 
 	pthread_mutex_lock(&mutex_archivos);
-	t_list* lista_archivos_disponibles = list_filter(lista_archivos,
-			(void*) _archivo_disponible);
+	t_list* lista_archivos_disponibles = list_filter(lista_archivos, (void*) _archivo_disponible);
 	pthread_mutex_unlock(&mutex_archivos);
 
 	archivo = list_find(lista_archivos_disponibles, (void*) closure);
@@ -1395,8 +1336,7 @@ void desconectar_nodo(int socket) {
 
 	if (nodo != NULL) {
 		pthread_mutex_lock(&mutex_nodos_operativos);
-		list_remove_by_condition(lista_nodos_operativos,
-				(void*) _nodo_por_socket);
+		list_remove_by_condition(lista_nodos_operativos, (void*) _nodo_por_socket);
 		pthread_mutex_unlock(&mutex_nodos_operativos);
 		actualizar_disponibilidad_archivos_por_desconexion(nodo);
 		log_info_nodo_desconectado(nodo);
@@ -1404,8 +1344,7 @@ void desconectar_nodo(int socket) {
 		nodo = nodo_pendiente_por_socket(socket);
 		if (nodo != NULL) {
 			pthread_mutex_lock(&mutex_nodos_pendientes);
-			list_remove_by_condition(lista_nodos_pendientes,
-					(void*) _nodo_por_socket);
+			list_remove_by_condition(lista_nodos_pendientes, (void*) _nodo_por_socket);
 			pthread_mutex_unlock(&mutex_nodos_pendientes);
 			log_info_nodo_desconectado(nodo);
 		}
@@ -1421,21 +1360,17 @@ void actualizar_disponibilidad_archivos_por_desconexion(t_nodo* nodo) {
 	void _actualizar_disponibilidad(t_archivo* archivo) {
 		int numero_bloque;
 		int numero_copia;
-		for (numero_bloque = 0; numero_bloque < archivo->cantidad_bloques;
-				numero_bloque++) {
+		for (numero_bloque = 0; numero_bloque < archivo->cantidad_bloques; numero_bloque++) {
 			t_bloque bloque_actual = archivo->bloques[numero_bloque];
-			for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias;
-					numero_copia++) {
+			for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias; numero_copia++) {
 				t_copia copia_actual = bloque_actual.copias[numero_copia];
-				if (string_equals_ignore_case(copia_actual.nombre_nodo,
-						nodo->nombre)) {
+				if (string_equals_ignore_case(copia_actual.nombre_nodo, nodo->nombre)) {
 					archivo->bloques[numero_bloque].copias[numero_copia].conectado =
 					false;
 				}
 			}
 			bool deshabilitar = true;
-			for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias;
-					numero_copia++) {
+			for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias; numero_copia++) {
 				t_copia copia_actual = bloque_actual.copias[numero_copia];
 				if (copia_actual.conectado) {
 					deshabilitar = false;
@@ -1459,21 +1394,17 @@ void actualizar_disponibilidad_archivos_por_reconexion(t_nodo* nodo) {
 		int numero_bloque;
 		int numero_copia;
 		bool habilitar = true;
-		for (numero_bloque = 0; numero_bloque < archivo->cantidad_bloques;
-				numero_bloque++) {
+		for (numero_bloque = 0; numero_bloque < archivo->cantidad_bloques; numero_bloque++) {
 			t_bloque bloque_actual = archivo->bloques[numero_bloque];
-			for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias;
-					numero_copia++) {
+			for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias; numero_copia++) {
 				t_copia copia_actual = bloque_actual.copias[numero_copia];
-				if (string_equals_ignore_case(copia_actual.nombre_nodo,
-						nodo->nombre)) {
+				if (string_equals_ignore_case(copia_actual.nombre_nodo, nodo->nombre)) {
 					archivo->bloques[numero_bloque].copias[numero_copia].conectado =
 					true;
 				}
 			}
 			bool salir = true;
-			for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias;
-					numero_copia++) {
+			for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias; numero_copia++) {
 				t_copia copia_actual = bloque_actual.copias[numero_copia];
 				if (copia_actual.conectado) {
 					salir = false;
@@ -1522,23 +1453,19 @@ char* preparar_info_archivo(char* ruta_archivo) {
 
 char* serializar_info_archivo(t_archivo* archivo) {
 	char* respuesta = malloc(
-			((archivo->cantidad_bloques * CANTIDAD_COPIAS)
-					* (sizeof(t_copia) + sizeof(char[16]) + sizeof(char[4])))
+			((archivo->cantidad_bloques * CANTIDAD_COPIAS) * (sizeof(t_copia) + sizeof(char[16]) + sizeof(char[4])))
 					+ (archivo->cantidad_bloques * sizeof(char[1])));
 	respuesta = string_new();
 	int numero_bloque;
 	int numero_copia;
 
-	for (numero_bloque = 0; numero_bloque < archivo->cantidad_bloques;
-			numero_bloque++) {
+	for (numero_bloque = 0; numero_bloque < archivo->cantidad_bloques; numero_bloque++) {
 		t_bloque bloque_actual = archivo->bloques[numero_bloque];
-		for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias;
-				numero_copia++) {
+		for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias; numero_copia++) {
 			t_copia copia_actual = bloque_actual.copias[numero_copia];
 			string_append(&respuesta, copia_actual.nombre_nodo);
 			string_append(&respuesta, ";");
-			t_nodo* nodo_actual = nodo_operativo_por_nombre(
-					copia_actual.nombre_nodo);
+			t_nodo* nodo_actual = nodo_operativo_por_nombre(copia_actual.nombre_nodo);
 			string_append(&respuesta, nodo_actual->ip);
 			string_append(&respuesta, ";");
 			string_append(&respuesta, string_itoa(nodo_actual->puerto));
