@@ -1,7 +1,7 @@
 
 #include "Nodo.h"
 
-int main(int argc, char*parametros[]) {
+int main(int argc, char*argv[]) {
 
 	log_crear("INFO", LOG_FILE, PROCESO);
 
@@ -9,7 +9,7 @@ int main(int argc, char*parametros[]) {
 		log_error_consola("Hubo errores en la carga de las configuraciones.");
 	}
 
-	_data = crear_Espacio_Datos(NODO_NUEVO, ARCHIVO_BIN, parametros[0]);
+	_data = levantar_espacio_datos();
 	archivos_temporales = list_create();
 
 	if (levantarHiloFile()) {
@@ -327,7 +327,12 @@ char* getFileContent(char* filename) {
 
 }
 
-char* crear_Espacio_Datos(int NUEVO, char* ARCHIVO, char* parametro) {
+char* levantar_espacio_datos(){
+	CANT_BLOQUES = file_get_size(ARCHIVO_BIN) / tamanio_bloque;
+	return file_get_mapped(ARCHIVO_BIN);
+}
+
+/*char* crear_Espacio_Datos(int NUEVO, char* ARCHIVO, char* parametro) {
 	size_t tamanio = 20 * 1024 * 1024;
 	int tamanio_bytes = atoi(parametro);
 	CANT_BLOQUES = tamanio_bytes / tamanio;
@@ -349,7 +354,7 @@ char* crear_Espacio_Datos(int NUEVO, char* ARCHIVO, char* parametro) {
 			"Fin de creacion del espacio de datos. Cantidad de Bloques: %d",
 			CANT_BLOQUES);
 	return direccion;
-}
+}*/
 
 void liberar_Espacio_datos(char* _data,char* ARCHIVO){
 	char* path = file_combine(DIR_TEMP, ARCHIVO);
