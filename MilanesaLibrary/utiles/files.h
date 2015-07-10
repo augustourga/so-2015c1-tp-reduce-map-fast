@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <commons/string.h>
 #include <sys/types.h>
+#define _FILE_OFFSET_BITS 64
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
