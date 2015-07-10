@@ -77,7 +77,7 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 			 contenidoDeBloque getBloque(unNumero);
 			 */
 			bloque = getBloque(codigo->argv[0]);
-			mensaje2 = string_message(GET_BLOQUE_OK, bloque, 2, codigo->argv[0], tamanio_bloque);
+			mensaje2 = string_message(GET_BLOQUE_OK, bloque, 1, codigo->argv[1]);
 			enviar_mensaje(reg_conexion->sock_fs, mensaje2);
 			free(bloque);
 			destroy_message(mensaje2);
