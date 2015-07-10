@@ -6,6 +6,7 @@ int main(int argc, char*argv[]) {
 
 	if (levantarConfiguracionNodo()) {
 		log_error_consola("Hubo errores en la carga de las configuraciones.");
+		exit(1);
 	}
 
 	_data = levantar_espacio_datos();
@@ -13,6 +14,7 @@ int main(int argc, char*argv[]) {
 
 	if (levantarHiloFile()) {
 		log_error_consola("Conexion con File System fallida.");
+		exit(1);
 	}
 
 	levantarNuevoServer();
@@ -23,23 +25,22 @@ int main(int argc, char*argv[]) {
 }
 
 int levantarConfiguracionNodo() {
-	char* aux;
+//	char* aux;
 	t_config* archivo_config = config_create(PATH_CONFIG);
 
 	PUERTO_FS = config_get_int_value(archivo_config, "PUERTO_FS");
 	IP_FS = strdup(config_get_string_value(archivo_config, "IP_FS"));
 	ARCHIVO_BIN = strdup(config_get_string_value(archivo_config, "ARCHIVO_BIN"));
 	DIR_TEMP = strdup(config_get_string_value(archivo_config, "DIR_TEMP"));
-	aux = strdup(config_get_string_value(archivo_config, "NODO_NUEVO"));
 	PUERTO_NODO = config_get_int_value(archivo_config, "PUERTO_NODO");
 	NOMBRE_NODO = strdup(config_get_string_value(archivo_config, "NOMBRE_NODO"));
 	config_destroy(archivo_config);
-
-	if (strncmp(aux, "SI", 2) == 0) {
-		NODO_NUEVO = 1;
-	} else {
-		NODO_NUEVO = 0;
-	}
+//
+//	if (strncmp(aux, "SI", 2) == 0) {
+//		NODO_NUEVO = 1;
+//	} else {
+//		NODO_NUEVO = 0;
+//	}
 
 	return 0;
 }
@@ -63,19 +64,15 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 	log_info_interno("Conectado al File System en el socket %d", reg_conexion->sock_fs);
 
 	while (true) {
-
-		t_msg*codigo = recibir_mensaje(reg_conexion->sock_fs);
 		char*bloque = NULL;
 		t_msg* mensaje2;
+ 		t_msg*codigo;
+		if((codigo= recibir_mensaje(reg_conexion->sock_fs))!=NULL){
 
 		switch (codigo->header.id) {
 
 		case GET_BLOQUE:
-			//getbloque(bloque2,reg_conexion.sock_fs);
-			/*											getBloque(numero) devovera el contenido del bloque "20*numero"
-			 almacenado en el espacio de datos.
-			 contenidoDeBloque getBloque(unNumero);
-			 */
+
 			bloque = getBloque(codigo->argv[0]);
 			mensaje2 = string_message(GET_BLOQUE_OK, bloque, 1, codigo->argv[1]);
 			enviar_mensaje(reg_conexion->sock_fs, mensaje2);
@@ -85,24 +82,19 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 			break;
 
 		case SET_BLOQUE:
-			/*
-			 setBloque almacenara los "datos" en "20*numero"
-			 setBloque(numero,datos);
-			 */
+
 			bloque = malloc(tamanio_bloque);
 			memcpy(bloque, codigo->stream, codigo->argv[1]); //1 es el tamaño real, el stream es el bloque de 20mb(aprox)
 			memset(bloque + codigo->argv[1], '\0', tamanio_bloque - codigo->argv[1]);
 			setBloque(codigo->argv[0], bloque);
+			mensaje2 = id_message(SET_BLOQUE_OK);
+			enviar_mensaje(reg_conexion->sock_fs, mensaje2);
 			free(bloque);
 			destroy_message(codigo);
 			break;
 
 		case GET_FILE_CONTENT:
-			/*
-			 arch getFileContent(char* nombre) devolvera el contenido
-			 * del archivo "nombre.dat" almacenado en el espacio temporal
-			 getFileContent(nombre);
-			 */
+
 			bloque = getFileContent(codigo->stream);
 			mensaje2 = id_message(GET_FILE_CONTENT);
 			mensaje2->stream = bloque;
@@ -112,8 +104,12 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 			free(bloque);
 			break;
 		default:
-			// TODO: NO SE
+			log_error_interno("Mensaje Incorrecto. Se esperaba GET_FILE_CONTEN | SET_BLOQUE | GET_BLOQUE");
 			break;
+		}
+		}
+		else{ log_error_interno("Se ha desconectado el File System");
+		exit(1);
 		}
 
 	}
@@ -127,9 +123,11 @@ void levantarNuevoServer() {
 
 	while (true) {
 		nuevaConexion = accept_connection(listener);
-		log_info_interno("Se ha conectado un proceso al socket %d", nuevaConexion);
-		pthread_create(&thread, NULL, atenderConexiones, &nuevaConexion);
-	}
+		if(nuevaConexion>= 0){
+			log_info_interno("Se ha conectado un proceso al socket %d", nuevaConexion);
+			pthread_create(&thread, NULL, atenderConexiones, &nuevaConexion);
+		}
+		}
 }
 
 void *atenderConexiones(void *parametro) {
@@ -148,13 +146,9 @@ void *atenderConexiones(void *parametro) {
 			switch (codigo->header.id) {
 
 			case GET_BLOQUE:
-				//getbloque(bloque2,reg_conexion.sock_fs);
-				/*											getBloque(numero) devovera el contenido del bloque "20*numero"
-				 almacenado en el espacio de datos.
-				 contenidoDeBloque getBloque(unNumero);
-				 */
 				bloque = getBloque(codigo->argv[0]);
-				mensaje2 = string_message(GET_BLOQUE, bloque, 2, codigo->argv[0], tamanio_bloque);
+				mensaje2 = string_message(GET_BLOQUE_OK, bloque, 1,
+						codigo->argv[1]);
 				enviar_mensaje(sock_conexion, mensaje2);
 				free(bloque);
 				destroy_message(mensaje2);
@@ -162,24 +156,19 @@ void *atenderConexiones(void *parametro) {
 				break;
 
 			case SET_BLOQUE:
-				/*
-				 setBloque almacenara los "datos" en "20*numero"
-				 setBloque(numero,datos);
-				 */
 				bloque = malloc(tamanio_bloque);
 				memcpy(bloque, codigo->stream, codigo->argv[1]); //1 es el tamaño real, el stream es el bloque de 20mb(aprox)
-				memset(bloque + codigo->argv[1], '\0', tamanio_bloque - codigo->argv[1]);
+				memset(bloque + codigo->argv[1], '\0',
+						tamanio_bloque - codigo->argv[1]);
 				setBloque(codigo->argv[0], bloque);
+				mensaje2 = id_message(SET_BLOQUE_OK);
+				enviar_mensaje(sock_conexion, mensaje2);
 				free(bloque);
 				destroy_message(codigo);
 				break;
 
 			case GET_FILE_CONTENT:
-				/*
-				 arch getFileContent(char* nombre) devolvera el contenido
-				 * del archivo "nombre.dat" almacenado en el espacio temporal
-				 getFileContent(nombre);
-				 */
+
 				bloque = getFileContent(codigo->stream);
 
 				mensaje2 = id_message(GET_FILE_CONTENT);
@@ -194,7 +183,7 @@ void *atenderConexiones(void *parametro) {
 			case EJECUTAR_MAP:
 
 				mensaje2 = recibir_mensaje(sock_conexion);
-
+				if(mensaje2->header.id == RUTINA){
 				fin = ejecutar_map(mensaje2->stream, codigo->stream, codigo->argv[0], mensaje2->argv[0]);
 				switch (fin) {
 				case FIN_MAP_ERROR:
@@ -204,28 +193,31 @@ void *atenderConexiones(void *parametro) {
 					log_info_interno("Map %d en el bloque %d exitoso", mensaje2->argv[0], codigo->argv[0]);
 					break;
 				default:
-					// TODO: NO SE
+					log_info_interno("Mensaje incorrecto se esperaba el id FIN_MAP_OK ó FIN_MAP_ERROR");
 					break;
 
 				}
 				mensaje2 = id_message(fin);
 				enviar_mensaje(sock_conexion, mensaje2);
+				}else{log_error_interno("Fallo en Recibir Rutina. Se esperaba el id RUTINA.");}
+
 				destroy_message(mensaje2);
 				destroy_message(codigo);
+
+
 				break;
 
 			case EJECUTAR_REDUCE:
-//
 
 				//Se recibe la rutina
 				mensaje2 = recibir_mensaje(sock_conexion);
-				// TODO: AUGUSTO termina esto HDP ! ( VERIFICA Q EL HEADER.ID sea RUTINA)
-				size_t tamanioEjecutable = strlen(mensaje2->stream);
+
+				if(mensaje2->header.id == RUTINA){
+					size_t tamanioEjecutable = strlen(mensaje2->stream);
+
 				rutina_reduce = malloc(tamanioEjecutable);
 				memcpy(rutina_reduce, mensaje2->stream, tamanioEjecutable);
-				destroy_message(mensaje2);
 
-				//el primero va a ser el nodo local
 				while (mensaje2->header.id != FIN_ENVIO_MENSAJE) {
 					mensaje2 = recibir_mensaje(sock_conexion);
 					nodo_arch = (t_nodo_archivo*) malloc(sizeof(t_nodo_archivo));
@@ -239,17 +231,23 @@ void *atenderConexiones(void *parametro) {
 				fin = ejecutar_reduce(rutina_reduce, codigo->stream, cola_nodos, codigo->argv[0]);
 				mensaje2 = id_message(fin);
 				enviar_mensaje(sock_conexion, mensaje2);
+
+				free(rutina_reduce);
+				}
+				else{ log_error_interno("Fallo en Recibir Rutina.Se esperaba el id RUTINA.");}
 				destroy_message(mensaje2);
 				destroy_message(codigo);
-				free(rutina_reduce);
 				break;
 
 			case GET_NEXT_ROW:
 				bloque = obtener_proximo_registro_de_archivo(codigo->stream);
 				if (bloque != NULL) {
 					mensaje2 = string_message(GET_NEXT_ROW_OK, bloque, 0);
+					log_info_interno("GET_NEXT_ROW_OK");
+
 				} else {
 					mensaje2 = id_message(GET_NEXT_ROW_ERROR);
+					log_info_interno("GET_NEXT_ROW_ERROR");
 				}
 				enviar_mensaje(sock_conexion, mensaje2);
 				destroy_message(mensaje2);
@@ -257,23 +255,22 @@ void *atenderConexiones(void *parametro) {
 
 				break;
 			default:
-				// TODO: NO SE
+				log_info_interno("Mensaje incorrecto.Se esperaba GET_BLOQUE|SET_BLOQUE|GET_FILE_CONTENT| EJECUTAR_MAP| EJECUTAR_REDUCE | GET_NEXT_ROW");
 				break;
 			}
 
 		} else {
 			log_error_interno("Se ha desconectado un proceso del socket %d", sock_conexion);
 			break;
+
 		}
-	}
+
 	return NULL;
 }
 
 void setBloque(int numeroBloque, char* bloque_datos) {
 	//debo pararme en la posicion donde se encuentra almacenado el bloque y empezar a grabar
 	log_info_interno("Inicio setBloque(%d)", numeroBloque);
-	//el memset lo hago para limpiar el bloque por las dudas
-	memset(_data + (numeroBloque * tamanio_bloque), 0, tamanio_bloque);
 	memcpy(_data + (numeroBloque * tamanio_bloque), bloque_datos, tamanio_bloque);
 	log_info_interno("Fin setBloque(%d)", numeroBloque);
 
@@ -284,7 +281,6 @@ char* getBloque(int numeroBloque) {
 	char* bloque = NULL;
 	bloque = malloc(tamanio_bloque);
 	memcpy(bloque, &(_data[numeroBloque * tamanio_bloque]), tamanio_bloque);
-	//memcpy(bloque, _bloques[numero], TAMANIO_BLOQUE);
 	log_info_interno("Fin getBloque(%d)", numeroBloque);
 	return bloque;
 }
@@ -297,7 +293,6 @@ char* getFileContent(char* filename) {
 	char* path = file_combine(DIR_TEMP, filename);
 	size_t size = file_get_size(path) + 1;
 	content = malloc(size);
-	printf("size: %d\n", size);
 	char* mapped = NULL;
 	mapped = file_get_mapped(path);
 	memcpy(content, mapped, size);        //
@@ -310,32 +305,10 @@ char* getFileContent(char* filename) {
 
 char* levantar_espacio_datos() {
 	CANT_BLOQUES = file_get_size(ARCHIVO_BIN) / tamanio_bloque;
+	log_info_interno("Levantado %s. Cantidad de bloque:%d ",ARCHIVO_BIN,CANT_BLOQUES);
 	return file_get_mapped(ARCHIVO_BIN);
 }
 
-/*char* crear_Espacio_Datos(int NUEVO, char* ARCHIVO, char* parametro) {
- size_t tamanio = 20 * 1024 * 1024;
- int tamanio_bytes = atoi(parametro);
- CANT_BLOQUES = tamanio_bytes / tamanio;
- log_info_interno(
- "Comienzo de creacion del espacio de datos. Cantidad de Bloques: %d",
- CANT_BLOQUES);
-
- char* direccion;
- char* path;
- if (NUEVO == 1) {
- path = file_combine(DIR_TEMP, ARCHIVO);
- create_file(path, CANT_BLOQUES * tamanio);
- direccion = file_get_mapped(path);
- } else {
- path = file_combine(DIR_TEMP, ARCHIVO);
- direccion = file_get_mapped(path);
- }
- log_info_interno(
- "Fin de creacion del espacio de datos. Cantidad de Bloques: %d",
- CANT_BLOQUES);
- return direccion;
- }*/
 
 void liberar_Espacio_datos(char* _data, char* ARCHIVO) {
 	char* path = file_combine(DIR_TEMP, ARCHIVO);
@@ -362,8 +335,9 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal, int numeroBloqu
 	remove(path_ejecutable);
 	remove(temporal);
 	free(bloque);
-	return FIN_MAP_OK;
 	log_info_interno("Fin ejecutarMap ID:%d en el bloque %d", mapid, numeroBloque);
+	return FIN_MAP_OK;
+
 }
 
 t_msg_id ejecutar_reduce(char*ejecutable, char* nombreArchivoFinal, t_queue* colaArchivos, int id_reduce) {
@@ -637,4 +611,6 @@ void actualizar_posicion_puntero_arch_tmp(char* nombre_archivo, fpos_t* posicion
 
 	archivo = list_find(archivos_temporales, (void*) _archivo_con_nombre);
 	archivo->posicion_puntero = posicion_puntero;
+
 }
+
