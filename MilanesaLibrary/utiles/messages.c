@@ -141,12 +141,12 @@ t_msg *recibir_mensaje(int sock_fd) {
 	t_msg *msg = malloc(sizeof(t_msg));
 	msg->argv = NULL;
 	msg->stream = NULL;
-	log_debug_consola("recibiendo mensaje . Socket: %d",sock_fd);
+	log_debug_interno("recibiendo mensaje . Socket: %d", sock_fd);
 	/* Get message info. */
 	int status = recv(sock_fd, &(msg->header), sizeof(t_header), MSG_WAITALL);
 	if (status <= 0) {
 		/* An error has ocurred or remote connection has been closed. */
-		log_error_consola("error obteniendo Header. Socket: %d",sock_fd);
+		log_error_consola("error obteniendo Header. Socket: %d", sock_fd);
 		free(msg);
 		pthread_mutex_unlock(&mutex_recibir);
 		return NULL;
@@ -156,8 +156,9 @@ t_msg *recibir_mensaje(int sock_fd) {
 	if (msg->header.argc > 0) {
 		msg->argv = malloc(msg->header.argc * sizeof(uint32_t));
 
-		if (recv(sock_fd, msg->argv, msg->header.argc * sizeof(uint32_t), MSG_WAITALL) <= 0) {
-			log_error_consola("error obteniendo args. Socket: %d",sock_fd);
+		if (recv(sock_fd, msg->argv, msg->header.argc * sizeof(uint32_t),
+				MSG_WAITALL) <= 0) {
+			log_error_consola("error obteniendo args. Socket: %d", sock_fd);
 			free(msg->argv);
 			free(msg);
 			pthread_mutex_unlock(&mutex_recibir);
@@ -169,7 +170,7 @@ t_msg *recibir_mensaje(int sock_fd) {
 		msg->stream = malloc(msg->header.length + 1);
 
 		if (recv(sock_fd, msg->stream, msg->header.length, MSG_WAITALL) <= 0) {
-			log_error_consola("error obteniendo stream. Socket: %d",sock_fd);
+			log_error_consola("error obteniendo stream. Socket: %d", sock_fd);
 			free(msg->stream);
 			free(msg->argv);
 			free(msg);
@@ -179,15 +180,16 @@ t_msg *recibir_mensaje(int sock_fd) {
 
 		msg->stream[msg->header.length] = '\0';
 	}
-	log_debug_consola("mensaje recibido con exito. Socket: %d",sock_fd);
 	pthread_mutex_unlock(&mutex_recibir);
+	log_debug_interno("mensaje recibido con exito. Socket: %d", sock_fd);
 	return msg;
 }
 
 int enviar_mensaje(int sock_fd, t_msg *msg) {
 	pthread_mutex_lock(&mutex_enviar);
 	int total = 0;
-	int pending = msg->header.length + sizeof(t_header) + msg->header.argc * sizeof(uint32_t);
+	int pending = msg->header.length + sizeof(t_header)
+			+ msg->header.argc * sizeof(uint32_t);
 	char *buffer = malloc(pending);
 
 	/* Fill buffer with the struct's data. */
@@ -195,14 +197,18 @@ int enviar_mensaje(int sock_fd, t_msg *msg) {
 
 	int i;
 	for (i = 0; i < msg->header.argc; i++) {
-		memcpy(buffer + sizeof(t_header) + i * sizeof(uint32_t), msg->argv + i, sizeof(uint32_t));
+		memcpy(buffer + sizeof(t_header) + i * sizeof(uint32_t), msg->argv + i,
+				sizeof(uint32_t));
 	}
 
-	memcpy(buffer + sizeof(t_header) + msg->header.argc * sizeof(uint32_t), msg->stream, msg->header.length);
+	memcpy(buffer + sizeof(t_header) + msg->header.argc * sizeof(uint32_t),
+			msg->stream, msg->header.length);
 
 	/* Send message(s). */
 	while (total < pending) {
-		int sent = send(sock_fd, buffer, msg->header.length + sizeof msg->header + msg->header.argc * sizeof(uint32_t), MSG_NOSIGNAL);
+		int sent = send(sock_fd, buffer,
+				msg->header.length + sizeof msg->header
+						+ msg->header.argc * sizeof(uint32_t), MSG_NOSIGNAL);
 		if (sent < 0) {
 			free(buffer);
 			pthread_mutex_unlock(&mutex_enviar);
@@ -211,9 +217,11 @@ int enviar_mensaje(int sock_fd, t_msg *msg) {
 		total += sent;
 		pending -= sent;
 	}
-
-	free(buffer);
 	pthread_mutex_unlock(&mutex_enviar);
+	free(buffer);
+	log_debug_interno("Mensaje %s enviado con exito",
+			id_string(msg->header.id));
+//	log_msg(msg); TODO: Descomentar si se quiere para que loguee el contenido del mensaje en su totalidad
 	return total;
 }
 
@@ -244,6 +252,25 @@ void print_msg(t_msg *msg) {
 		putchar(*(msg->stream + i));
 	}
 	puts("\n==================================================\n");
+}
+
+void log_msg(t_msg *msg) {
+	int i;
+	log_debug_interno("==================================================");
+	log_debug_interno("CONTENIDOS DEL MENSAJE:");
+	log_debug_interno("- ID: %s", id_string(msg->header.id));
+
+	for (i = 0; i < msg->header.argc; i++) {
+		log_debug_interno("- ARGUMENTO %d: %d", i + 1, msg->argv[i]);
+	}
+
+	log_debug_interno("- TAMAÑO: %d", msg->header.length);
+	log_debug_interno("- CUERPO: ");
+
+	for (i = 0; i < msg->header.length; i++) {
+		log_debug_interno(*(msg->stream + i));
+	}
+	log_debug_interno("==================================================");
 }
 
 char *id_string(t_msg_id id) {

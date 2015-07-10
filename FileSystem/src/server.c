@@ -47,7 +47,6 @@ void iniciar_server(void* argumentos) {
 					newfd = accept(listen_socket, (struct sockaddr *) &addr_client, &addrlen);
 					if (newfd == -1) {
 						log_error_consola("Falló el accept");
-						perror("Falló el accept. Error");
 					} else {
 						FD_SET(newfd, &master); // add to master set
 						if (newfd > fdmax) {    // keep track of the max
@@ -80,7 +79,7 @@ void iniciar_server(void* argumentos) {
 
 void decodificar_mensaje(t_msg* mensaje, int socket) {
 	extern int filesystem_operativo;
-
+	log_debug_interno("Mensaje %s recibido y decodificandolo", id_string(mensaje->header.id));
 	switch (mensaje->header.id) {
 	case CONEXION_NODO:
 		registrar_nodo(nodo_deserealizar_socket(mensaje, socket));
@@ -105,7 +104,7 @@ void decodificar_mensaje(t_msg* mensaje, int socket) {
 		}
 		break;
 	default:
-		log_error_interno("Mensaje Incorrecto: ", mensaje->header.id);
+		log_error_interno("Mensaje Incorrecto: %s", id_string(mensaje->header.id));
 		break;
 	}
 }
