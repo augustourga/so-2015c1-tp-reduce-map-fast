@@ -257,7 +257,8 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 	t_nodo* nodo_actual;
 	for (numero_bloque = 0; numero_bloque < cantidad_bloques; numero_bloque++) {
 		t_nodo* nodos[3];
-		if (proximos_nodos_disponibles(nodos)) {
+		int bloques_disponibles[3];
+		if (proximos_nodos_disponibles(nodos, bloques_disponibles)) {
 			log_error_consola("No hay suficientes nodos disponibles");
 			pthread_rwlock_unlock(&directorio_padre->lock);
 			return 1;
@@ -269,7 +270,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 		for (redundancia = 0; redundancia < 3; redundancia++) {
 			nodo_actual = nodos[redundancia];
 			strcpy(archivo_nuevo->bloques[numero_bloque].copias[redundancia].nombre_nodo, nodo_actual->nombre);
-			int bloque_nodo = nodo_asignar_bloque_disponible(nodo_actual);
+			int bloque_nodo = bloques_disponibles[redundancia];
 			archivo_nuevo->bloques[numero_bloque].copias[redundancia].bloque_nodo = bloque_nodo;
 			archivo_nuevo->bloques[numero_bloque].copias[redundancia].conectado =
 			true;
@@ -1199,7 +1200,7 @@ int cantidad_bloques_libres() {
 	return bloques_libres;
 }
 
-int proximos_nodos_disponibles(t_nodo* nodos[]) {
+int proximos_nodos_disponibles(t_nodo* nodos[], int bloques_disponibles[]) {
 
 	pthread_mutex_lock(&mutex_nodos_operativos);
 	bool _cantidad_bloques_libres(t_nodo* nodo1, t_nodo* nodo2) {
@@ -1217,6 +1218,7 @@ int proximos_nodos_disponibles(t_nodo* nodos[]) {
 	int redundancia;
 	for (redundancia = 0; redundancia < 3; redundancia++) {
 		nodos[redundancia] = list_get(lista_nodos_no_llenos, redundancia);
+		bloques_disponibles[redundancia] = nodo_asignar_bloque_disponible(nodos[redundancia]);
 		pthread_rwlock_wrlock(&(nodos[redundancia]->lock));
 	}
 	pthread_mutex_unlock(&mutex_nodos_operativos);

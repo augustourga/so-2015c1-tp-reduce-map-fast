@@ -61,7 +61,7 @@ int bloque_disponible_de_nodo(t_nodo* nodo);
 t_nodo* nodo_aceptado_por_nombre(char* nombre_nodo);
 int cantidad_bloques_totales();
 int cantidad_bloques_libres();
-int proximos_nodos_disponibles(t_nodo* nodos[3]);
+int proximos_nodos_disponibles(t_nodo* nodos[3], int bloques_disponibles[3]);
 bool _nodo_conectado(t_nodo* nodo);
 void list_add_directorio(t_directorio* directorio);
 t_directorio* list_find_directorio(bool (*closure)(void*));
