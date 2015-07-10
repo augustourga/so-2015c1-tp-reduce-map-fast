@@ -32,7 +32,13 @@ struct arg_struct {
 struct arg_get_bloque {
 	int socket;
 	int bloque_nodo;
+	int bloque_archivo;
 	char* nombre_nodo;
+};
+
+struct res_get_bloque {
+	int bloque_archivo;
+	char* stream;
 };
 
 struct arg_set_bloque {
@@ -46,7 +52,7 @@ void decodificar_mensaje(t_msg* mensaje, int socket);
 void desconexion_nodo(int socket);
 void desconexion_marta(int socket);
 void enviar_fs_no_operativo(int socket);
-char* mensaje_get_bloque(void* argumentos);
+void* mensaje_get_bloque(void* argumentos);
 int mensaje_set_bloque(void* argumentos);
 t_msg* mensaje_info_archivo(char* ruta_archivo);
 t_msg* mensaje_copiar_archivo_temporal_a_mdfs(char* mensaje);

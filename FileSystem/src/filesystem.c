@@ -21,6 +21,7 @@ pthread_mutex_t mutex_nodos_aceptados = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_nodos_pendientes = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_filesysem_operativo = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_args = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex_res = PTHREAD_MUTEX_INITIALIZER;
 
 bool filesystem_operativo = false;
 int cantidad_nodos_minima = 0;
@@ -328,6 +329,7 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 
 	char* map = mmap(0, tamanio_archivo, PROT_WRITE, MAP_SHARED, fildes_local, 0);
 
+	close(fildes_local);
 	//char* map = file_get_mapped(ruta_local);
 
 	if (map == MAP_FAILED) {
@@ -355,6 +357,7 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 					args[numero_bloque].bloque_nodo = copia_actual.bloque_nodo;
 					args[numero_bloque].socket = nodo->socket;
 					args[numero_bloque].nombre_nodo = strdup(copia_actual.nombre_nodo);
+					args[numero_bloque].bloque_archivo = numero_bloque;
 
 					pthread_create(&th_bloque[numero_bloque], NULL, (void *) mensaje_get_bloque, (void*) &args[numero_bloque]);
 
@@ -364,8 +367,11 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 			}
 		}
 	}
+
+	char** streams = calloc(archivo_mdfs->cantidad_bloques, BLOQUE_SIZE_20MB);
+
 	for (numero_bloque = 0; numero_bloque < archivo_mdfs->cantidad_bloques; numero_bloque++) {
-		char* dato_bloque;
+		void* dato_bloque;
 		pthread_join(th_bloque[numero_bloque], (void*) &dato_bloque);
 
 		if (dato_bloque == NULL) {
@@ -373,17 +379,26 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 			return 1;
 		}
 
-		int size = strlen(dato_bloque);
-		memcpy(map + offset_actual, dato_bloque, size);
-		//TODO: Ver si funciona
-		//int size = strlen(copia_actual.nombre_nodo);
-		//memcpy(map + offset_actual, copia_actual.nombre_nodo, size);
+		struct res_get_bloque* res = dato_bloque;
+
+		streams[res->bloque_archivo] = string_duplicate(res->stream);
+		log_debug_consola("Recibido respuesta del hilo %d correspondiente al bloque %d", numero_bloque, res->bloque_archivo);
+		free(res->stream);
+		free(res);
+	}
+
+	for (numero_bloque = 0; numero_bloque < archivo_mdfs->cantidad_bloques; numero_bloque++) {
+		log_debug_consola("Copiando bloque %d", numero_bloque);
+		int size = strlen(streams[numero_bloque]);
+		memcpy(map + offset_actual, streams[numero_bloque], size);
 		offset_actual = offset_actual + size;
+		free(streams[numero_bloque]);
 	}
 
 	pthread_rwlock_unlock(&archivo_mdfs->lock);
 	msync(map, tamanio_archivo, MS_SYNC);
 	munmap(map, tamanio_archivo);
+	free(streams);
 
 	return 0;
 }
@@ -1369,7 +1384,10 @@ void actualizar_disponibilidad_archivos_por_desconexion(t_nodo* nodo) {
 					false;
 				}
 			}
+		}
+		for (numero_bloque = 0; numero_bloque < archivo->cantidad_bloques; numero_bloque++) {
 			bool deshabilitar = true;
+			t_bloque bloque_actual = archivo->bloques[numero_bloque];
 			for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias; numero_copia++) {
 				t_copia copia_actual = bloque_actual.copias[numero_copia];
 				if (copia_actual.conectado) {
@@ -1383,7 +1401,6 @@ void actualizar_disponibilidad_archivos_por_desconexion(t_nodo* nodo) {
 			}
 		}
 	}
-
 	list_iterate_archivos((void *) _actualizar_disponibilidad);
 }
 

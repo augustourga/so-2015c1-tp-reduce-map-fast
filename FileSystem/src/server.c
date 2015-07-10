@@ -126,34 +126,37 @@ void enviar_fs_no_operativo(int socket) {
 	destroy_message(msg);
 }
 
-char* mensaje_get_bloque(void* argumentos) {
+void* mensaje_get_bloque(void* argumentos) {
 
 	struct arg_get_bloque* args = argumentos;
-	char* stream_bloque = NULL;
 
 	int bloque = args->bloque_nodo;
+	int bloque_archivo = args->bloque_archivo;
 	int socket = args->socket;
 
-	t_msg* msg_solicitud = argv_message(GET_BLOQUE, 1, bloque);
+	t_msg* msg_solicitud = argv_message(GET_BLOQUE, 2, bloque, bloque_archivo);
 	enviar_mensaje(socket, msg_solicitud);
 	destroy_message(msg_solicitud);
-	t_msg* respuesta = recibir_mensaje(socket);
 	pthread_mutex_unlock(&mutex_args);
+	t_msg* respuesta = recibir_mensaje(socket);
+	struct res_get_bloque* res = malloc(sizeof(struct res_get_bloque));
 
 	switch (respuesta->header.id) {
 	case GET_BLOQUE_ERROR:
 		log_error_interno("No se pudo obtener el bloque");
-		return stream_bloque;
+		destroy_message(respuesta);
+		return res;
 		break;
 	case GET_BLOQUE_OK:
-		stream_bloque = malloc(respuesta->header.length);
-		memcpy(stream_bloque, respuesta->stream, respuesta->header.length);
-		free(respuesta->stream);
-		return stream_bloque;
+		res->stream = malloc(respuesta->header.length);
+		res->bloque_archivo = respuesta->argv[0];
+		memcpy(res->stream, respuesta->stream, respuesta->header.length);
+		destroy_message(respuesta);
+		return res;
 		break;
 	default:
 		log_error_interno("Respuesta Incorrecta");
-		return stream_bloque;
+		return res;
 		break;
 	}
 }
@@ -168,6 +171,7 @@ int mensaje_set_bloque(void* argumentos) {
 	t_msg* msg_solicitud = string_message(SET_BLOQUE, stream, 2, args->bloque_nodo, args->chunk.tamanio);
 	enviar_mensaje(socket, msg_solicitud);
 	destroy_message(msg_solicitud);
+	free(stream);
 	pthread_mutex_unlock(&mutex_args);
 /*	t_msg* respuesta = recibir_mensaje(socket);
 
