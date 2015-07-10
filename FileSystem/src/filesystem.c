@@ -166,7 +166,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 	int num_block = 0;
 	int offset_actual = 0;
 	int pos_actual = 0;
-	int ret;
+	int ret = 0;
 
 	int fildes_local = open(ruta_local, O_RDONLY);
 
@@ -212,6 +212,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 	archivo_set_padre(archivo_nuevo, directorio_padre->id);
 
 	char* map = mmap(0, archivo_size, PROT_READ, MAP_PRIVATE, fildes_local, 0);
+	//char* map = file_get_mapped(ruta_local);
 	if (map == MAP_FAILED) {
 		log_error_consola("Error de map");
 		pthread_rwlock_unlock(&directorio_padre->lock);
@@ -276,8 +277,8 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 			insertar_nodo(nodo_actual);
 			pthread_rwlock_unlock(&(nodo_actual->lock));
 
-			struct arg_set_bloque args;
 			pthread_mutex_lock(&mutex_args);
+			struct arg_set_bloque args;
 			args.bloque_nodo = bloque_nodo;
 			args.socket = nodo_actual->socket;
 			args.chunk = chunks[numero_bloque];
@@ -327,10 +328,10 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 	ftruncate(fildes_local, tamanio_archivo);
 	int offset_actual = 0;
 
-	char* map = mmap(0, tamanio_archivo, PROT_WRITE, MAP_SHARED, fildes_local, 0);
+	//char* map = mmap(0, tamanio_archivo, PROT_WRITE, MAP_SHARED, fildes_local, 0);
 
 	close(fildes_local);
-	//char* map = file_get_mapped(ruta_local);
+	char* map = file_get_mapped(ruta_local);
 
 	if (map == MAP_FAILED) {
 		log_error_consola("Error de map");
@@ -1420,6 +1421,9 @@ void actualizar_disponibilidad_archivos_por_reconexion(t_nodo* nodo) {
 					true;
 				}
 			}
+		}
+		for (numero_bloque = 0; numero_bloque < archivo->cantidad_bloques; numero_bloque++) {
+			t_bloque bloque_actual = archivo->bloques[numero_bloque];
 			bool salir = true;
 			for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias; numero_copia++) {
 				t_copia copia_actual = bloque_actual.copias[numero_copia];
@@ -1428,6 +1432,7 @@ void actualizar_disponibilidad_archivos_por_reconexion(t_nodo* nodo) {
 					break;
 				}
 			}
+
 			if (salir) {
 				habilitar = false;
 				break;

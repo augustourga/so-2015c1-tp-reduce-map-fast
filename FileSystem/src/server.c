@@ -44,8 +44,7 @@ void iniciar_server(void* argumentos) {
 				if (socket_actual == listen_socket) {
 					// handle new connections
 					addrlen = sizeof addr_client;
-					newfd = accept(listen_socket,
-							(struct sockaddr *) &addr_client, &addrlen);
+					newfd = accept(listen_socket, (struct sockaddr *) &addr_client, &addrlen);
 					if (newfd == -1) {
 						log_error_consola("Falló el accept");
 						perror("Falló el accept. Error");
@@ -87,8 +86,7 @@ void decodificar_mensaje(t_msg* mensaje, int socket) {
 		registrar_nodo(nodo_deserealizar_socket(mensaje, socket));
 		break;
 	case CONEXION_MARTA:
-		log_info_interno("Marta se conectó correctamente. Su socket es %d",
-				socket);
+		log_info_interno("Marta se conectó correctamente. Su socket es %d", socket);
 		break;
 	case INFO_ARCHIVO:
 		if (filesystem_operativo) {
@@ -163,7 +161,7 @@ void* mensaje_get_bloque(void* argumentos) {
 
 int mensaje_set_bloque(void* argumentos) {
 	log_debug_interno("Empieza set_bloque");
-	struct arg_set_bloque* args = argumentos;
+	struct arg_set_bloque* args = (struct arg_set_bloque*) argumentos;
 
 	int socket = args->socket;
 	char* stream = malloc(args->chunk.tamanio);
@@ -173,22 +171,22 @@ int mensaje_set_bloque(void* argumentos) {
 	destroy_message(msg_solicitud);
 	free(stream);
 	pthread_mutex_unlock(&mutex_args);
-/*	t_msg* respuesta = recibir_mensaje(socket);
+	/*	t_msg* respuesta = recibir_mensaje(socket);
 
-	switch (respuesta->header.id) {
-	case SET_BLOQUE_ERROR:
-		log_error_interno("No se pudo setear el bloque");
-		return 1;
-		break;
-	case SET_BLOQUE_OK:
-		log_debug_interno("Terminó set_bloque OK");
-		// TODO: logear HDP!
-		return 0;
-		break;
-	default:
-		log_error_interno("Respuesta Incorrecta");
-		return 2;
-	}*/
+	 switch (respuesta->header.id) {
+	 case SET_BLOQUE_ERROR:
+	 log_error_interno("No se pudo setear el bloque");
+	 return 1;
+	 break;
+	 case SET_BLOQUE_OK:
+	 log_debug_interno("Terminó set_bloque OK");
+	 // TODO: logear HDP!
+	 return 0;
+	 break;
+	 default:
+	 log_error_interno("Respuesta Incorrecta");
+	 return 2;
+	 }*/
 	return 0;
 }
 
@@ -218,13 +216,11 @@ t_msg* mensaje_copiar_archivo_temporal_a_mdfs(char* mensaje) {
 	string_append(&nombre_nodo, parametros[1]);
 	nodo = nodo_operativo_por_nombre(nombre_nodo);
 	if (nodo == NULL) {
-		log_error_interno(
-				"El nodo no se encuentra operativo para solicitarle un archivo temporal");
+		log_error_interno("El nodo no se encuentra operativo para solicitarle un archivo temporal");
 		return id_message(GET_ARCHIVO_TMP_ERROR);
 	}
 
-	t_msg* msg_solicitud = string_message(GET_FILE_CONTENT, nombre_archivo_tmp,
-			0);
+	t_msg* msg_solicitud = string_message(GET_FILE_CONTENT, nombre_archivo_tmp, 0);
 	enviar_mensaje(nodo->socket, msg_solicitud);
 	t_msg* msg_respuesta = recibir_mensaje(nodo->socket);
 	switch (msg_respuesta->header.id) {
