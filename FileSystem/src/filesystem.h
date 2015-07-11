@@ -25,6 +25,7 @@
 #include "server.h"
 #include <utiles/log.h>
 #include <utiles/files.h>
+#include <utiles/auxiliares.h>
 
 #define BLOQUE_SIZE_20MB 20*1024*1024
 
@@ -47,7 +48,6 @@ bool existe_archivo_con_nombre_en_directorio(char* nombre, t_directorio* directo
 bool directorio_tiene_directorios_hijos(t_directorio* directorio);
 bool directorio_tiene_archivos_hijos(t_directorio* padre);
 t_archivo* archivo_por_ruta(char* ruta);
-void free_puntero_puntero(char** lines);
 t_list* directorios_hijos_de_directorio(t_directorio* directorio_actual);
 t_list* archivos_hijos_de_directorio(t_directorio* directorio_actual);
 t_directorio* directorio_raiz();

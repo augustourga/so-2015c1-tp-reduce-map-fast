@@ -606,11 +606,6 @@ t_archivo* archivo_hijo_de_con_nombre(t_directorio* padre, char* nombre) {
 	return archivo_actual;
 }
 
-void free_puntero_puntero(char** lines) {
-	string_iterate_lines(lines, (void*) free);
-	free(lines);
-}
-
 t_directorio* directorio_por_ruta(char* ruta) {
 	t_directorio* directorio_padre = directorio_raiz();
 
@@ -1492,7 +1487,7 @@ char* serializar_info_archivo(t_archivo* archivo) {
 
 	for (numero_bloque = 0; numero_bloque < archivo->cantidad_bloques; numero_bloque++) {
 		t_bloque bloque_actual = archivo->bloques[numero_bloque];
-		for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias; numero_copia++) {
+		for (numero_copia = 0; (numero_copia < bloque_actual.cantidad_copias) && (numero_copia < 3); numero_copia++) {
 			t_copia copia_actual = bloque_actual.copias[numero_copia];
 			string_append(&respuesta, copia_actual.nombre_nodo);
 			string_append(&respuesta, ";");
