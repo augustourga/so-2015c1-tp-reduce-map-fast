@@ -55,7 +55,6 @@ uint16_t PUERTO_FS;
 char* IP_FS;
 char* ARCHIVO_BIN;
 char* DIR_TEMP;
-int NODO_NUEVO;
 int PUERTO_NODO;
 t_log* Log_Nodo;
 char* _data;

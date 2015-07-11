@@ -25,7 +25,7 @@ int main(int argc, char*argv[]) {
 }
 
 int levantarConfiguracionNodo(char* path) {
-//	char* aux;
+
 	t_config* archivo_config = config_create(path);
 
 	PUERTO_FS = config_get_int_value(archivo_config, "PUERTO_FS");
@@ -35,12 +35,7 @@ int levantarConfiguracionNodo(char* path) {
 	PUERTO_NODO = config_get_int_value(archivo_config, "PUERTO_NODO");
 	NOMBRE_NODO = strdup(config_get_string_value(archivo_config, "NOMBRE_NODO"));
 	config_destroy(archivo_config);
-//
-//	if (strncmp(aux, "SI", 2) == 0) {
-//		NODO_NUEVO = 1;
-//	} else {
-//		NODO_NUEVO = 0;
-//	}
+
 
 	return 0;
 }
@@ -139,6 +134,7 @@ void *atenderConexiones(void *parametro) {
 	t_msg_id fin;
 	t_nodo_archivo* nodo_arch;
 	char*rutina_reduce;
+	int band=0;
 
 	while (1) {
 		if ((codigo = recibir_mensaje(sock_conexion)) != NULL) {
@@ -210,31 +206,53 @@ void *atenderConexiones(void *parametro) {
 			case EJECUTAR_REDUCE:
 
 				//Se recibe la rutina
+
 				mensaje2 = recibir_mensaje(sock_conexion);
 
-				if(mensaje2->header.id == RUTINA){
+				if (mensaje2->header.id == RUTINA) {
 					size_t tamanioEjecutable = strlen(mensaje2->stream);
 
-				rutina_reduce = malloc(tamanioEjecutable);
-				memcpy(rutina_reduce, mensaje2->stream, tamanioEjecutable);
+					rutina_reduce = malloc(tamanioEjecutable);
+					memcpy(rutina_reduce, mensaje2->stream, tamanioEjecutable);
 
-				while (mensaje2->header.id != FIN_ENVIO_MENSAJE) {
 					mensaje2 = recibir_mensaje(sock_conexion);
-					nodo_arch = (t_nodo_archivo*) malloc(sizeof(t_nodo_archivo));
-					nodo_arch->ip = string_n_split(mensaje2->stream, 2, "|")[0];
-					nodo_arch->archivo = string_n_split(mensaje2->stream, 2, "|")[1];
-					nodo_arch->puerto = mensaje2->argv[0];
-					queue_push(cola_nodos, (void*) nodo_arch);
 
+					while (mensaje2->header.id != FIN_ENVIO_MENSAJE) {
+
+						if (mensaje2 != NULL) {
+							nodo_arch = (t_nodo_archivo*) malloc(
+									sizeof(t_nodo_archivo));
+							nodo_arch->ip = string_n_split(mensaje2->stream, 2,
+									"|")[0];
+							nodo_arch->archivo = string_n_split(
+									mensaje2->stream, 2, "|")[1];
+							nodo_arch->puerto = mensaje2->argv[0];
+							queue_push(cola_nodos, (void*) nodo_arch);
+
+							mensaje2 = recibir_mensaje(sock_conexion);
+
+						} else {
+							log_error_interno("Fallo en Recibir Nodos_archivos.");
+							band = -1;
+							break;
+						}
+
+					}
+					if (band == 0) {
+						fin = ejecutar_reduce(rutina_reduce, codigo->stream,
+								cola_nodos, codigo->argv[0]);
+						mensaje2 = id_message(fin);
+						enviar_mensaje(sock_conexion, mensaje2);
+					} else {
+						log_error_interno(
+								"No se puede ejecutar Reduce, ya que no se han recibido correctamente los archivos ");
+					}
+
+					free(rutina_reduce);
+				} else {
+					log_error_interno(
+							"Fallo en Recibir Rutina.Se esperaba el id RUTINA.");
 				}
-
-				fin = ejecutar_reduce(rutina_reduce, codigo->stream, cola_nodos, codigo->argv[0]);
-				mensaje2 = id_message(fin);
-				enviar_mensaje(sock_conexion, mensaje2);
-
-				free(rutina_reduce);
-				}
-				else{ log_error_interno("Fallo en Recibir Rutina.Se esperaba el id RUTINA.");}
 				destroy_message(mensaje2);
 				destroy_message(codigo);
 				break;
@@ -297,7 +315,6 @@ char* getFileContent(char* filename) {
 	mapped = file_get_mapped(path);
 	memcpy(content, mapped, size);        //
 	file_mmap_free(mapped, path);
-	free_null((void*) &path);
 	log_info_interno("Fin getFileContent(%s)", filename);
 	return content;
 
@@ -310,8 +327,8 @@ char* levantar_espacio_datos() {
 }
 
 
-void liberar_Espacio_datos(char* _data, char* ARCHIVO) {
-	char* path = file_combine(DIR_TEMP, ARCHIVO);
+void liberar_Espacio_datos(char* _data, char* path) {
+
 	file_mmap_free(_data, path);
 }
 
