@@ -261,10 +261,10 @@ void *atenderConexiones(void *parametro) {
 
 		} else {
 			log_error_interno("Se ha desconectado un proceso del socket %d", sock_conexion);
-			break;
+
 
 		}
-
+		break;}
 	return NULL;
 }
 
