@@ -139,6 +139,7 @@ void planificar_reduces_con_combiner(t_job* job) {
 
 	void _genera_reduces(t_map* map) {
 		if (!strcmp(nombre_actual, map->arch_tmp.nodo.nombre)) {
+			temp_actual->nombre = string_new();
 			string_append(&temp_actual->nombre, map->arch_tmp.nombre);
 			string_append(&temp_actual->nombre, "|");
 		} else {
@@ -226,6 +227,7 @@ void planificar_reduces_sin_combiner(t_job* job) {
 
 	void _genera_temporales(t_map* map) {
 		if (!strcmp(nombre_actual, map->arch_tmp.nodo.nombre)) {
+			temp_actual->nombre = string_new();
 			string_append(&temp_actual->nombre, map->arch_tmp.nombre);
 			string_append(&temp_actual->nombre, ";");
 		} else {
@@ -239,6 +241,9 @@ void planificar_reduces_sin_combiner(t_job* job) {
 	}
 
 	list_iterate(job->maps, (void*) _genera_temporales);
+	if(list_size(job->maps) == 1) {
+		list_add(reduce->temporales, temp_actual);
+	}
 
 	job->reduce_final = reduce;
 	nodo_global->carga_trabajo += carga_reduce;

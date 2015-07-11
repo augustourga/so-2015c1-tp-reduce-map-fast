@@ -72,7 +72,7 @@ void esperarTareas() {
 						argumentos = string_split(mensaje_actual->stream, "|");
 						paramsR->archivos_tmp = queue_create();
 						strcpy(paramsR->ip, argumentos[0]);
-						strcpy(paramsR->nombre_nodo, argumentos[1]);
+						paramsR->nombre_nodo = string_duplicate(argumentos[1]);
 						paramsR->puerto = mensaje_actual->argv[0];
 						paramsR->id_operacion = mensaje_actual->argv[1];
 						paramsR->archivo_final = argumentos[2];
@@ -182,7 +182,7 @@ void obtenerConfiguracion(char* path) {
 	}
 	if (config_has_property(config, "COMBINER")) {
 		configuracion->combiner =
-				strcmp(config_get_string_value(config, "COMBINER"), "SI") ?
+				!strcmp(config_get_string_value(config, "COMBINER"), "SI") ?
 						1 : 0;
 	} else {
 		log_error_consola(

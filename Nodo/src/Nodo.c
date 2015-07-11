@@ -57,8 +57,8 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 
 	fd_set read_fds;    // master file descriptor list
 	int socket_actual;
-	int socket_fs = reg_conexion->sock_fs;
 	int fdmax;
+	int socket_fs = reg_conexion->sock_fs;
 
 	socket_fs = client_socket(IP_FS, PUERTO_FS);
 	t_msg* mensaje = string_message(CONEXION_NODO, NOMBRE_NODO, 2, CANT_BLOQUES,
@@ -68,7 +68,6 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 	log_info_interno("Conectado al File System en el socket %d", socket_fs);
 
 	FD_ZERO(&read_fds);
-
 	FD_SET(socket_fs, &read_fds);
 	fdmax = socket_fs;
 

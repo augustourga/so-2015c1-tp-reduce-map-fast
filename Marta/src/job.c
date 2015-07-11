@@ -37,6 +37,8 @@ void ejecuta_maps(t_job* job) {
 void ejecuta_reduce(t_job* job, t_reduce* reduce) {
 	char* stream = string_duplicate(reduce->arch_tmp.nodo.ip);
 	string_append(&stream, "|");
+	string_append(&stream, reduce->arch_tmp.nodo.nombre);
+	string_append(&stream, "|");
 	string_append(&stream, string_duplicate(reduce->arch_tmp.nombre));
 	t_msg* message = string_message(EJECUTAR_REDUCE, stream, 2, reduce->arch_tmp.nodo.puerto, reduce->id);
 	reduce->estado = EN_EJECUCION;
