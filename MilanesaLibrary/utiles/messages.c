@@ -137,7 +137,6 @@ t_msg *remake_message(t_msg_id new_id, t_msg *old_msg, uint16_t new_count, ...) 
 }
 
 t_msg *recibir_mensaje(int sock_fd) {
-	pthread_mutex_lock(&mutex_recibir);
 	t_msg *msg = malloc(sizeof(t_msg));
 	msg->argv = NULL;
 	msg->stream = NULL;
@@ -180,7 +179,6 @@ t_msg *recibir_mensaje(int sock_fd) {
 
 		msg->stream[msg->header.length] = '\0';
 	}
-	pthread_mutex_unlock(&mutex_recibir);
 	log_debug_interno("mensaje recibido con exito. Socket: %d", sock_fd);
 	return msg;
 }
