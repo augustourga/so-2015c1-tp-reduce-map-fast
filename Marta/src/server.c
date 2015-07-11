@@ -129,14 +129,14 @@ char* get_info_archivo(t_job* job,char* ruta_mdfs) {
 	t_msg_id msg_id_job;
 	bool mensaje_job = false;
 	log_info_interno("Se busca la info del MDFS para el arhivo: %s",
-			&ruta_mdfs);
+			ruta_mdfs);
 	t_msg* message = string_message(INFO_ARCHIVO, ruta_mdfs, 0);
 	enviar_mensaje(socket_mdfs, message);
 	t_msg* respuesta = recibir_mensaje(socket_mdfs);
 
 	if (respuesta == NULL) {
 		log_error_consola("Error al obtener la informacion del archivo: %s",
-				&ruta_mdfs);
+				ruta_mdfs);
 		msg_id_job = INFO_ARCHIVO_ERROR;
 		mensaje_job = true;
 	} else if (respuesta->header.id == INFO_ARCHIVO_OK) {
@@ -144,8 +144,7 @@ char* get_info_archivo(t_job* job,char* ruta_mdfs) {
 		log_info_interno("Info obtenida: %s. arhivo: %s", &ret, ruta_mdfs);
 	} else if (respuesta->header.id == INFO_ARCHIVO_ERROR) {
 		log_error_consola("Error al obtener la informacion del archivo: %s. cancelando job.",
-						&ruta_mdfs);
-
+						ruta_mdfs);
 		msg_id_job = INFO_ARCHIVO_ERROR;
 		mensaje_job = true;
 	} else if (respuesta->header.id == MDFS_NO_OPERATIVO){
@@ -154,12 +153,13 @@ char* get_info_archivo(t_job* job,char* ruta_mdfs) {
 		mensaje_job = true;
 	} else {
 		log_error_consola("Error desconocido al llamar al MDFS. Archivo: %s. cancelando job.",
-				&ruta_mdfs);
+				ruta_mdfs);
 		msg_id_job = INFO_ARCHIVO_ERROR;
 		mensaje_job = true;
 	}
 
 	if (mensaje_job) {
+		log_info_interno("Se envia mensaje a el job para que finalice.");
 		t_msg* messageJob = string_message(msg_id_job, ruta_mdfs, 0);
 			enviar_mensaje(job->socket, messageJob);
 			destroy_message(messageJob);
