@@ -256,7 +256,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 	int numero_bloque;
 	t_nodo* nodo_actual;
 	pthread_t th_set[cantidad_bloques][3];
-	struct arg_set_bloque args[cantidad_bloques][3];
+	struct arg_set_bloque* args[cantidad_bloques][3];
 	for (numero_bloque = 0; numero_bloque < cantidad_bloques; numero_bloque++) {
 		t_nodo* nodos[3];
 		int bloques_disponibles[3];
@@ -281,10 +281,12 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 			pthread_rwlock_unlock(&(nodo_actual->lock));
 
 			pthread_mutex_lock(&mutex_args);
-			args[numero_bloque][redundancia].bloque_nodo = bloque_nodo;
-			args[numero_bloque][redundancia].socket = nodo_actual->socket;
-			args[numero_bloque][redundancia].chunk = chunks[numero_bloque];
-			pthread_create(&th_set[numero_bloque][redundancia], NULL, (void*) mensaje_set_bloque, (void*) &args[numero_bloque][redundancia]);
+			args[numero_bloque][redundancia] = malloc(sizeof(struct arg_set_bloque));
+			args[numero_bloque][redundancia]->bloque_nodo = bloque_nodo;
+			args[numero_bloque][redundancia]->socket = nodo_actual->socket;
+			args[numero_bloque][redundancia]->chunk = malloc(chunks[numero_bloque].tamanio);
+			memcpy(args[numero_bloque][redundancia]->chunk, chunks[numero_bloque].inicio, chunks[numero_bloque].tamanio);
+			pthread_create(&th_set[numero_bloque][redundancia], NULL, (void*) mensaje_set_bloque, (void*) args[numero_bloque][redundancia]);
 		}
 	}
 
@@ -350,7 +352,7 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 	int numero_bloque;
 	int numero_copia;
 
-	struct arg_get_bloque args[archivo_mdfs->cantidad_bloques];
+	struct arg_get_bloque* args[archivo_mdfs->cantidad_bloques];
 	pthread_t th_bloque[archivo_mdfs->cantidad_bloques];
 	for (numero_bloque = 0; numero_bloque < archivo_mdfs->cantidad_bloques; numero_bloque++) {
 		t_bloque bloque_actual = archivo_mdfs->bloques[numero_bloque];
@@ -362,13 +364,13 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 				if (nodo != NULL) {
 					pthread_rwlock_rdlock(&nodo->lock);
 
-					pthread_mutex_lock(&mutex_args);
-					args[numero_bloque].bloque_nodo = copia_actual.bloque_nodo;
-					args[numero_bloque].socket = nodo->socket;
-					args[numero_bloque].nombre_nodo = strdup(copia_actual.nombre_nodo);
-					args[numero_bloque].bloque_archivo = numero_bloque;
+					args[numero_bloque] = malloc(sizeof(struct arg_get_bloque));
+					args[numero_bloque]->bloque_nodo = copia_actual.bloque_nodo;
+					args[numero_bloque]->socket = nodo->socket;
+					args[numero_bloque]->nombre_nodo = strdup(copia_actual.nombre_nodo);
+					args[numero_bloque]->bloque_archivo = numero_bloque;
 
-					pthread_create(&th_bloque[numero_bloque], NULL, (void *) mensaje_get_bloque, (void*) &args[numero_bloque]);
+					pthread_create(&th_bloque[numero_bloque], NULL, (void *) mensaje_get_bloque, (void*) args[numero_bloque]);
 
 					pthread_rwlock_unlock(&nodo->lock);
 				}
@@ -1096,30 +1098,39 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_orige
 	}
 
 	pthread_rwlock_wrlock(&nodo_destino->lock);
-	int numero_bloque_nodo_destino = nodo_asignar_bloque_disponible(nodo_destino);
+	int numero_bloque_nodo_destino = nodo_asignar_bloque_disponible(nodo_destino); //TODO: OJO ACA que se pueden armar quilombos
 
 	//TODO: Testear que esto funcione
 	pthread_t th_bloque;
 
-	struct arg_get_bloque args;
-	args.bloque_nodo = numero_bloque_nodo;
-	args.socket = nodo_origen->socket;
+	struct arg_get_bloque* args;
+	args = malloc(sizeof(struct arg_get_bloque));
+	args->bloque_nodo = numero_bloque_nodo;
+	args->socket = nodo_origen->socket;
 
-	pthread_create(&th_bloque, NULL, (void *) mensaje_get_bloque, (void*) &args);
-	char* dato_bloque = malloc(10000); //TODO: Es cualquiera esto hardcodeado jajaj
+	pthread_create(&th_bloque, NULL, (void *) mensaje_get_bloque, (void*) args);
+	void* dato_bloque;
 	pthread_join(th_bloque, (void*) &dato_bloque);
+
 	pthread_rwlock_unlock(&nodo_origen->lock);
 	if (dato_bloque == NULL) {
 		log_error_consola("Ocurrió un error al obtener el bloque del archivo");
 		return 1;
 	}
 
+	struct res_get_bloque* res = dato_bloque;
+
+	log_debug_consola("Recibido respuesta correspondiente al bloque %d", res->bloque_archivo);
+
 	pthread_t th_bloque_2;
-	struct arg_set_bloque args2;
-	args2.bloque_nodo = numero_bloque_nodo_destino;
-	args2.socket = nodo_destino->socket;
-	args2.chunk.inicio = dato_bloque;
-	args2.chunk.tamanio = 10000; //TODO: arrastrando el hardcodeo jaja
+	pthread_mutex_lock(&mutex_args);
+	struct arg_set_bloque* args2= malloc(sizeof(struct arg_set_bloque));
+	args2->bloque_nodo = numero_bloque_nodo_destino;
+	args2->socket = nodo_destino->socket;
+	args2->chunk = string_duplicate(res->stream);
+	free(res->stream);
+	free(res);
+
 
 	pthread_create(&th_bloque_2, NULL, (void *) mensaje_set_bloque, (void*) &args2);
 	int resultado;

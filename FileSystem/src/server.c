@@ -148,7 +148,7 @@ void* mensaje_get_bloque(void* argumentos) {
 		return NULL;
 	}
 	destroy_message(msg_solicitud);
-	pthread_mutex_unlock(&mutex_args);
+	free(args);
 	t_msg* respuesta = recibir_mensaje(socket);
 	if (respuesta == NULL) {
 		log_error_consola(
@@ -186,21 +186,20 @@ int mensaje_set_bloque(void* argumentos) {
 	log_info_interno("Empieza set_bloque del bloque %d", args->bloque_nodo);
 	int res;
 	int socket = args->socket;
-	char* stream = malloc(args->chunk.tamanio);
-	memcpy(stream, args->chunk.inicio, args->chunk.tamanio);
-	t_msg* msg_solicitud = string_message(SET_BLOQUE, stream, 2,
-			args->bloque_nodo, args->chunk.tamanio);
+	int size = strlen(args->chunk);
+	t_msg* msg_solicitud = string_message(SET_BLOQUE, args->chunk, 2,
+			args->bloque_nodo, size);
 	res = enviar_mensaje(socket, msg_solicitud);
 	if (res < 0) {
 		log_error_consola(
 				"Mensaje set_bloque fallo por desconexion del nodo, socket: %d",
 				socket);
 		desconexion_nodo(socket);
-		pthread_mutex_unlock(&mutex_args);
 		return 1;
 	}
 	destroy_message(msg_solicitud);
-	free(stream);
+	free(args->chunk);
+	free(args);
 	pthread_mutex_unlock(&mutex_args);
 	t_msg* respuesta = recibir_mensaje(socket);
 	if (respuesta == NULL) {
@@ -214,7 +213,7 @@ int mensaje_set_bloque(void* argumentos) {
 	switch (respuesta->header.id) {
 	case SET_BLOQUE_OK:
 		log_info_interno("Terminó set_bloque OK del bloque: d");
-				//->bloque_nodo);
+		//->bloque_nodo);
 		return 0;
 		break;
 	default:

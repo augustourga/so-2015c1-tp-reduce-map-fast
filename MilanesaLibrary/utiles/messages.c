@@ -186,7 +186,6 @@ t_msg *recibir_mensaje(int sock_fd) {
 }
 
 int enviar_mensaje(int sock_fd, t_msg *msg) {
-	pthread_mutex_lock(&mutex_enviar);
 	int total = 0;
 	int pending = msg->header.length + sizeof(t_header)
 			+ msg->header.argc * sizeof(uint32_t);
@@ -205,6 +204,7 @@ int enviar_mensaje(int sock_fd, t_msg *msg) {
 			msg->stream, msg->header.length);
 
 	/* Send message(s). */
+	pthread_mutex_lock(&mutex_enviar);
 	while (total < pending) {
 		int sent = send(sock_fd, buffer,
 				msg->header.length + sizeof msg->header

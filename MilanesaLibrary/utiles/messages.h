@@ -10,6 +10,7 @@
 
 #include "sockets.h"
 #include <commons/string.h>
+#include "log.h"
 #include <pthread.h>
 
 /****************** IDS DE MENSAJES. ******************/
