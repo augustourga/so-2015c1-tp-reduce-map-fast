@@ -419,7 +419,8 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal,
 	list_add_archivo_tmp(nombreArchivoFinal);
 	remove(path_ejecutable);
 	remove(temporal);
-	log_info_interno("Fin ejecutarMap ID:%d en el bloque %d", mapid, numeroBloque);
+	log_info_interno("Fin ejecutarMap ID:%d en el bloque %d", mapid,
+			numeroBloque);
 	return FIN_MAP_OK;
 
 }
@@ -498,7 +499,7 @@ int apareo(char* temporal, t_list* lista_nodos_archivos) {
 	char* aux_string;
 
 	char* ruta = file_combine(DIR_TEMP, temporal);
-	FILE* archivo = fopen(ruta, "ab");
+	FILE* archivo = fopen(ruta, "a");
 
 	// Obtengo el primer registro de cada archivo
 	int cantidad_nodos_archivos = list_size(lista_nodos_archivos);
@@ -601,8 +602,8 @@ char* obtener_proximo_registro(t_nodo_archivo* nodo_archivo) {
 
 int obtener_posicion_menor_clave(char** registros, int cantidad_nodos_archivos) {
 	int pos, i, aux;
-	char* clave_1;
-	char* clave_2;
+	char* clave_1 = string_new();
+	char* clave_2 = string_new();
 
 	// obtiene primer campo != NULL
 	for (pos = 0;
@@ -643,6 +644,7 @@ char* obtener_proximo_registro_de_archivo(char* archivo) {
 		if (bytes_read == -1) {
 			linea = NULL;
 		} else {
+			posicion_puntero = malloc(sizeof(fpos_t));
 			fgetpos(file, posicion_puntero);
 			actualizar_posicion_puntero_arch_tmp(archivo, posicion_puntero);
 		}
@@ -686,7 +688,7 @@ char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
 
 void list_add_archivo_tmp(char* nombre_archivo) {
 	t_archivo_tmp* archivo = malloc(sizeof(t_archivo_tmp));
-	archivo->nombre_archivo =string_duplicate(nombre_archivo);
+	archivo->nombre_archivo = string_duplicate(nombre_archivo);
 	archivo->posicion_puntero = NULL;
 	list_add(archivos_temporales, archivo);
 }
