@@ -255,6 +255,8 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 
 	int numero_bloque;
 	t_nodo* nodo_actual;
+	pthread_t th_set[cantidad_bloques][3];
+	struct arg_set_bloque args[cantidad_bloques][3];
 	for (numero_bloque = 0; numero_bloque < cantidad_bloques; numero_bloque++) {
 		t_nodo* nodos[3];
 		int bloques_disponibles[3];
@@ -279,18 +281,23 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 			pthread_rwlock_unlock(&(nodo_actual->lock));
 
 			pthread_mutex_lock(&mutex_args);
-			struct arg_set_bloque args;
-			args.bloque_nodo = bloque_nodo;
-			args.socket = nodo_actual->socket;
-			args.chunk = chunks[numero_bloque];
-			pthread_t th_set;
-			pthread_create(&th_set, NULL, (void*) mensaje_set_bloque, (void*) &args);
+			args[numero_bloque][redundancia].bloque_nodo = bloque_nodo;
+			args[numero_bloque][redundancia].socket = nodo_actual->socket;
+			args[numero_bloque][redundancia].chunk = chunks[numero_bloque];
+			pthread_create(&th_set[numero_bloque][redundancia], NULL, (void*) mensaje_set_bloque, (void*) &args[numero_bloque][redundancia]);
+		}
+	}
+
+	for (numero_bloque = 0; numero_bloque < cantidad_bloques; numero_bloque++) {
+		int redundancia;
+		for (redundancia = 0; redundancia < 3; redundancia++) {
+			pthread_join(th_set[numero_bloque][redundancia], NULL);
 		}
 	}
 
 	archivo_asignar_estado(archivo_nuevo, true);
 
-	//munmap(map, archivo_size);
+	munmap(map, archivo_size);
 
 	list_add_archivo(archivo_nuevo);
 

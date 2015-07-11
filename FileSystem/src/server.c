@@ -79,13 +79,13 @@ void iniciar_server(void* argumentos) {
 
 void decodificar_mensaje(t_msg* mensaje, int socket) {
 	extern int filesystem_operativo;
-	log_debug_interno("Mensaje %s recibido y decodificandolo", id_string(mensaje->header.id));
+	log_debug_consola("Mensaje %s recibido y decodificandolo", id_string(mensaje->header.id));
 	switch (mensaje->header.id) {
 	case CONEXION_NODO:
 		registrar_nodo(nodo_deserealizar_socket(mensaje, socket));
 		break;
 	case CONEXION_MARTA:
-		log_info_interno("Marta se conectó correctamente. Su socket es %d", socket);
+		log_debug_consola("Marta se conectó correctamente. Su socket es %d", socket);
 		break;
 	case INFO_ARCHIVO:
 		if (filesystem_operativo) {
@@ -159,8 +159,8 @@ void* mensaje_get_bloque(void* argumentos) {
 }
 
 int mensaje_set_bloque(void* argumentos) {
-	log_debug_interno("Empieza set_bloque");
-	struct arg_set_bloque* args = (struct arg_set_bloque*) argumentos;
+	log_debug_consola("Empieza set_bloque");
+	struct arg_set_bloque* args = argumentos;
 
 	int socket = args->socket;
 	char* stream = malloc(args->chunk.tamanio);
