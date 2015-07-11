@@ -53,7 +53,8 @@ void finalizar_job_a_si_mismo(t_job* job) {
 
 void generar_maps(t_job* job, char* ruta_mdfs) {
 	log_debug_interno("Armando Maps para el archivo %s", &ruta_mdfs);
-	char* info_archivo = get_info_archivo(ruta_mdfs);
+	char* info_archivo = get_info_archivo(job, ruta_mdfs);
+
 
 	if (info_archivo == NULL) {
 		log_info_consola(
@@ -333,6 +334,7 @@ t_nodo get_nodo_menos_cargado(t_nodo nodos[3]) {
 
 	if (empty_list) {
 		log_error_consola("ERROR - No se encontro nodo activo.");
+		//TODO llamar a info de archivo para obtener la data de un bloque
 		ret.nombre = NULL;
 	} else {
 		t_nodo_global* nodo_global = list_get(lista_nodos_globales_bloque, 0);
@@ -528,6 +530,7 @@ void actualiza_job_map_error(int id, int socket) {
 			socket, id);
 
 	elimina_nodo_desconectado(map_actual->arch_tmp.nodo.nombre);
+	eliminar_carga_nodo(map_actual->arch_tmp.nodo,carga_map);
 
 	void _planifica_map(t_map* map) {
 		if (map->estado == PENDIENTE || map->estado == FIN_ERROR) {
@@ -550,8 +553,8 @@ void actualiza_job_map_error(int id, int socket) {
 	ejecuta_maps(job_actual);
 
 	pthread_mutex_unlock(&mutex_jobs);
-
 	eliminar_carga_nodo(map_actual->arch_tmp.nodo, carga_map);
+
 }
 
 void actualiza_job_reduce_ok(int id, int socket) {

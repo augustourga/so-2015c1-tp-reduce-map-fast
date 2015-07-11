@@ -6,12 +6,18 @@
  */
 #include "job.h"
 
+int cantidad_hilos = 0;
+sem_t sem_sin_hilos;
+
+pthread_mutex_t mutex_cantidad_hilos = PTHREAD_MUTEX_INITIALIZER;
+
+
 int main(int argc, char* argv[]) {
 
 	log_crear("DEBUG", LOG_FILE, PROCESO);
 
 	obtenerConfiguracion(argv[1]);
-
+	sem_init(&sem_sin_hilos, 0, 1);
 	conectarseAMarta();
 
 	esperarTareas();
@@ -91,6 +97,17 @@ void esperarTareas() {
 			params->id_operacion = mensaje_actual->argv[1];
 			params->bloque = mensaje_actual->argv[2];
 			levantarHiloMapper(params);
+		}
+
+		if (mensaje_actual->header.id == MDFS_NO_OPERATIVO) {
+			log_info_consola("ERROR - El MDFS no esta operativo. Reintente mas tarde.");
+			terminar_job();
+		}
+
+		if (mensaje_actual->header.id == INFO_ARCHIVO_ERROR) {
+			log_info_consola("ERROR - No se encontro la informacion del archivo %s.Compruebe la existencia del archivo y vuelva a intentarlo.",
+					mensaje_actual->stream);
+			terminar_job();
 		}
 	}
 }
@@ -184,6 +201,7 @@ void conectarseAMarta() {
 }
 
 int hiloReduce(void* dato) {
+	sumar_hilo();
 	t_msg* mensaje;
 	t_msg* mensaje_respuesta;
 	int ret;
@@ -266,10 +284,14 @@ int hiloReduce(void* dato) {
 	destroy_message(mensaje);
 
 	//TODO: No habría que cerrar la conexión con el nodo como en el HiloMap?
+	//Lo agregue, no entiendo por que no deberia no hacerse
+	shutdown(nodo_sock, 2);
+	restar_hilo();
 	return 0;
 }
 
 int hiloMap(void* dato) {
+	sumar_hilo();
 	t_msg* mensaje;
 	t_msg* mensaje_respuesta;
 	t_params_hiloMap* args = (t_params_hiloMap*) dato;
@@ -330,6 +352,7 @@ int hiloMap(void* dato) {
 
 	//CERRAR CONEXIÓN CON EL NODO//
 	shutdown(nodo_sock, 2);
+	restar_hilo();
 	return 0;
 }
 
@@ -376,5 +399,36 @@ void levantarHiloReduce(t_params_hiloReduce* nodo) {
 		log_error_consola("El thread reduce no pudo ser creado.");
 		exit(1);
 	}
+}
+
+void terminar_job(){
+
+	log_info_interno("Esperando a que terminen los hilos pendientes");
+	sem_wait(&sem_sin_hilos);
+	log_info_interno("Hilos finalizados. Terminando proceso Job");
+	exit(1);
+}
+
+void sumar_hilo(){
+
+	pthread_mutex_lock(&mutex_cantidad_hilos);
+
+	if (cantidad_hilos == 0) {
+		sem_wait(&sem_sin_hilos);
+	}
+	cantidad_hilos+=1;
+	pthread_mutex_lock(&mutex_cantidad_hilos);
+
+}
+
+void restar_hilo(){
+	pthread_mutex_lock(&mutex_cantidad_hilos);
+
+	cantidad_hilos-=1;
+	if (cantidad_hilos == 0) {
+		sem_post(&sem_sin_hilos);
+	}
+	pthread_mutex_lock(&mutex_cantidad_hilos);
+
 }
 
