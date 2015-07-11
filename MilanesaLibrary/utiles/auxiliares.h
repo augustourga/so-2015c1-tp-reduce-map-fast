@@ -5,10 +5,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
-//#include <panel/panel.h>
-#define handle_error(msj) \
-	do{perror(msj);exit(EXIT_FAILURE);} while(0)
-#define REG_SIZE 4
+#include <commons/string.h>
 
 /* Funciones Macro */
 
@@ -52,5 +49,7 @@
 void seedgen(void);
 
 void free_null(void** data);
+
+void free_puntero_puntero(char** lines);
 
 #endif /* UTILES_H_ */

@@ -599,11 +599,6 @@ t_archivo* archivo_hijo_de_con_nombre(t_directorio* padre, char* nombre) {
 	return archivo_actual;
 }
 
-void free_puntero_puntero(char** lines) {
-	string_iterate_lines(lines, (void*) free);
-	free(lines);
-}
-
 t_directorio* directorio_por_ruta(char* ruta) {
 	t_directorio* directorio_padre = directorio_raiz();
 

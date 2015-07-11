@@ -455,7 +455,7 @@ int apareo(char* temporal, t_list* lista_nodos_archivos) {
 		} else {
 			registros[pos] = aux_string;
 		}
-		char** array_aux = string_n_split(registro_actual_2, 2, ";");
+		array_aux = string_n_split(registro_actual_2, 2, ";");
 		strcpy(clave_actual_2, array_aux[0]);
 		valor_actual_2 = atoi(array_aux[1]);
 
@@ -489,7 +489,14 @@ int apareo(char* temporal, t_list* lista_nodos_archivos) {
 		res = -1;
 		return res;
 	}
-	// TODO: hay q ver de liberar todas las variables usadas aca
+	free(clave_actual_1);
+	free(clave_actual_2);
+	free(registro_actual_1);
+	free(registro_actual_2);
+	free(aux_string);
+	free(ruta);
+	free_puntero_puntero(registros);
+	free_puntero_puntero(array_aux);
 	fclose(archivo);
 	log_info_interno("Se aparearon correctamente los archivos.");
 	return res;

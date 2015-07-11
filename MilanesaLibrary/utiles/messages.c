@@ -279,29 +279,74 @@ char *id_string(t_msg_id id) {
 	case NO_NEW_ID:
 		buf = strdup("NO_NEW_ID");
 		break;
-	case EJECUTAR_MAP:
-		buf = strdup("EJECUTAR_MAP");
+	case FIN_ENVIO_MENSAJE:
+		buf = strdup("FIN_ENVIO_MENSAJE");
 		break;
-	case EJECUTAR_REDUCE:
-		buf = strdup("EJECUTAR_REDUCE");
+	case RUTINA:
+		buf = strdup("RUTINA");
 		break;
 	case CONEXION_JOB:
 		buf = strdup("CONEXION_JOB");
 		break;
-	case FIN_ENVIO_MENSAJE:
-		buf = strdup("FIN_ENVIO_ARCH");
+	case EJECUTAR_MAP:
+		buf = strdup("EJECUTAR_MAP");
 		break;
-	case GET_BLOQUE:
-		buf = strdup("GET_BLOQUE");
+	case FIN_MAP_OK:
+		buf = strdup("FIN_MAP_OK");
 		break;
-	case SET_BLOQUE:
-		buf = strdup("SET_BLOQUE");
+	case FIN_MAP_ERROR:
+		buf = strdup("FIN_MAP_ERROR");
+		break;
+	case EJECUTAR_REDUCE:
+		buf = strdup("EJECUTAR_REDUCE");
+		break;
+	case ARCHIVOS_NODO_REDUCE:
+		buf = strdup("ARCHIVOS_NODO_REDUCE");
+		break;
+	case FIN_REDUCE_OK:
+		buf = strdup("FIN_REDUCE_OK");
+		break;
+	case FIN_REDUCE_ERROR:
+		buf = strdup("FIN_REDUCE_ERROR");
 		break;
 	case CONEXION_NODO:
 		buf = strdup("INFO_NODO");
 		break;
+	case GET_BLOQUE:
+		buf = strdup("GET_BLOQUE");
+		break;
+	case GET_BLOQUE_OK:
+		buf = strdup("GET_BLOQUE_OK");
+		break;
+	case GET_BLOQUE_ERROR:
+		buf = strdup("GET_BLOQUE_ERROR");
+		break;
+	case SET_BLOQUE:
+		buf = strdup("SET_BLOQUE");
+		break;
+	case SET_BLOQUE_OK:
+		buf = strdup("SET_BLOQUE_OK");
+		break;
+	case SET_BLOQUE_ERROR:
+		buf = strdup("SET_BLOQUE_ERROR");
+		break;
 	case GET_FILE_CONTENT:
 		buf = strdup("GET_FILE_CONTENT");
+		break;
+	case GET_FILE_CONTENT_OK:
+		buf = strdup("GET_FILE_CONTENT_OK");
+		break;
+	case GET_FILE_CONTENT_ERROR:
+		buf = strdup("GET_FILE_CONTENT_ERROR");
+		break;
+	case GET_NEXT_ROW:
+		buf = strdup("GET_NEXT_ROW");
+		break;
+	case GET_NEXT_ROW_OK:
+		buf = strdup("GET_NEXT_ROW_OK");
+		break;
+	case GET_NEXT_ROW_ERROR:
+		buf = strdup("GET_NEXT_ROW_ERROR");
 		break;
 	case CONEXION_MARTA:
 		buf = strdup("CONEXION_MARTA");
@@ -309,8 +354,17 @@ char *id_string(t_msg_id id) {
 	case MDFS_NO_OPERATIVO:
 		buf = strdup("MDFS_NO_OPERATIVO");
 		break;
+	case INFO_ARCHIVO:
+		buf = strdup("INFO_ARCHIVO");
+		break;
+	case INFO_ARCHIVO_OK:
+		buf = strdup("INFO_ARCHIVO_OK");
+		break;
 	case INFO_ARCHIVO_ERROR:
 		buf = strdup("INFO_ARCHIVO_ERROR");
+		break;
+	case GET_ARCHIVO_TMP:
+		buf = strdup("GET_ARCHIVO_TMP");
 		break;
 	case GET_ARCHIVO_TMP_OK:
 		buf = strdup("GET_ARCHIVO_TMP_OK");
@@ -322,6 +376,5 @@ char *id_string(t_msg_id id) {
 		buf = string_from_format("%d, <AGREGAR A LA LISTA>", id);
 		break;
 	}
-
 	return buf;
 }
