@@ -393,13 +393,13 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 		struct res_get_bloque* res = dato_bloque;
 
 		streams[res->bloque_archivo] = string_duplicate(res->stream);
-		log_debug_consola("Recibido respuesta del hilo %d correspondiente al bloque %d", numero_bloque, res->bloque_archivo);
+		log_debug_interno("Recibido respuesta del hilo %d correspondiente al bloque %d", numero_bloque, res->bloque_archivo);
 		free(res->stream);
 		free(res);
 	}
 
 	for (numero_bloque = 0; numero_bloque < archivo_mdfs->cantidad_bloques; numero_bloque++) {
-		log_debug_consola("Copiando bloque %d", numero_bloque);
+		log_debug_interno("Copiando bloque %d", numero_bloque);
 		int size = strlen(streams[numero_bloque]);
 		memcpy(map + offset_actual, streams[numero_bloque], size);
 		offset_actual = offset_actual + size;
@@ -539,7 +539,7 @@ int eliminar_archivo(char* ruta_archivo) {
 }
 
 int inicializar_filesystem(bool formatea, int cantidad_nodos) {
-	log_debug_consola("Inicializando Filesystem");
+	log_debug_interno("Inicializando Filesystem");
 	lista_directorios = list_create();
 	lista_archivos = list_create();
 	lista_nodos_aceptados = list_create();
@@ -560,7 +560,7 @@ int inicializar_filesystem(bool formatea, int cantidad_nodos) {
 	int cantidad_archivos = recuperar_archivos();
 	recuperar_nodos();
 
-	log_debug_consola("Se recuperaron %d directorios y %d archivos de la DB", cantidad_directorios, cantidad_archivos);
+	log_debug_interno("Se recuperaron %d directorios y %d archivos de la DB", cantidad_directorios, cantidad_archivos);
 
 	int i;
 	for (i = 0; i < cantidad_directorios; i++) {
@@ -576,7 +576,7 @@ int inicializar_filesystem(bool formatea, int cantidad_nodos) {
 void crear_directorio_raiz() {
 	t_directorio* raiz = directorio_crear_raiz();
 	list_add_directorio(raiz);
-	log_debug_consola("Se creó el directorio raiz");
+	log_debug_interno("Se creó el directorio raiz");
 }
 
 t_directorio* directorio_raiz() {
@@ -1120,7 +1120,7 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_orige
 
 	struct res_get_bloque* res = dato_bloque;
 
-	log_debug_consola("Recibido respuesta correspondiente al bloque %d", res->bloque_archivo);
+	log_debug_interno("Recibido respuesta correspondiente al bloque %d", res->bloque_archivo);
 
 	pthread_t th_bloque_2;
 	pthread_mutex_lock(&mutex_args);

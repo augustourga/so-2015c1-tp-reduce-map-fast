@@ -21,7 +21,7 @@ void levantar_configuracion() {
 		log_error_consola("No se pudo abrir el archivo de configuración");
 		exit(1);
 	}
-	log_debug_consola("Leyendo archivo de configuración");
+	log_debug_interno("Leyendo archivo de configuración");
 	if (config_has_property(config, "PUERTO_LISTEN")) {
 		PUERTO_LISTEN = config_get_string_value(config, "PUERTO_LISTEN");
 	} else {
@@ -36,7 +36,7 @@ void levantar_configuracion() {
 				"El archivo de configuración debe tener una CANTIDAD_NODOS");
 		exit(1);
 	}
-	log_info_consola("Archivo de configuración cargado correctamente");
+	log_info_interno("Archivo de configuración cargado correctamente");
 }
 
 int main(void) {
