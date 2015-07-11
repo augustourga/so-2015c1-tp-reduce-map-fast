@@ -55,11 +55,15 @@ void iniciar_server(void* argumentos) {
 						}
 
 						t_msg* mensaje = recibir_mensaje(newfd);
-						if (mensaje->header.id == CONEXION_MARTA) {
-							socket_marta = newfd;
+						if (mensaje == NULL) {
+							log_error_consola("Error al recibir mensaje");
+						} else {
+							if (mensaje->header.id == CONEXION_MARTA) {
+								socket_marta = newfd;
+							}
+							decodificar_mensaje(mensaje, newfd);
+							destroy_message(mensaje);
 						}
-						decodificar_mensaje(mensaje, newfd);
-						free(mensaje);
 					}
 				} else if (!socket_conectado(socket_actual)) {
 					if (socket_actual == socket_marta) {
@@ -70,8 +74,12 @@ void iniciar_server(void* argumentos) {
 					FD_CLR(socket_actual, &master);
 				} else if (socket_actual == socket_marta) {
 					t_msg* mensaje = recibir_mensaje(newfd);
-					decodificar_mensaje(mensaje, newfd);
-					free(mensaje);
+					if (mensaje == NULL) {
+						log_error_consola("Error al recibir mensaje de Marta");
+					} else {
+						decodificar_mensaje(mensaje, newfd);
+						destroy_message(mensaje);
+					}
 				}
 			}
 		}
@@ -80,20 +88,26 @@ void iniciar_server(void* argumentos) {
 
 void decodificar_mensaje(t_msg* mensaje, int socket) {
 	extern int filesystem_operativo;
-	log_debug_consola("Mensaje %s recibido y decodificandolo",
+	int res;
+	log_debug_interno("Mensaje %s recibido y decodificandolo",
 			id_string(mensaje->header.id));
 	switch (mensaje->header.id) {
 	case CONEXION_NODO:
 		registrar_nodo(nodo_deserealizar_socket(mensaje, socket));
 		break;
 	case CONEXION_MARTA:
-		log_debug_consola("Marta se conectó correctamente. Su socket es %d",
+		log_debug_interno("Marta se conectó correctamente. Su socket es %d",
 				socket);
 		break;
 	case INFO_ARCHIVO:
 		if (filesystem_operativo) {
 			t_msg* msg_rta = mensaje_info_archivo(mensaje->stream);
-			enviar_mensaje(socket, msg_rta);
+			res = enviar_mensaje(socket, msg_rta);
+			if (res < 0) {
+				log_error_consola("No se pudo enviar mensaje de %s a Marta. Se asume su desconexion", id_string(msg_rta->header.id));
+				desconectar_marta(socket);
+			}
+			destroy_message(msg_rta);
 		} else {
 			enviar_fs_no_operativo(socket);
 		}
@@ -102,7 +116,12 @@ void decodificar_mensaje(t_msg* mensaje, int socket) {
 		if (filesystem_operativo) {
 			t_msg* msg_rta = mensaje_copiar_archivo_temporal_a_mdfs(
 					mensaje->stream);
-			enviar_mensaje(socket, msg_rta);
+			res = enviar_mensaje(socket, msg_rta);
+			if (res < 0) {
+				log_error_consola("No se pudo enviar mensaje de %s a Marta. Se asume su desconexion", id_string(msg_rta->header.id));
+				desconectar_marta(socket);
+			}
+			destroy_message(msg_rta);
 		} else {
 			enviar_fs_no_operativo(socket);
 		}
@@ -124,7 +143,12 @@ void desconexion_marta(int socket) {
 
 void enviar_fs_no_operativo(int socket) {
 	t_msg* msg = id_message(MDFS_NO_OPERATIVO);
-	enviar_mensaje(socket, msg);
+	int res;
+	res = enviar_mensaje(socket, msg);
+	if (res < 0) {
+		log_error_consola("No se pudo enviar mensaje de %s a Marta. Se asume su desconexion", id_string(msg->header.id));
+		desconectar_marta(socket);
+	}
 	destroy_message(msg);
 }
 
@@ -212,12 +236,11 @@ int mensaje_set_bloque(void* argumentos) {
 
 	switch (respuesta->header.id) {
 	case SET_BLOQUE_OK:
-		log_info_interno("Terminó set_bloque OK del bloque: d");
-		//->bloque_nodo);
+		log_info_interno("Terminó set_bloque OK del bloque: %d", args->bloque_nodo);
 		return 0;
 		break;
 	default:
-		log_error_consola("Respuesta Incorrecta del set_bloque");
+		log_error_consola("Respuesta Incorrecta del set_bloque: %d", args->bloque_nodo);
 		return 1;
 	}
 }

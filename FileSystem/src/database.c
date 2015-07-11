@@ -150,7 +150,7 @@ int insertar_directorio(t_directorio* directorio) {
 	data.size = sizeof(t_directorio) - sizeof(pthread_rwlock_t);
 
 	if ((ret = db_directorios->put(db_directorios, NULL, &key, &data, 0)) == 0) {
-		log_debug_consola("BD: %d: key guardada", (int) key.data);
+		log_debug_interno("BD: %d: key guardada", (int) key.data);
 	} else {
 		db_directorios->err(db_directorios, ret, "DB->put");
 		return 2;
@@ -179,7 +179,7 @@ int insertar_archivo(t_archivo* archivo) {
 	data.size = bytes_serializados;
 
 	if ((ret = db_archivos->put(db_archivos, NULL, &key, &data, 0)) == 0) {
-		log_debug_consola("DB: %s: key guardada", (char *) key.data);
+		log_debug_interno("DB: %s: key guardada", (char *) key.data);
 	} else {
 		db_archivos->err(db_archivos, ret, "DB->put");
 		return 2;
@@ -205,7 +205,7 @@ int insertar_nodo(t_nodo* nodo) {
 	data.size = bytes_serializados;
 
 	if ((ret = db_nodos->put(db_nodos, NULL, &key, &data, 0)) == 0) {
-		log_debug_consola("DB: %s: key guardada", (char *) key.data);
+		log_debug_interno("DB: %s: key guardada", (char *) key.data);
 	} else {
 		db_nodos->err(db_nodos, ret, "DB->put");
 		return 2;
@@ -225,7 +225,7 @@ int borrar_directorio(db_recno_t id) {
 	key.size = sizeof(id);
 
 	if ((ret = db_directorios->del(db_directorios, NULL, &key, 0)) == 0) {
-		log_debug_consola("DB: %s: key borrada", (char *) key.data);
+		log_debug_interno("DB: %s: key borrada", (char *) key.data);
 	} else {
 		db_directorios->err(db_directorios, ret, "DB->del");
 		return 2;
@@ -244,7 +244,7 @@ int borrar_archivo(db_recno_t id) {
 	key.size = sizeof(id);
 
 	if ((ret = db_archivos->del(db_archivos, NULL, &key, 0)) == 0) {
-		log_debug_consola("DB: %s: key borrada", (char *) key.data);
+		log_debug_interno("DB: %s: key borrada", (char *) key.data);
 	} else {
 		db_archivos->err(db_archivos, ret, "DB->del");
 		return 2;
@@ -269,7 +269,7 @@ int actualizar_directorio(t_directorio* directorio) {
 	data.size = sizeof(t_directorio) - sizeof(pthread_rwlock_t);
 
 	if ((ret = db_directorios->put(db_directorios, NULL, &key, &data, 0)) == 0) {
-		log_debug_consola("DB: %d: key guardada", (int) key.data);
+		log_debug_interno("DB: %d: key guardada", (int) key.data);
 	} else {
 		db_directorios->err(db_directorios, ret, "DB->put");
 		return 2;
@@ -296,7 +296,7 @@ int actualizar_archivo(t_archivo* archivo) {
 	data.size = bytes_serializados;
 
 	if ((ret = db_archivos->put(db_archivos, NULL, &key, &data, 0)) == 0) {
-		log_debug_consola("DB: %s: key guardada", (char *) key.data);
+		log_debug_interno("DB: %s: key guardada", (char *) key.data);
 	} else {
 		db_archivos->err(db_archivos, ret, "DB->put");
 		return 2;

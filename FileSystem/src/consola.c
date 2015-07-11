@@ -15,7 +15,7 @@ void iniciar_consola() {
 		}
 		if (ejecutar_comando(comando) == 0) {
 			char* comando_listo = comando_preparado(comando);
-			log_debug_consola("El comando %s fue ejecutado con éxito", comando_listo);
+			log_debug_interno("El comando %s fue ejecutado con éxito", comando_listo);
 		}
 	}
 	free(comando);
