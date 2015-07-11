@@ -104,7 +104,6 @@ t_nodo* nodo_deserealizar_socket(t_msg* mensaje, int socket) {
 	socklen_t len;
 	struct sockaddr_storage addr;
 	char ipstr[16];
-	int port;
 
 	strcpy(nodo->nombre, mensaje->stream);
 	nodo->cantidad_bloques_totales = mensaje->argv[0];
@@ -114,16 +113,14 @@ t_nodo* nodo_deserealizar_socket(t_msg* mensaje, int socket) {
 	getpeername(socket, (struct sockaddr*) &addr, &len);
 	if (addr.ss_family == AF_INET) {
 		struct sockaddr_in *aux = (struct sockaddr_in *) &addr;
-		port = ntohs(aux->sin_port);
 		inet_ntop(AF_INET, &aux->sin_addr, ipstr, sizeof ipstr);
 	} else { // AF_INET6
 		struct sockaddr_in6 *aux = (struct sockaddr_in6 *) &addr;
-		port = ntohs(aux->sin6_port);
 		inet_ntop(AF_INET6, &aux->sin6_addr, ipstr, sizeof ipstr);
 	}
 
 	strcpy(nodo->ip, ipstr);
-	nodo->puerto = port;
+	nodo->puerto = mensaje->argv[1];
 	nodo->cantidad_bloques_libres = nodo->cantidad_bloques_totales;
 	nodo->bloques = calloc(nodo->cantidad_bloques_totales, sizeof(int));
 	nodo->socket = socket;

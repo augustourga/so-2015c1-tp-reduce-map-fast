@@ -4,7 +4,7 @@ int main(int argc, char*argv[]) {
 
 	log_crear("INFO", LOG_FILE, PROCESO);
 
-	if (levantarConfiguracionNodo()) {
+	if (levantarConfiguracionNodo(argv[1])) {
 		log_error_consola("Hubo errores en la carga de las configuraciones.");
 		exit(1);
 	}
@@ -24,9 +24,9 @@ int main(int argc, char*argv[]) {
 	return 0;
 }
 
-int levantarConfiguracionNodo() {
+int levantarConfiguracionNodo(char* path) {
 //	char* aux;
-	t_config* archivo_config = config_create(PATH_CONFIG);
+	t_config* archivo_config = config_create(path);
 
 	PUERTO_FS = config_get_int_value(archivo_config, "PUERTO_FS");
 	IP_FS = strdup(config_get_string_value(archivo_config, "IP_FS"));
@@ -58,7 +58,7 @@ int levantarHiloFile() {
 void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 
 	reg_conexion->sock_fs = client_socket(IP_FS, PUERTO_FS);
-	t_msg* mensaje = string_message(CONEXION_NODO, NOMBRE_NODO, 1, CANT_BLOQUES);
+	t_msg* mensaje = string_message(CONEXION_NODO, NOMBRE_NODO, 2, CANT_BLOQUES, PUERTO_NODO);
 	enviar_mensaje(reg_conexion->sock_fs, mensaje);
 	destroy_message(mensaje);
 	log_info_interno("Conectado al File System en el socket %d", reg_conexion->sock_fs);

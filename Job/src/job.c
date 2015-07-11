@@ -265,7 +265,7 @@ int hiloMap(void* dato) {
 }
 
 void handshakeMarta() {
-	char* str_mensaje;
+	char* str_mensaje = string_new();
 	int ret;
 	string_append(&str_mensaje, configuracion->resultado);
 	string_append(&str_mensaje, "|");

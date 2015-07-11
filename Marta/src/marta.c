@@ -263,10 +263,11 @@ void procesa_job(void* argumentos) {
 
 	job->socket = args->socket;
 
-	char** datos = string_split(args->mensaje->stream, "|");
+	char** datos = string_split(args->stream, "|");
 
 	job->archivo_final = string_duplicate(datos[0]);
-	job->combiner = args->mensaje->argv[0]; //TODO: Modificar en el Job
+	job->combiner = args->combiner; //TODO: Modificar en el Job
+	free(args);
 
 	int i;
 	for (i = 1; datos[i] != NULL; i++) {

@@ -25,7 +25,8 @@
 
 struct arg_job {
 	int socket;
-	t_msg* mensaje;
+	char* stream;
+	bool combiner;
 };
 
 
@@ -34,7 +35,7 @@ void decodificar_mensaje(t_msg* mensaje, int socket);
 int socket_conectado(int socket);
 void conectarse_a_mdfs(char* ip_mdfs, uint16_t puerto_mdfs);
 char* get_info_archivo(char* ruta_mdfs);
-void crear_hilo_job(int newfd, t_msg* mensaje);
+void crear_hilo_job(int nuevo_job, char* stream, bool combiner);
 void copiar_archivo_final(t_job* job);
 
 #endif /* SRC_SERVER_H_ */

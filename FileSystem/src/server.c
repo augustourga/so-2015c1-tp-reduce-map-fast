@@ -196,6 +196,7 @@ int mensaje_set_bloque(void* argumentos) {
 				"Mensaje set_bloque fallo por desconexion del nodo, socket: %d",
 				socket);
 		desconexion_nodo(socket);
+		pthread_mutex_unlock(&mutex_args);
 		return 1;
 	}
 	destroy_message(msg_solicitud);

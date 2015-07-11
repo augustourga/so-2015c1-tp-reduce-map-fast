@@ -1,6 +1,5 @@
 #include "server.h"
 
-
 int socket_mdfs;
 
 void iniciar_server(uint16_t puerto_listen) {
@@ -43,7 +42,8 @@ void iniciar_server(uint16_t puerto_listen) {
 					log_info_consola("Nueva conexion entrante");
 					// handle new connections
 					addrlen = sizeof addr_client;
-					newfd = accept(listen_socket, (struct sockaddr *) &addr_client, &addrlen);
+					newfd = accept(listen_socket,
+							(struct sockaddr *) &addr_client, &addrlen);
 					if (newfd == -1) {
 						log_error_consola("Falló el accept");
 						perror("Falló el accept. Error");
@@ -54,11 +54,11 @@ void iniciar_server(uint16_t puerto_listen) {
 						}
 						t_msg* mensaje = recibir_mensaje(newfd);
 						if (mensaje->header.id == CONEXION_JOB) {
-							log_info_consola("Creando nuevo hilo Job. job_id=%d",newfd);
+							log_info_consola(
+									"Creando nuevo hilo Job. job_id=%d", newfd);
 							FD_SET(newfd, &master); // add to master set
-							crear_hilo_job(newfd, mensaje);
+							crear_hilo_job(newfd, mensaje->stream, mensaje->argv[0]);
 						}
-						destroy_message(mensaje);
 					}
 				} else if (!socket_conectado(socket_actual)) {
 					log_info_consola("Desconectando socket: %d", socket_actual);
@@ -78,21 +78,21 @@ void decodificar_mensaje(t_msg* mensaje, int socket) {
 
 	switch (mensaje->header.id) {
 	case FIN_MAP_OK:
-		 log_info_consola("FIN DE MAP OK. Socket: %d", socket);
-		 actualiza_job_map_ok(mensaje->argv[0], socket);
-	 break;
-	 case FIN_MAP_ERROR:
-		 log_info_consola("ERROR EN MAP. Socket: %d", socket);
-		 actualiza_job_map_error(mensaje->argv[0], socket);
-	 break;
-	 case FIN_REDUCE_OK:
-		 log_info_consola("FIN DE REDUCE OK. Socket: %d", socket);
-		 actualiza_job_reduce_ok(mensaje->argv[0], socket);
-	 break;
-	 case FIN_REDUCE_ERROR:
-		 log_info_consola("ERROR EN REDUCE. Socket: %d", socket);
-		 actualizar_job_reduce_error(mensaje->argv[0], socket, mensaje->stream);
-	 break;
+		log_info_consola("FIN DE MAP OK. Socket: %d", socket);
+		actualiza_job_map_ok(mensaje->argv[0], socket);
+		break;
+	case FIN_MAP_ERROR:
+		log_info_consola("ERROR EN MAP. Socket: %d", socket);
+		actualiza_job_map_error(mensaje->argv[0], socket);
+		break;
+	case FIN_REDUCE_OK:
+		log_info_consola("FIN DE REDUCE OK. Socket: %d", socket);
+		actualiza_job_reduce_ok(mensaje->argv[0], socket);
+		break;
+	case FIN_REDUCE_ERROR:
+		log_info_consola("ERROR EN REDUCE. Socket: %d", socket);
+		actualizar_job_reduce_error(mensaje->argv[0], socket, mensaje->stream);
+		break;
 	default:
 		log_error_interno("Mensaje Incorrecto");
 		break;
@@ -126,20 +126,23 @@ void conectarse_a_mdfs(char* ip_mdfs, uint16_t puerto_mdfs) {
 char* get_info_archivo(char* ruta_mdfs) {
 
 	char* ret;
-	log_info_interno("Se busca la info del MDFS para el arhivo: %s", &ruta_mdfs);
+	log_info_interno("Se busca la info del MDFS para el arhivo: %s",
+			&ruta_mdfs);
 	t_msg* message = string_message(INFO_ARCHIVO, ruta_mdfs, 0);
 	enviar_mensaje(socket_mdfs, message);
 	t_msg* respuesta = recibir_mensaje(socket_mdfs);
 
-	if(respuesta == NULL) {
-		log_error_consola("Error al obtener la informacion del archivo: %s", &ruta_mdfs);
+	if (respuesta == NULL) {
+		log_error_consola("Error al obtener la informacion del archivo: %s",
+				&ruta_mdfs);
 		return ret;
 	}
 	if (respuesta->header.id == INFO_ARCHIVO_OK) {
 		ret = string_duplicate(respuesta->stream);
-		log_info_interno("Info obtenida: %s. arhivo: %s",&ret, ruta_mdfs);
+		log_info_interno("Info obtenida: %s. arhivo: %s", &ret, ruta_mdfs);
 	} else {
-		log_error_consola("No se pudo obtener informacion del archivo: %s", &ruta_mdfs);
+		log_error_consola("No se pudo obtener informacion del archivo: %s",
+				&ruta_mdfs);
 		ret = NULL;
 	}
 
@@ -150,24 +153,25 @@ char* get_info_archivo(char* ruta_mdfs) {
 
 void copiar_archivo_final(t_job* job) {
 	log_info_consola("Copiando archivo final. Temporal: %s Nombre Final: %s",
-			job->reduce_final->arch_tmp.nodo.nombre ,job->archivo_final);
+			job->reduce_final->arch_tmp.nodo.nombre, job->archivo_final);
 	char* stream = string_duplicate(job->archivo_final);
 	string_append(&stream, "|");
 	string_append(&stream, job->reduce_final->arch_tmp.nodo.nombre);
 
-	t_msg* message = string_message(GET_ARCHIVO_TMP, stream,0);
+	t_msg* message = string_message(GET_ARCHIVO_TMP, stream, 0);
 	enviar_mensaje(socket_mdfs, message);
 
 }
 
-void crear_hilo_job(int newfd, t_msg* mensaje) {
-	struct arg_job args;
+void crear_hilo_job(int nuevo_job, char* stream, bool combiner) {
+	struct arg_job* args = malloc(sizeof(struct arg_job));
 
 	pthread_t hilo_job;
 
-	args.mensaje = mensaje;
-	args.socket = newfd;
+	args->stream = string_duplicate(stream);
+	args->socket = nuevo_job;
+	args->combiner = combiner;
 
-	pthread_create(&hilo_job, NULL, (void*) procesa_job, &args);
+	pthread_create(&hilo_job, NULL, (void*) procesa_job, (void*) args);
 }
 

@@ -29,7 +29,6 @@ typedef struct {
 
 t_job* job_crear();
 t_archivo solicitar_informacion_archivo(char* ruta_mdfs);
-void procesa_job(void* argumentos);
 void ejecuta_maps(t_job* job);
 void ejecuta_reduces_parciales(t_job* job);
 void ejecuta_reduce_final(t_job* job);

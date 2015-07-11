@@ -65,7 +65,7 @@ int rcx;
 t_list* archivos_temporales;
 /******************Definiciones*******************/
 char* levantar_espacio_datos();
-int levantarConfiguracionNodo();
+int levantarConfiguracionNodo(char* path);
 void conectarFileSystem();
 void levantarNuevoServer();
 int levantarHiloFile();

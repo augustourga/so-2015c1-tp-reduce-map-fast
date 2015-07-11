@@ -34,6 +34,7 @@ t_nodo get_nodo_menos_cargado(t_nodo nodos[3]);
 void generar_maps(t_job* job, char* ruta_mdfs);
 void planifica_maps(t_job* job);
 void agregar_nodo_si_no_existe(t_nodo nodo_nuevo);
+void procesa_job(void* argumentos);
 
 void actualiza_job_map_ok(int id, int socket);
 void actualiza_job_map_error(int id, int socket);
