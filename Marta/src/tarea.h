@@ -33,6 +33,7 @@ typedef struct {
 } t_temp; //Representa al archivo de salida de un map, de salida de reduce, o de entrada de reduce
 
 typedef struct {
+	char* ruta_mdfs;
 	char* nombre;
 	int bloque;
 	int cantidad_copias;

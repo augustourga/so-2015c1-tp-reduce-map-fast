@@ -17,6 +17,7 @@
 #include <string.h>
 #include <commons/log.h>
 #include <pthread.h>
+#include <semaphore.h>
 #include <commons/config.h>
 #include <commons/collections/dictionary.h>
 #include <commons/string.h>
@@ -65,6 +66,9 @@ int hiloReduce(void*);
 void handshakeMarta();
 void levantarHiloMapper(t_params_hiloMap* nodo);
 void levantarHiloReduce(t_params_hiloReduce* nodo);
+void terminar_job();
+void sumar_hilo();
+void restar_hilo();
 
 /*********Variables globales******************/
 t_Datos_configuracion* configuracion;

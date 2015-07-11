@@ -18,6 +18,8 @@ void ejecuta_maps(t_job* job) {
 		if (map->estado == PENDIENTE || map->estado == FIN_ERROR) {
 			char* stream = string_duplicate(map->arch_tmp.nodo.ip);
 			string_append(&stream, "|");
+			string_append(&stream, map->arch_tmp.nodo.nombre);
+			string_append(&stream, "|");
 			string_append(&stream, string_duplicate(map->arch_tmp.nombre));
 			t_msg* message = string_message(EJECUTAR_MAP, stream, 3, map->arch_tmp.nodo.puerto, map->id, map->arch_tmp.nodo.numero_bloque);
 			map->estado = EN_EJECUCION;
