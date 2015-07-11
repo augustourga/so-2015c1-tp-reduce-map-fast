@@ -30,12 +30,13 @@ int levantarConfiguracionNodo(char* path) {
 
 	PUERTO_FS = config_get_int_value(archivo_config, "PUERTO_FS");
 	IP_FS = strdup(config_get_string_value(archivo_config, "IP_FS"));
-	ARCHIVO_BIN = strdup(config_get_string_value(archivo_config, "ARCHIVO_BIN"));
+	ARCHIVO_BIN = strdup(
+			config_get_string_value(archivo_config, "ARCHIVO_BIN"));
 	DIR_TEMP = strdup(config_get_string_value(archivo_config, "DIR_TEMP"));
 	PUERTO_NODO = config_get_int_value(archivo_config, "PUERTO_NODO");
-	NOMBRE_NODO = strdup(config_get_string_value(archivo_config, "NOMBRE_NODO"));
+	NOMBRE_NODO = strdup(
+			config_get_string_value(archivo_config, "NOMBRE_NODO"));
 	config_destroy(archivo_config);
-
 
 	return 0;
 }
@@ -43,86 +44,141 @@ int levantarConfiguracionNodo(char* path) {
 int levantarHiloFile() {
 	pthread_t thr_Conexion_FileSystem;
 	t_conexion_nodo* reg_conexion = malloc(sizeof(t_conexion_nodo));
-	rcx = pthread_create(&thr_Conexion_FileSystem, NULL, (void *) conectarFileSystem, reg_conexion);
+	rcx = pthread_create(&thr_Conexion_FileSystem, NULL,
+			(void *) conectarFileSystem, reg_conexion);
 	if (rcx != 0) {
-		log_error_consola("El thread que acepta las conexiones entrantes no pudo ser creado.");
+		log_error_consola(
+				"El thread que acepta las conexiones entrantes no pudo ser creado.");
 	}
 	return 0;
 }
 
 void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 
-	reg_conexion->sock_fs = client_socket(IP_FS, PUERTO_FS);
-	t_msg* mensaje = string_message(CONEXION_NODO, NOMBRE_NODO, 2, CANT_BLOQUES, PUERTO_NODO);
-	enviar_mensaje(reg_conexion->sock_fs, mensaje);
+	fd_set read_fds;    // master file descriptor list
+	int socket_actual;
+	int socket_fs = reg_conexion->sock_fs;
+	int fdmax;
+
+	socket_fs = client_socket(IP_FS, PUERTO_FS);
+	t_msg* mensaje = string_message(CONEXION_NODO, NOMBRE_NODO, 2, CANT_BLOQUES,
+			PUERTO_NODO);
+	enviar_mensaje(socket_fs, mensaje);
 	destroy_message(mensaje);
-	log_info_interno("Conectado al File System en el socket %d", reg_conexion->sock_fs);
+	log_info_interno("Conectado al File System en el socket %d", socket_fs);
+
+	FD_ZERO(&read_fds);
+
+	FD_SET(socket_fs, &read_fds);
+	fdmax = socket_fs;
 
 	while (true) {
+		if (select(fdmax + 1, &read_fds, NULL, NULL, NULL) == -1) {
+			log_error_consola("Falló el select");
+			perror("Falló el select. Error");
+		}
+
 		char*bloque = NULL;
 		t_msg* mensaje2;
- 		t_msg*codigo;
-		if((codigo= recibir_mensaje(reg_conexion->sock_fs))!=NULL){
+		t_msg*codigo;
+		for (socket_actual = 0; socket_actual <= fdmax; socket_actual++) {
+			if (FD_ISSET(socket_actual, &read_fds)) {
+				if (socket_actual == socket_fs) {
+					if ((codigo = recibir_mensaje(socket_fs)) != NULL) {
 
-		switch (codigo->header.id) {
+						switch (codigo->header.id) {
 
-		case GET_BLOQUE:
+						case GET_BLOQUE:
 
-			bloque = getBloque(codigo->argv[0]);
-			mensaje2 = string_message(GET_BLOQUE_OK, bloque, 1, codigo->argv[1]);
-			enviar_mensaje(reg_conexion->sock_fs, mensaje2);
-			free(bloque);
-			destroy_message(mensaje2);
-			destroy_message(codigo);
-			break;
+							bloque = getBloque(codigo->argv[0]);
+							mensaje2 = string_message(GET_BLOQUE_OK, bloque, 1,
+									codigo->argv[1]);
+							enviar_mensaje(socket_fs, mensaje2);
+							free(bloque);
+							destroy_message(mensaje2);
+							destroy_message(codigo);
+							break;
 
-		case SET_BLOQUE:
+						case SET_BLOQUE:
 
-			bloque = malloc(tamanio_bloque);
-			memcpy(bloque, codigo->stream, codigo->argv[1]); //1 es el tamaño real, el stream es el bloque de 20mb(aprox)
-			memset(bloque + codigo->argv[1], '\0', tamanio_bloque - codigo->argv[1]);
-			setBloque(codigo->argv[0], bloque);
-			mensaje2 = id_message(SET_BLOQUE_OK);
-			enviar_mensaje(reg_conexion->sock_fs, mensaje2);
-			free(bloque);
-			destroy_message(codigo);
-			break;
+							bloque = malloc(tamanio_bloque);
+							memcpy(bloque, codigo->stream, codigo->argv[1]); //1 es el tamaño real, el stream es el bloque de 20mb(aprox)
+							memset(bloque + codigo->argv[1], '\0',
+									tamanio_bloque - codigo->argv[1]);
+							setBloque(codigo->argv[0], bloque);
+							mensaje2 = id_message(SET_BLOQUE_OK);
+							enviar_mensaje(socket_fs, mensaje2);
+							free(bloque);
+							destroy_message(codigo);
+							break;
 
-		case GET_FILE_CONTENT:
+						case GET_FILE_CONTENT:
 
-			bloque = getFileContent(codigo->stream);
-			mensaje2 = id_message(GET_FILE_CONTENT);
-			mensaje2->stream = bloque;
-			enviar_mensaje(reg_conexion->sock_fs, mensaje2);
-			destroy_message(mensaje2);
-			destroy_message(codigo);
-			free(bloque);
-			break;
-		default:
-			log_error_interno("Mensaje Incorrecto. Se esperaba GET_FILE_CONTEN | SET_BLOQUE | GET_BLOQUE");
-			break;
+							bloque = getFileContent(codigo->stream);
+							mensaje2 = id_message(GET_FILE_CONTENT);
+							mensaje2->stream = bloque;
+							enviar_mensaje(socket_fs, mensaje2);
+							destroy_message(mensaje2);
+							destroy_message(codigo);
+							free(bloque);
+							break;
+						default:
+							log_error_interno(
+									"Mensaje Incorrecto. Se esperaba GET_FILE_CONTEN | SET_BLOQUE | GET_BLOQUE");
+							break;
+						}
+					} else {
+						log_error_interno("Se ha desconectado el File System");
+						exit(1);
+					}
+				}
+			}
 		}
-		}
-		else{ log_error_interno("Se ha desconectado el File System");
-		exit(1);
-		}
-
 	}
 }
 
 void levantarNuevoServer() {
 	pthread_t thread;
 	int listener, nuevaConexion;
+	fd_set read_fds;  // temp file descriptor list for select()
+	int fdmax;        // maximum file descriptor number
+	int newfd;        	   // newly accept()ed socket descriptor
+	int socket_actual;
+
+	FD_ZERO(&read_fds);
+
 	listener = server_socket(PUERTO_NODO);
+
+	// add the listener to the master set
+	FD_SET(listener, &read_fds);
+
+	// keep track of the biggest file descriptor
+	fdmax = listener; // so far, it's this one
+
 	log_info_interno("Escuchando conexiones entrantes");
 
 	while (true) {
-		nuevaConexion = accept_connection(listener);
-		if(nuevaConexion>= 0){
-			log_info_interno("Se ha conectado un proceso al socket %d", nuevaConexion);
-			pthread_create(&thread, NULL, atenderConexiones, &nuevaConexion);
+		if (select(fdmax + 1, &read_fds, NULL, NULL, NULL) == -1) {
+			log_error_consola("Falló el select");
+			perror("Falló el select. Error");
 		}
+
+		for (socket_actual = 0; socket_actual <= fdmax; socket_actual++) {
+			if (FD_ISSET(socket_actual, &read_fds)) {
+				if (socket_actual == listener) {
+					nuevaConexion = accept_connection(listener);
+					if (nuevaConexion >= 0) {
+						log_info_interno(
+								"Se ha conectado un proceso al socket %d",
+								nuevaConexion);
+						pthread_create(&thread, NULL, atenderConexiones,
+								&nuevaConexion);
+					}
+				}
+			}
 		}
+
+	}
 }
 
 void *atenderConexiones(void *parametro) {
@@ -134,7 +190,7 @@ void *atenderConexiones(void *parametro) {
 	t_msg_id fin;
 	t_nodo_archivo* nodo_arch;
 	char*rutina_reduce;
-	int band=0;
+	int band = 0;
 
 	while (1) {
 		if ((codigo = recibir_mensaje(sock_conexion)) != NULL) {
@@ -179,27 +235,34 @@ void *atenderConexiones(void *parametro) {
 			case EJECUTAR_MAP:
 
 				mensaje2 = recibir_mensaje(sock_conexion);
-				if(mensaje2->header.id == RUTINA){
-				fin = ejecutar_map(mensaje2->stream, codigo->stream, codigo->argv[0], mensaje2->argv[0]);
-				switch (fin) {
-				case FIN_MAP_ERROR:
-					log_error_interno("Hubo errores en el map %d en el bloque %d.", mensaje2->argv[0], codigo->argv[0]);
-					break;
-				case FIN_MAP_OK:
-					log_info_interno("Map %d en el bloque %d exitoso", mensaje2->argv[0], codigo->argv[0]);
-					break;
-				default:
-					log_info_interno("Mensaje incorrecto se esperaba el id FIN_MAP_OK ó FIN_MAP_ERROR");
-					break;
+				if (mensaje2->header.id == RUTINA) {
+					fin = ejecutar_map(mensaje2->stream, codigo->stream,
+							codigo->argv[0], mensaje2->argv[0]);
+					switch (fin) {
+					case FIN_MAP_ERROR:
+						log_error_interno(
+								"Hubo errores en el map %d en el bloque %d.",
+								mensaje2->argv[0], codigo->argv[0]);
+						break;
+					case FIN_MAP_OK:
+						log_info_interno("Map %d en el bloque %d exitoso",
+								mensaje2->argv[0], codigo->argv[0]);
+						break;
+					default:
+						log_info_interno(
+								"Mensaje incorrecto se esperaba el id FIN_MAP_OK ó FIN_MAP_ERROR");
+						break;
 
+					}
+					mensaje2 = id_message(fin);
+					enviar_mensaje(sock_conexion, mensaje2);
+				} else {
+					log_error_interno(
+							"Fallo en Recibir Rutina. Se esperaba el id RUTINA.");
 				}
-				mensaje2 = id_message(fin);
-				enviar_mensaje(sock_conexion, mensaje2);
-				}else{log_error_interno("Fallo en Recibir Rutina. Se esperaba el id RUTINA.");}
 
 				destroy_message(mensaje2);
 				destroy_message(codigo);
-
 
 				break;
 
@@ -232,7 +295,8 @@ void *atenderConexiones(void *parametro) {
 							mensaje2 = recibir_mensaje(sock_conexion);
 
 						} else {
-							log_error_interno("Fallo en Recibir Nodos_archivos.");
+							log_error_interno(
+									"Fallo en Recibir Nodos_archivos.");
 							band = -1;
 							break;
 						}
@@ -273,23 +337,26 @@ void *atenderConexiones(void *parametro) {
 
 				break;
 			default:
-				log_info_interno("Mensaje incorrecto.Se esperaba GET_BLOQUE|SET_BLOQUE|GET_FILE_CONTENT| EJECUTAR_MAP| EJECUTAR_REDUCE | GET_NEXT_ROW");
+				log_info_interno(
+						"Mensaje incorrecto.Se esperaba GET_BLOQUE|SET_BLOQUE|GET_FILE_CONTENT| EJECUTAR_MAP| EJECUTAR_REDUCE | GET_NEXT_ROW");
 				break;
 			}
 
 		} else {
-			log_error_interno("Se ha desconectado un proceso del socket %d", sock_conexion);
-
+			log_error_interno("Se ha desconectado un proceso del socket %d",
+					sock_conexion);
 
 		}
-		break;}
+		break;
+	}
 	return NULL;
 }
 
 void setBloque(int numeroBloque, char* bloque_datos) {
 	//debo pararme en la posicion donde se encuentra almacenado el bloque y empezar a grabar
 	log_info_interno("Inicio setBloque(%d)", numeroBloque);
-	memcpy(_data + (numeroBloque * tamanio_bloque), bloque_datos, tamanio_bloque);
+	memcpy(_data + (numeroBloque * tamanio_bloque), bloque_datos,
+			tamanio_bloque);
 	log_info_interno("Fin setBloque(%d)", numeroBloque);
 
 }
@@ -322,18 +389,20 @@ char* getFileContent(char* filename) {
 
 char* levantar_espacio_datos() {
 	CANT_BLOQUES = file_get_size(ARCHIVO_BIN) / tamanio_bloque;
-	log_info_interno("Levantado %s. Cantidad de bloque:%d ",ARCHIVO_BIN,CANT_BLOQUES);
+	log_info_interno("Levantado %s. Cantidad de bloque:%d ", ARCHIVO_BIN,
+			CANT_BLOQUES);
 	return file_get_mapped(ARCHIVO_BIN);
 }
-
 
 void liberar_Espacio_datos(char* _data, char* path) {
 
 	file_mmap_free(_data, path);
 }
 
-t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal, int numeroBloque, int mapid) {
-	log_info_interno("Inicio ejecutarMap ID:%d en el bloque %d", mapid, numeroBloque);
+t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal,
+		int numeroBloque, int mapid) {
+	log_info_interno("Inicio ejecutarMap ID:%d en el bloque %d", mapid,
+			numeroBloque);
 	char*bloque = NULL;
 	bloque = getBloque(numeroBloque);
 	char* temporal = generar_nombre_temporal(mapid, "map", numeroBloque);
@@ -351,13 +420,13 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal, int numeroBloqu
 	list_add_archivo_tmp(nombreArchivoFinal);
 	remove(path_ejecutable);
 	remove(temporal);
-	free(bloque);
 	log_info_interno("Fin ejecutarMap ID:%d en el bloque %d", mapid, numeroBloque);
 	return FIN_MAP_OK;
 
 }
 
-t_msg_id ejecutar_reduce(char*ejecutable, char* nombreArchivoFinal, t_queue* colaArchivos, int id_reduce) {
+t_msg_id ejecutar_reduce(char*ejecutable, char* nombreArchivoFinal,
+		t_queue* colaArchivos, int id_reduce) {
 
 	log_info_interno("Inicio ejecutar Reduce ID:%d ", id_reduce);
 
@@ -485,7 +554,8 @@ int apareo(char* temporal, t_list* lista_nodos_archivos) {
 			if (archivo != NULL) {
 				fputs(clave_actual_1, archivo);
 			} else {
-				log_error_consola("No se pudo acceder al archivo temporal para guardar data de apareamiento");
+				log_error_consola(
+						"No se pudo acceder al archivo temporal para guardar data de apareamiento");
 				res = -1;
 				return res;
 			}
@@ -502,7 +572,8 @@ int apareo(char* temporal, t_list* lista_nodos_archivos) {
 	if (archivo != NULL) {
 		fputs(clave_actual_1, archivo);
 	} else {
-		log_error_consola("No se pudo acceder al archivo temporal para guardar data de apareamiento");
+		log_error_consola(
+				"No se pudo acceder al archivo temporal para guardar data de apareamiento");
 		res = -1;
 		return res;
 	}
@@ -535,7 +606,10 @@ int obtener_posicion_menor_clave(char** registros, int cantidad_nodos_archivos) 
 	char* clave_2;
 
 	// obtiene primer campo != NULL
-	for (pos = 0; (registros[pos] != NULL) && (string_is_empty(clave_1) && (pos < cantidad_nodos_archivos)); pos++) {
+	for (pos = 0;
+			(registros[pos] != NULL)
+					&& (string_is_empty(clave_1)
+							&& (pos < cantidad_nodos_archivos)); pos++) {
 		clave_1 = string_n_split(registros[pos], 2, ";")[0];
 	}
 
@@ -586,7 +660,8 @@ char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
 	int socket_tmp;
 	socket_tmp = client_socket(nodo_archivo->ip, nodo_archivo->puerto);
 	if (socket_tmp < 0) {
-		log_error_consola("No se pudo establecer conexion con el otro nodo para aparear");
+		log_error_consola(
+				"No se pudo establecer conexion con el otro nodo para aparear");
 		strcpy(resultado, "error.rmf");
 		return resultado;
 	}
@@ -598,10 +673,12 @@ char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
 			strcpy(resultado, msg->stream);
 		}
 		if (msg->header.id == GET_NEXT_ROW_ERROR) {
-			log_error_consola("El nodo no devolvio el proximo registro. Devolvio ERROR.");
+			log_error_consola(
+					"El nodo no devolvio el proximo registro. Devolvio ERROR.");
 		}
 	} else {
-		log_error_consola("No se pudo establecer conexion con el otro nodo para aparear");
+		log_error_consola(
+				"No se pudo establecer conexion con el otro nodo para aparear");
 		strcpy(resultado, "error.rmf");
 		return resultado;
 	}
@@ -610,7 +687,7 @@ char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
 
 void list_add_archivo_tmp(char* nombre_archivo) {
 	t_archivo_tmp* archivo = malloc(sizeof(t_archivo_tmp));
-	strcpy(archivo->nombre_archivo, nombre_archivo);
+	archivo->nombre_archivo =string_duplicate(nombre_archivo);
 	archivo->posicion_puntero = NULL;
 	list_add(archivos_temporales, archivo);
 }
@@ -619,18 +696,21 @@ fpos_t* obtener_posicion_puntero_arch_tmp(char* nombre_archivo) {
 	t_archivo_tmp* archivo;
 
 	bool _archivo_con_nombre(t_archivo_tmp* archivo_tmp) {
-		return string_equals_ignore_case(archivo_tmp->nombre_archivo, nombre_archivo);
+		return string_equals_ignore_case(archivo_tmp->nombre_archivo,
+				nombre_archivo);
 	}
 	archivo = list_find(archivos_temporales, (void*) _archivo_con_nombre);
 
 	return archivo->posicion_puntero;
 }
 
-void actualizar_posicion_puntero_arch_tmp(char* nombre_archivo, fpos_t* posicion_puntero) {
+void actualizar_posicion_puntero_arch_tmp(char* nombre_archivo,
+		fpos_t* posicion_puntero) {
 	t_archivo_tmp* archivo;
 
 	bool _archivo_con_nombre(t_archivo_tmp* archivo_tmp) {
-		return string_equals_ignore_case(archivo_tmp->nombre_archivo, nombre_archivo);
+		return string_equals_ignore_case(archivo_tmp->nombre_archivo,
+				nombre_archivo);
 	}
 
 	archivo = list_find(archivos_temporales, (void*) _archivo_con_nombre);

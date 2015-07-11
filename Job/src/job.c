@@ -11,7 +11,6 @@ sem_t sem_sin_hilos;
 
 pthread_mutex_t mutex_cantidad_hilos = PTHREAD_MUTEX_INITIALIZER;
 
-
 int main(int argc, char* argv[]) {
 
 	log_crear("DEBUG", LOG_FILE, PROCESO);
@@ -30,84 +29,113 @@ void esperarTareas() {
 	log_debug_consola(
 			"Se comienza a recibir solicitudes de tareas de map o reduce de MaRTA");
 
-	while (true) {
-		t_msg* mensaje_actual = recibir_mensaje(marta_sock);
+	fd_set read_fds;    // master file descriptor list
+	int socket_actual;
+	int fdmax;
 
-		if (!mensaje_actual) {
-			log_error_consola(
-					"Se perdió la conexión con MaRTA IP: %s - Puerto: %d",
-					configuracion->ip_marta, configuracion->puerto_marta);
-			exit(1);
+	FD_ZERO(&read_fds);
+	FD_SET(marta_sock, &read_fds);
+	fdmax = marta_sock;
+
+	while (true) {
+
+		if (select(fdmax + 1, &read_fds, NULL, NULL, NULL) == -1) {
+			log_error_consola("Falló el select");
+			perror("Falló el select. Error");
 		}
 
-		log_debug_interno(
-				"Se recibió mensaje de MaRTA. Header.Id: %s - Argc: %d - Largo Stream: %d",
-				id_string(mensaje_actual->header.id),
-				mensaje_actual->header.argc, mensaje_actual->header.length);
+		for (socket_actual = 0; socket_actual <= fdmax; socket_actual++) {
+			if (FD_ISSET(socket_actual, &read_fds)) {
+				if (socket_actual == marta_sock) {
 
-		if (mensaje_actual->header.id == EJECUTAR_REDUCE) {
-			t_params_hiloReduce* paramsR = (t_params_hiloReduce*) malloc(
-					sizeof(t_params_hiloMap));
-			char** argumentos;
-			argumentos = string_split(mensaje_actual->stream, "|");
-			paramsR->archivos_tmp = queue_create();
-			strcpy(paramsR->ip, argumentos[0]);
-			strcpy(paramsR->nombre_nodo, argumentos[1]);
-			paramsR->puerto = mensaje_actual->argv[0];
-			paramsR->id_operacion = mensaje_actual->argv[1];
-			paramsR->archivo_final = argumentos[2];
-			mensaje_actual = recibir_mensaje(marta_sock);
+					t_msg* mensaje_actual = recibir_mensaje(marta_sock);
 
-			if (!mensaje_actual) {
-				log_error_consola(
-						"Se perdió la conexión con MaRTA IP: %s - Puerto: %d",
-						configuracion->ip_marta, configuracion->puerto_marta);
-				exit(1);
-			}
+					if (!mensaje_actual) {
+						log_error_consola(
+								"Se perdió la conexión con MaRTA IP: %s - Puerto: %d",
+								configuracion->ip_marta,
+								configuracion->puerto_marta);
+						exit(1);
+					}
 
-			while (mensaje_actual->header.id != FIN_ENVIO_MENSAJE) {
+					log_debug_interno(
+							"Se recibió mensaje de MaRTA. Header.Id: %s - Argc: %d - Largo Stream: %d",
+							id_string(mensaje_actual->header.id),
+							mensaje_actual->header.argc,
+							mensaje_actual->header.length);
 
-				log_debug_interno(
-						"Se recibió mensaje de MaRTA. Header.Id: %s - Argc: %d - Largo Stream: %d",
-						id_string(mensaje_actual->header.id),
-						mensaje_actual->header.argc,
-						mensaje_actual->header.length);
+					if (mensaje_actual->header.id == EJECUTAR_REDUCE) {
+						t_params_hiloReduce* paramsR =
+								(t_params_hiloReduce*) malloc(
+										sizeof(t_params_hiloMap));
+						char** argumentos;
+						argumentos = string_split(mensaje_actual->stream, "|");
+						paramsR->archivos_tmp = queue_create();
+						strcpy(paramsR->ip, argumentos[0]);
+						strcpy(paramsR->nombre_nodo, argumentos[1]);
+						paramsR->puerto = mensaje_actual->argv[0];
+						paramsR->id_operacion = mensaje_actual->argv[1];
+						paramsR->archivo_final = argumentos[2];
+						mensaje_actual = recibir_mensaje(marta_sock);
 
-				queue_push(paramsR->archivos_tmp, (void*) mensaje_actual);
-				mensaje_actual = recibir_mensaje(marta_sock);
+						if (!mensaje_actual) {
+							log_error_consola(
+									"Se perdió la conexión con MaRTA IP: %s - Puerto: %d",
+									configuracion->ip_marta,
+									configuracion->puerto_marta);
+							exit(1);
+						}
 
-				if (!mensaje_actual) {
-					log_error_consola(
-							"Se perdió la conexión con MaRTA IP: %s - Puerto: %d",
-							configuracion->ip_marta,
-							configuracion->puerto_marta);
-					exit(1);
+						while (mensaje_actual->header.id != FIN_ENVIO_MENSAJE) {
+
+							log_debug_interno(
+									"Se recibió mensaje de MaRTA. Header.Id: %s - Argc: %d - Largo Stream: %d",
+									id_string(mensaje_actual->header.id),
+									mensaje_actual->header.argc,
+									mensaje_actual->header.length);
+
+							queue_push(paramsR->archivos_tmp,
+									(void*) mensaje_actual);
+							mensaje_actual = recibir_mensaje(marta_sock);
+
+							if (!mensaje_actual) {
+								log_error_consola(
+										"Se perdió la conexión con MaRTA IP: %s - Puerto: %d",
+										configuracion->ip_marta,
+										configuracion->puerto_marta);
+								exit(1);
+							}
+						}
+						levantarHiloReduce(paramsR);
+					}
+					if (mensaje_actual->header.id == EJECUTAR_MAP) {
+						t_params_hiloMap* params = (t_params_hiloMap*) malloc(
+								sizeof(t_params_hiloMap));
+						char** argumentos = string_split(mensaje_actual->stream,
+								"|");
+						strcpy(params->ip, argumentos[0]);
+						params->nombre_nodo = string_duplicate(argumentos[1]);
+						params->archivo_final = string_duplicate(argumentos[2]);
+						params->puerto = mensaje_actual->argv[0];
+						params->id_operacion = mensaje_actual->argv[1];
+						params->bloque = mensaje_actual->argv[2];
+						levantarHiloMapper(params);
+					}
+
+					if (mensaje_actual->header.id == MDFS_NO_OPERATIVO) {
+						log_info_consola(
+								"ERROR - El MDFS no esta operativo. Reintente mas tarde.");
+						terminar_job();
+					}
+
+					if (mensaje_actual->header.id == INFO_ARCHIVO_ERROR) {
+						log_info_consola(
+								"ERROR - No se encontro la informacion del archivo %s.Compruebe la existencia del archivo y vuelva a intentarlo.",
+								mensaje_actual->stream);
+						terminar_job();
+					}
 				}
 			}
-			levantarHiloReduce(paramsR);
-		}
-		if (mensaje_actual->header.id == EJECUTAR_MAP) {
-			t_params_hiloMap* params = (t_params_hiloMap*) malloc(
-					sizeof(t_params_hiloMap));
-			char** argumentos = string_split(mensaje_actual->stream, "|");
-			strcpy(params->ip, argumentos[0]);
-			params->nombre_nodo = string_duplicate(argumentos[1]);
-			params->archivo_final = string_duplicate(argumentos[2]);
-			params->puerto = mensaje_actual->argv[0];
-			params->id_operacion = mensaje_actual->argv[1];
-			params->bloque = mensaje_actual->argv[2];
-			levantarHiloMapper(params);
-		}
-
-		if (mensaje_actual->header.id == MDFS_NO_OPERATIVO) {
-			log_info_consola("ERROR - El MDFS no esta operativo. Reintente mas tarde.");
-			terminar_job();
-		}
-
-		if (mensaje_actual->header.id == INFO_ARCHIVO_ERROR) {
-			log_info_consola("ERROR - No se encontro la informacion del archivo %s.Compruebe la existencia del archivo y vuelva a intentarlo.",
-					mensaje_actual->stream);
-			terminar_job();
 		}
 	}
 }
@@ -401,7 +429,7 @@ void levantarHiloReduce(t_params_hiloReduce* nodo) {
 	}
 }
 
-void terminar_job(){
+void terminar_job() {
 
 	log_info_interno("Esperando a que terminen los hilos pendientes");
 	sem_wait(&sem_sin_hilos);
@@ -409,26 +437,26 @@ void terminar_job(){
 	exit(1);
 }
 
-void sumar_hilo(){
+void sumar_hilo() {
 
 	pthread_mutex_lock(&mutex_cantidad_hilos);
 
 	if (cantidad_hilos == 0) {
 		sem_wait(&sem_sin_hilos);
 	}
-	cantidad_hilos+=1;
-	pthread_mutex_lock(&mutex_cantidad_hilos);
+	cantidad_hilos += 1;
+	pthread_mutex_unlock(&mutex_cantidad_hilos);
 
 }
 
-void restar_hilo(){
+void restar_hilo() {
 	pthread_mutex_lock(&mutex_cantidad_hilos);
 
-	cantidad_hilos-=1;
+	cantidad_hilos -= 1;
 	if (cantidad_hilos == 0) {
 		sem_post(&sem_sin_hilos);
 	}
-	pthread_mutex_lock(&mutex_cantidad_hilos);
+	pthread_mutex_unlock(&mutex_cantidad_hilos);
 
 }
 
