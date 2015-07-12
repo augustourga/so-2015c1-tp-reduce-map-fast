@@ -6,7 +6,7 @@ void error(char *s) {
 }
 
 int ejecutar(char* data, char* path_ejecutable, char* path_salida) {
-	log_debug_consola("Entrando a Ejecutar...");
+	log_info_consola("Entrando a Ejecutar...");
 
 	int size = strlen(data);
 	int in[2];
@@ -52,28 +52,29 @@ int ejecutar(char* data, char* path_ejecutable, char* path_salida) {
 	//Se cierra para generar un EOF y que el proceso hijo termine de leer de stdin
 	close(in[1]);
 	free(data);
-	waitpid(pid, NULL, 0);
+	int status;
+	waitpid(pid, &status, 0);
 	FILE* temp_file = fopen(path_salida, "r");
 	fclose(temp_file);
-	return 0;
+	return WEXITSTATUS(status);
 }
 char* generar_nombre_rutina(int map_id, char*map_o_reduce, int numeroBloque) {
 	char* file_map1 = string_new();
-		string_append(&file_map1, "rutina_");
+	string_append(&file_map1, "rutina_");
 
-		char str[15];
+	char str[15];
 
-		sprintf(str, "%d", map_id);
-		string_append(&file_map1, str);
-		string_append(&file_map1, "_");
+	sprintf(str, "%d", map_id);
+	string_append(&file_map1, str);
+	string_append(&file_map1, "_");
 
-		string_append(&file_map1, map_o_reduce);
-		string_append(&file_map1, "_");
-		sprintf(str, "%d", numeroBloque);
-		string_append(&file_map1, str);
+	string_append(&file_map1, map_o_reduce);
+	string_append(&file_map1, "_");
+	sprintf(str, "%d", numeroBloque);
+	string_append(&file_map1, str);
 
-		string_append(&file_map1, ".txt");
-		return file_map1;
+	string_append(&file_map1, ".txt");
+	return file_map1;
 }
 
 char* generar_nombre_temporal(int map_id, char*map, int numeroBloque) {
