@@ -266,7 +266,7 @@ void log_msg(t_msg *msg) {
 	log_debug_interno("- CUERPO: ");
 
 	for (i = 0; i < msg->header.length; i++) {
-		log_debug_interno(*(msg->stream + i));
+		log_debug_interno((char*)(msg->stream + i));
 	}
 	log_debug_interno("==================================================");
 }
