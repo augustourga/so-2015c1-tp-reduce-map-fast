@@ -1515,20 +1515,25 @@ char* serializar_info_archivo(t_archivo* archivo) {
 	respuesta = string_new();
 	int numero_bloque;
 	int numero_copia;
+	int cant_copias_enviadas;
 
 	for (numero_bloque = 0; numero_bloque < archivo->cantidad_bloques; numero_bloque++) {
 		t_bloque bloque_actual = archivo->bloques[numero_bloque];
-		for (numero_copia = 0; (numero_copia < bloque_actual.cantidad_copias) && (numero_copia < 3); numero_copia++) {
+		cant_copias_enviadas = 0;
+		for (numero_copia = 0; (numero_copia < bloque_actual.cantidad_copias) && (cant_copias_enviadas < 3); numero_copia++) {
 			t_copia copia_actual = bloque_actual.copias[numero_copia];
-			string_append(&respuesta, copia_actual.nombre_nodo);
-			string_append(&respuesta, ";");
-			t_nodo* nodo_actual = nodo_operativo_por_nombre(copia_actual.nombre_nodo);
-			string_append(&respuesta, nodo_actual->ip);
-			string_append(&respuesta, ";");
-			string_append(&respuesta, string_itoa(nodo_actual->puerto));
-			string_append(&respuesta, ";");
-			string_append(&respuesta, string_itoa(copia_actual.bloque_nodo));
-			string_append(&respuesta, ";");
+			if (copia_actual.conectado) {
+				string_append(&respuesta, copia_actual.nombre_nodo);
+				string_append(&respuesta, ";");
+				t_nodo* nodo_actual = nodo_operativo_por_nombre(copia_actual.nombre_nodo);
+				string_append(&respuesta, nodo_actual->ip);
+				string_append(&respuesta, ";");
+				string_append(&respuesta, string_itoa(nodo_actual->puerto));
+				string_append(&respuesta, ";");
+				string_append(&respuesta, string_itoa(copia_actual.bloque_nodo));
+				string_append(&respuesta, ";");
+				cant_copias_enviadas++;
+			}
 		}
 		string_append(&respuesta, "|");
 	}
