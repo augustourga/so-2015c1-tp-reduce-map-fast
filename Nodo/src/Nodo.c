@@ -55,10 +55,19 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 	int socket_actual;
 	int fdmax;
 	int socket_fs = reg_conexion->sock_fs;
+	int res;
 
 	socket_fs = client_socket(IP_FS, PUERTO_FS);
 	t_msg* mensaje = string_message(CONEXION_NODO, NOMBRE_NODO, 2, CANT_BLOQUES, PUERTO_NODO);
-	enviar_mensaje(socket_fs, mensaje);
+
+	res = enviar_mensaje(socket_fs, mensaje);
+	if (res == -1) {
+		log_error_consola("Fallo envio mensaje CONEXION_NODO");
+
+		exit(1);
+	}
+
+
 	destroy_message(mensaje);
 	log_info_consola("Conectado al File System en el socket %d", socket_fs);
 
@@ -95,13 +104,19 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 
 						case SET_BLOQUE:
 
-							bloque = malloc(tamanio_bloque);
-							memcpy(bloque, codigo->stream, codigo->argv[1]); //1 es el tamaño real, el stream es el bloque de 20mb(aprox)
-							memset(bloque + codigo->argv[1], '\0', tamanio_bloque - codigo->argv[1]);
-							setBloque(codigo->argv[0], bloque);
-							mensaje2 = id_message(SET_BLOQUE_OK);
-							enviar_mensaje(socket_fs, mensaje2);
-							free(bloque);
+							if (codigo->argv[0] < CANT_BLOQUES) {
+								bloque = malloc(tamanio_bloque);
+								memcpy(bloque, codigo->stream, codigo->argv[1]); //1 es el tamaño real, el stream es el bloque de 20mb(aprox)
+								memset(bloque + codigo->argv[1], '\0', tamanio_bloque - codigo->argv[1]);
+								setBloque(codigo->argv[0], bloque);
+								mensaje2 = id_message(SET_BLOQUE_OK);
+								enviar_mensaje(socket_fs, mensaje2);
+								free(bloque);
+							} else {
+								mensaje2 = id_message(SET_BLOQUE_ERROR);
+								enviar_mensaje(socket_fs, mensaje2);
+							}
+
 							destroy_message(codigo);
 							break;
 
@@ -374,6 +389,8 @@ void liberar_Espacio_datos(char* _data, char* path) {
 t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal, int numeroBloque, int mapid) {
 	log_info_consola("Inicio ejecutarMap ID:%d en el bloque %d", mapid, numeroBloque);
 	char*bloque = NULL;
+//	sem_t sema_fin_map;
+//	sem_init(&sema_fin_map,0,0);
 	bloque = getBloque(numeroBloque);
 	char* temporal = generar_nombre_temporal(mapid, "map", numeroBloque);
 	//char*ruta_sort = "/usr/bin/sort";
@@ -385,6 +402,7 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal, int numeroBloqu
 	if (ejecuta_map(bloque, path_ejecutable, temporal)) {
 		return FIN_MAP_ERROR;
 	}
+
 	log_info_consola("Fin rutina de map ID:%d en el bloque %d", mapid, numeroBloque);
 	/*
 	 char* data = read_whole_file(temporal);
@@ -394,6 +412,8 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal, int numeroBloqu
 	 log_info_consola("Fin rutina de sort ID:%d en el bloque %d", mapid,
 	 numeroBloque);
 	 */
+
+
 	list_add_archivo_tmp(nombreArchivoFinal);
 	//remove(path_ejecutable);
 	//remove(temporal);
