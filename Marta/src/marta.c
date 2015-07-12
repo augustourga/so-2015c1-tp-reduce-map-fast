@@ -51,10 +51,9 @@ void finalizar_job_a_si_mismo(t_job* job) {
 	pthread_exit(NULL);
 }
 
-void generar_maps(t_job* job, char* ruta_mdfs) {
+void genera_maps(t_job* job, char* ruta_mdfs) {
 	log_debug_interno("Armando Maps para el archivo %s", &ruta_mdfs);
 	char* info_archivo = get_info_archivo(job, ruta_mdfs);
-
 
 	if (info_archivo == NULL) {
 		log_info_consola(
@@ -216,7 +215,7 @@ void planificar_reduces_sin_combiner(t_job* job) {
 	reduce->arch_tmp.nombre = getRandName(string_itoa(job->socket), "RD_FINAL"); //TODO: No se qué va acá, generar un nombre para las salidas de los reduces
 
 	bool _ordena_por_nombre(t_map* map1, t_map* map2) {
-		return map1->arch_tmp.nombre <= map2->arch_tmp.nombre;
+		return map1->arch_tmp.nodo.nombre <= map2->arch_tmp.nodo.nombre;
 	}
 
 	list_sort(job->maps, (void*) _ordena_por_nombre);
@@ -241,9 +240,7 @@ void planificar_reduces_sin_combiner(t_job* job) {
 	}
 
 	list_iterate(job->maps, (void*) _genera_temporales);
-	if(list_size(job->maps) == 1) {
-		list_add(reduce->temporales, temp_actual);
-	}
+	list_add(reduce->temporales, temp_actual);
 
 	job->reduce_final = reduce;
 	nodo_global->carga_trabajo += carga_reduce;
@@ -282,7 +279,7 @@ void procesa_job(void* argumentos) {
 
 	int i;
 	for (i = 1; datos[i] != NULL; i++) {
-		generar_maps(job, datos[i]);
+		genera_maps(job, datos[i]);
 	}
 
 	lista_jobs_add(job);
@@ -291,6 +288,7 @@ void procesa_job(void* argumentos) {
 
 	ejecuta_maps(job);
 
+	log_info_consola("Esperando a que finalicen los maps...");
 	sem_wait(&job->sem_maps_fin);
 
 	planifica_reduces(job);
@@ -298,11 +296,13 @@ void procesa_job(void* argumentos) {
 	if (job->combiner) {
 		ejecuta_reduces_parciales(job);
 
+		log_info_consola("Esperando a que finalicen los reduces parciales...");
 		sem_wait(&job->sem_reduces_fin);
 	}
 
 	ejecuta_reduce_final(job);
 
+	log_info_consola("Esperando a que finalice el reduce final...");
 	sem_wait(&job->sem_reduce_final_fin);
 }
 
@@ -348,6 +348,13 @@ t_nodo get_nodo_menos_cargado(t_nodo nodos[3]) {
 		nodo_global->carga_trabajo += carga_map;
 		ret = nodo_global->nodo;
 	}
+
+	for (i = 0; i < 3; i++) {
+		if (nodos[i].nombre != NULL && !strcmp(ret.nombre, nodos[i].nombre)) {
+			ret.numero_bloque = nodos[i].numero_bloque;
+		}
+	}
+
 	pthread_mutex_unlock(&mutex_nodos);
 	return ret;
 }
@@ -375,10 +382,10 @@ char* getRandName(char* ruta, char* indicador) {
 	}
 	*ptr = '\0';
 	char*strFinal = string_duplicate(fileName);
-	string_append(&strFinal,"_");
+	string_append(&strFinal, "_");
 	string_append(&strFinal, indicador);
-	string_append(&strFinal,"_");
-	string_append(&strFinal,s);
+	string_append(&strFinal, "_");
+	string_append(&strFinal, s);
 	log_debug_consola("Se generó nombre aleatório: %s", strFinal);
 	return strFinal;
 }
@@ -535,7 +542,7 @@ void actualiza_job_map_error(int id, int socket) {
 			socket, id);
 
 	elimina_nodo_desconectado(map_actual->arch_tmp.nodo.nombre);
-	eliminar_carga_nodo(map_actual->arch_tmp.nodo,carga_map);
+	eliminar_carga_nodo(map_actual->arch_tmp.nodo, carga_map);
 
 	void _planifica_map(t_map* map) {
 		if (map->estado == PENDIENTE || map->estado == FIN_ERROR) {

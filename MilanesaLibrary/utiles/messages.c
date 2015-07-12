@@ -3,7 +3,6 @@
 pthread_mutex_t mutex_enviar = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_recibir = PTHREAD_MUTEX_INITIALIZER;
 
-
 t_msg *id_message(t_msg_id id) {
 
 	t_msg *new = malloc(sizeof *new);
@@ -158,7 +157,7 @@ t_msg *recibir_mensaje(int sock_fd) {
 		msg->argv = malloc(msg->header.argc * sizeof(uint32_t));
 
 		if (recv(sock_fd, msg->argv, msg->header.argc * sizeof(uint32_t),
-				MSG_WAITALL) <= 0) {
+		MSG_WAITALL) <= 0) {
 			log_error_consola("error obteniendo args. Socket: %d", sock_fd);
 			free(msg->argv);
 			free(msg);
@@ -207,9 +206,7 @@ int enviar_mensaje(int sock_fd, t_msg *msg) {
 	/* Send message(s). */
 	pthread_mutex_lock(&mutex_enviar);
 	while (total < pending) {
-		int sent = send(sock_fd, buffer,
-				msg->header.length + sizeof msg->header
-						+ msg->header.argc * sizeof(uint32_t), MSG_NOSIGNAL);
+		int sent = send(sock_fd, buffer, pending, MSG_NOSIGNAL);
 		if (sent < 0) {
 			free(buffer);
 			pthread_mutex_unlock(&mutex_enviar);

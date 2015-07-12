@@ -68,7 +68,7 @@ int levantarConfiguracionNodo(char* path);
 void conectarFileSystem();
 void levantarNuevoServer();
 int levantarHiloFile();
-void *atenderConexiones(void *parametro);
+void atenderConexiones(void *parametro);
 /******************FUNCIONALIDADES*******************/
 void setBloque(int numeroBloque, char* bloque_datos);
 char* getBloque(int numeroBloque);

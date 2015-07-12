@@ -65,7 +65,7 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 			PUERTO_NODO);
 	enviar_mensaje(socket_fs, mensaje);
 	destroy_message(mensaje);
-	log_info_interno("Conectado al File System en el socket %d", socket_fs);
+	log_info_consola("Conectado al File System en el socket %d", socket_fs);
 
 	FD_ZERO(&read_fds);
 	FD_SET(socket_fs, &read_fds);
@@ -122,12 +122,12 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 							free(bloque);
 							break;
 						default:
-							log_error_interno(
+							log_error_consola(
 									"Mensaje Incorrecto. Se esperaba GET_FILE_CONTEN | SET_BLOQUE | GET_BLOQUE");
 							break;
 						}
 					} else {
-						log_error_interno("Se ha desconectado el File System");
+						log_error_consola("Se ha desconectado el File System");
 						exit(1);
 					}
 				}
@@ -141,7 +141,6 @@ void levantarNuevoServer() {
 	int listener, nuevaConexion;
 	fd_set read_fds;  // temp file descriptor list for select()
 	int fdmax;        // maximum file descriptor number
-	int newfd;        	   // newly accept()ed socket descriptor
 	int socket_actual;
 
 	FD_ZERO(&read_fds);
@@ -154,7 +153,7 @@ void levantarNuevoServer() {
 	// keep track of the biggest file descriptor
 	fdmax = listener; // so far, it's this one
 
-	log_info_interno("Escuchando conexiones entrantes");
+	log_info_consola("Escuchando conexiones entrantes");
 
 	while (true) {
 		if (select(fdmax + 1, &read_fds, NULL, NULL, NULL) == -1) {
@@ -167,11 +166,13 @@ void levantarNuevoServer() {
 				if (socket_actual == listener) {
 					nuevaConexion = accept_connection(listener);
 					if (nuevaConexion >= 0) {
-						log_info_interno(
+						log_info_consola(
 								"Se ha conectado un proceso al socket %d",
 								nuevaConexion);
-						pthread_create(&thread, NULL, atenderConexiones,
-								&nuevaConexion);
+						int* parametro = malloc(sizeof(int));
+						(*parametro) = nuevaConexion;
+						pthread_create(&thread, NULL, (void*) atenderConexiones,
+								(void*) parametro);
 					}
 				}
 			}
@@ -180,7 +181,7 @@ void levantarNuevoServer() {
 	}
 }
 
-void *atenderConexiones(void *parametro) {
+void atenderConexiones(void *parametro) {
 	t_msg *codigo;
 	int sock_conexion = *((int *) parametro);
 	char*bloque = NULL;
@@ -191,187 +192,182 @@ void *atenderConexiones(void *parametro) {
 	char*rutina_reduce;
 	int band = 0;
 
-	while (1) {
-		if ((codigo = recibir_mensaje(sock_conexion)) != NULL) {
+	if ((codigo = recibir_mensaje(sock_conexion)) != NULL) {
 
-			switch (codigo->header.id) {
+		switch (codigo->header.id) {
 
-			case GET_BLOQUE:
-				bloque = getBloque(codigo->argv[0]);
-				mensaje2 = string_message(GET_BLOQUE_OK, bloque, 1,
-						codigo->argv[1]);
+		case GET_BLOQUE:
+			bloque = getBloque(codigo->argv[0]);
+			mensaje2 = string_message(GET_BLOQUE_OK, bloque, 1,
+					codigo->argv[1]);
+			enviar_mensaje(sock_conexion, mensaje2);
+			free(bloque);
+			destroy_message(mensaje2);
+			destroy_message(codigo);
+			break;
+
+		case SET_BLOQUE:
+			bloque = malloc(tamanio_bloque);
+			memcpy(bloque, codigo->stream, codigo->argv[1]); //1 es el tamaño real, el stream es el bloque de 20mb(aprox)
+			memset(bloque + codigo->argv[1], '\0',
+					tamanio_bloque - codigo->argv[1]);
+			setBloque(codigo->argv[0], bloque);
+			mensaje2 = id_message(SET_BLOQUE_OK);
+			enviar_mensaje(sock_conexion, mensaje2);
+			free(bloque);
+			destroy_message(codigo);
+			break;
+
+		case GET_FILE_CONTENT:
+
+			bloque = getFileContent(codigo->stream);
+
+			mensaje2 = id_message(GET_FILE_CONTENT);
+			mensaje2->stream = bloque;
+
+			enviar_mensaje(sock_conexion, mensaje2);
+			destroy_message(mensaje2);
+			destroy_message(codigo);
+			free(bloque);
+			break;
+
+		case EJECUTAR_MAP:
+
+			mensaje2 = recibir_mensaje(sock_conexion);
+			if (mensaje2->header.id == RUTINA) {
+				fin = ejecutar_map(mensaje2->stream, codigo->stream,
+						codigo->argv[0], mensaje2->argv[0]);
+				switch (fin) {
+				case FIN_MAP_ERROR:
+					log_error_consola(
+							"Hubo errores en el map %d en el bloque %d.",
+							mensaje2->argv[0], codigo->argv[0]);
+					break;
+				case FIN_MAP_OK:
+					log_info_consola("Map %d en el bloque %d exitoso",
+							mensaje2->argv[0], codigo->argv[0]);
+					break;
+				default:
+					log_info_consola(
+							"Mensaje incorrecto se esperaba el id FIN_MAP_OK ó FIN_MAP_ERROR");
+					break;
+
+				}
+				mensaje2 = id_message(fin);
 				enviar_mensaje(sock_conexion, mensaje2);
-				free(bloque);
-				destroy_message(mensaje2);
-				destroy_message(codigo);
-				break;
+			} else {
+				log_error_consola(
+						"Fallo en Recibir Rutina. Se esperaba el id RUTINA.");
+			}
 
-			case SET_BLOQUE:
-				bloque = malloc(tamanio_bloque);
-				memcpy(bloque, codigo->stream, codigo->argv[1]); //1 es el tamaño real, el stream es el bloque de 20mb(aprox)
-				memset(bloque + codigo->argv[1], '\0',
-						tamanio_bloque - codigo->argv[1]);
-				setBloque(codigo->argv[0], bloque);
-				mensaje2 = id_message(SET_BLOQUE_OK);
-				enviar_mensaje(sock_conexion, mensaje2);
-				free(bloque);
-				destroy_message(codigo);
-				break;
+			destroy_message(mensaje2);
+			destroy_message(codigo);
 
-			case GET_FILE_CONTENT:
+			break;
 
-				bloque = getFileContent(codigo->stream);
+		case EJECUTAR_REDUCE:
 
-				mensaje2 = id_message(GET_FILE_CONTENT);
-				mensaje2->stream = bloque;
+			//Se recibe la rutina
 
-				enviar_mensaje(sock_conexion, mensaje2);
-				destroy_message(mensaje2);
-				destroy_message(codigo);
-				free(bloque);
-				break;
+			mensaje2 = recibir_mensaje(sock_conexion);
 
-			case EJECUTAR_MAP:
+			if (mensaje2->header.id == RUTINA) {
+				size_t tamanioEjecutable = strlen(mensaje2->stream);
+
+				rutina_reduce = malloc(tamanioEjecutable);
+				memcpy(rutina_reduce, mensaje2->stream, tamanioEjecutable);
 
 				mensaje2 = recibir_mensaje(sock_conexion);
-				if (mensaje2->header.id == RUTINA) {
-					fin = ejecutar_map(mensaje2->stream, codigo->stream,
-							codigo->argv[0], mensaje2->argv[0]);
-					switch (fin) {
-					case FIN_MAP_ERROR:
-						log_error_interno(
-								"Hubo errores en el map %d en el bloque %d.",
-								mensaje2->argv[0], codigo->argv[0]);
-						break;
-					case FIN_MAP_OK:
-						log_info_interno("Map %d en el bloque %d exitoso",
-								mensaje2->argv[0], codigo->argv[0]);
-						break;
-					default:
-						log_info_interno(
-								"Mensaje incorrecto se esperaba el id FIN_MAP_OK ó FIN_MAP_ERROR");
-						break;
 
+				while (mensaje2->header.id != FIN_ENVIO_MENSAJE) {
+
+					if (mensaje2 != NULL) {
+						nodo_arch = (t_nodo_archivo*) malloc(
+								sizeof(t_nodo_archivo));
+						nodo_arch->ip =
+								string_n_split(mensaje2->stream, 2, "|")[0];
+						nodo_arch->archivo = string_n_split(mensaje2->stream, 2,
+								"|")[1];
+						nodo_arch->puerto = mensaje2->argv[0];
+						queue_push(cola_nodos, (void*) nodo_arch);
+
+						mensaje2 = recibir_mensaje(sock_conexion);
+
+					} else {
+						log_error_consola("Fallo en Recibir Nodos_archivos.");
+						band = -1;
+						break;
 					}
+
+				}
+				if (band == 0) {
+					fin = ejecutar_reduce(rutina_reduce, codigo->stream,
+							cola_nodos, codigo->argv[0]);
 					mensaje2 = id_message(fin);
 					enviar_mensaje(sock_conexion, mensaje2);
 				} else {
-					log_error_interno(
-							"Fallo en Recibir Rutina. Se esperaba el id RUTINA.");
+					log_error_consola(
+							"No se puede ejecutar Reduce, ya que no se han recibido correctamente los archivos ");
 				}
 
-				destroy_message(mensaje2);
-				destroy_message(codigo);
-
-				break;
-
-			case EJECUTAR_REDUCE:
-
-				//Se recibe la rutina
-
-				mensaje2 = recibir_mensaje(sock_conexion);
-
-				if (mensaje2->header.id == RUTINA) {
-					size_t tamanioEjecutable = strlen(mensaje2->stream);
-
-					rutina_reduce = malloc(tamanioEjecutable);
-					memcpy(rutina_reduce, mensaje2->stream, tamanioEjecutable);
-
-					mensaje2 = recibir_mensaje(sock_conexion);
-
-					while (mensaje2->header.id != FIN_ENVIO_MENSAJE) {
-
-						if (mensaje2 != NULL) {
-							nodo_arch = (t_nodo_archivo*) malloc(
-									sizeof(t_nodo_archivo));
-							nodo_arch->ip = string_n_split(mensaje2->stream, 2,
-									"|")[0];
-							nodo_arch->archivo = string_n_split(
-									mensaje2->stream, 2, "|")[1];
-							nodo_arch->puerto = mensaje2->argv[0];
-							queue_push(cola_nodos, (void*) nodo_arch);
-
-							mensaje2 = recibir_mensaje(sock_conexion);
-
-						} else {
-							log_error_interno(
-									"Fallo en Recibir Nodos_archivos.");
-							band = -1;
-							break;
-						}
-
-					}
-					if (band == 0) {
-						fin = ejecutar_reduce(rutina_reduce, codigo->stream,
-								cola_nodos, codigo->argv[0]);
-						mensaje2 = id_message(fin);
-						enviar_mensaje(sock_conexion, mensaje2);
-					} else {
-						log_error_interno(
-								"No se puede ejecutar Reduce, ya que no se han recibido correctamente los archivos ");
-					}
-
-					free(rutina_reduce);
-				} else {
-					log_error_interno(
-							"Fallo en Recibir Rutina.Se esperaba el id RUTINA.");
-				}
-				destroy_message(mensaje2);
-				destroy_message(codigo);
-				break;
-
-			case GET_NEXT_ROW:
-				bloque = obtener_proximo_registro_de_archivo(codigo->stream);
-				if (bloque != NULL) {
-					mensaje2 = string_message(GET_NEXT_ROW_OK, bloque, 0);
-					log_info_interno("GET_NEXT_ROW_OK");
-
-				} else {
-					mensaje2 = id_message(GET_NEXT_ROW_ERROR);
-					log_info_interno("GET_NEXT_ROW_ERROR");
-				}
-				enviar_mensaje(sock_conexion, mensaje2);
-				destroy_message(mensaje2);
-				destroy_message(codigo);
-
-				break;
-			default:
-				log_info_interno(
-						"Mensaje incorrecto.Se esperaba GET_BLOQUE|SET_BLOQUE|GET_FILE_CONTENT| EJECUTAR_MAP| EJECUTAR_REDUCE | GET_NEXT_ROW");
-				break;
+				free(rutina_reduce);
+			} else {
+				log_error_consola(
+						"Fallo en Recibir Rutina.Se esperaba el id RUTINA.");
 			}
+			destroy_message(mensaje2);
+			destroy_message(codigo);
+			break;
 
-		} else {
-			log_error_interno("Se ha desconectado un proceso del socket %d",
-					sock_conexion);
+		case GET_NEXT_ROW:
+			bloque = obtener_proximo_registro_de_archivo(codigo->stream);
+			if (bloque != NULL) {
+				mensaje2 = string_message(GET_NEXT_ROW_OK, bloque, 0);
+				log_info_consola("GET_NEXT_ROW_OK");
 
+			} else {
+				mensaje2 = id_message(GET_NEXT_ROW_ERROR);
+				log_info_consola("GET_NEXT_ROW_ERROR");
+			}
+			enviar_mensaje(sock_conexion, mensaje2);
+			destroy_message(mensaje2);
+			destroy_message(codigo);
+
+			break;
+		default:
+			log_info_consola(
+					"Mensaje incorrecto.Se esperaba GET_BLOQUE|SET_BLOQUE|GET_FILE_CONTENT| EJECUTAR_MAP| EJECUTAR_REDUCE | GET_NEXT_ROW");
+			break;
 		}
-		break;
+
+	} else {
+		log_error_consola("Se ha desconectado un proceso del socket %d",
+				sock_conexion);
+
 	}
-	return NULL;
 }
 
 void setBloque(int numeroBloque, char* bloque_datos) {
 	//debo pararme en la posicion donde se encuentra almacenado el bloque y empezar a grabar
-	log_info_interno("Inicio setBloque(%d)", numeroBloque);
+	log_info_consola("Inicio setBloque(%d)", numeroBloque);
 	memcpy(_data + (numeroBloque * tamanio_bloque), bloque_datos,
 			tamanio_bloque);
-	log_info_interno("Fin setBloque(%d)", numeroBloque);
+	log_info_consola("Fin setBloque(%d)", numeroBloque);
 
 }
 
 char* getBloque(int numeroBloque) {
-	log_info_interno("Ini getBloque(%d)", numeroBloque);
+	log_info_consola("Ini getBloque(%d)", numeroBloque);
 	char* bloque = NULL;
 	bloque = malloc(tamanio_bloque);
 	memcpy(bloque, &(_data[numeroBloque * tamanio_bloque]), tamanio_bloque);
-	log_info_interno("Fin getBloque(%d)", numeroBloque);
+	log_info_consola("Fin getBloque(%d)", numeroBloque);
 	return bloque;
 }
 
 char* getFileContent(char* filename) {
 
-	log_info_interno("Inicio getFileContent(%s)", filename);
+	log_info_consola("Inicio getFileContent(%s)", filename);
 	char* content = NULL;
 	//creo el espacio para almacenar el archivo
 	char* path = file_combine(DIR_TEMP, filename);
@@ -381,14 +377,14 @@ char* getFileContent(char* filename) {
 	mapped = file_get_mapped(path);
 	memcpy(content, mapped, size);        //
 	file_mmap_free(mapped, path);
-	log_info_interno("Fin getFileContent(%s)", filename);
+	log_info_consola("Fin getFileContent(%s)", filename);
 	return content;
 
 }
 
 char* levantar_espacio_datos() {
 	CANT_BLOQUES = file_get_size(ARCHIVO_BIN) / tamanio_bloque;
-	log_info_interno("Levantado %s. Cantidad de bloque:%d ", ARCHIVO_BIN,
+	log_info_consola("Levantado %s. Cantidad de bloque:%d ", ARCHIVO_BIN,
 			CANT_BLOQUES);
 	return file_get_mapped(ARCHIVO_BIN);
 }
@@ -400,7 +396,7 @@ void liberar_Espacio_datos(char* _data, char* path) {
 
 t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal,
 		int numeroBloque, int mapid) {
-	log_info_interno("Inicio ejecutarMap ID:%d en el bloque %d", mapid,
+	log_info_consola("Inicio ejecutarMap ID:%d en el bloque %d", mapid,
 			numeroBloque);
 	char*bloque = NULL;
 	bloque = getBloque(numeroBloque);
@@ -409,17 +405,24 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal,
 	char* path_ejecutable = generar_nombre_rutina("map");
 	write_file(path_ejecutable, ejecutable, strlen(ejecutable));
 	chmod(path_ejecutable, S_IRWXU);
+	log_info_consola("Fin copia de ejecutable ID:%d en el bloque %d", mapid,
+			numeroBloque);
+	//log_info_consola("El bloque a mappear es: %s", bloque);
 	if (ejecutar(bloque, path_ejecutable, temporal)) {
 		return FIN_MAP_ERROR;
 	}
+	log_info_consola("Fin rutina de map ID:%d en el bloque %d", mapid,
+			numeroBloque);
 	char* data = read_whole_file(temporal);
 	if (ejecutar(data, ruta_sort, nombreArchivoFinal)) {
 		return FIN_MAP_ERROR;
 	}
+	log_info_consola("Fin rutina de sort ID:%d en el bloque %d", mapid,
+			numeroBloque);
 	list_add_archivo_tmp(nombreArchivoFinal);
 	remove(path_ejecutable);
 	remove(temporal);
-	log_info_interno("Fin ejecutarMap ID:%d en el bloque %d", mapid,
+	log_info_consola("Fin ejecutarMap ID:%d en el bloque %d", mapid,
 			numeroBloque);
 	return FIN_MAP_OK;
 
@@ -428,7 +431,7 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal,
 t_msg_id ejecutar_reduce(char*ejecutable, char* nombreArchivoFinal,
 		t_queue* colaArchivos, int id_reduce) {
 
-	log_info_interno("Inicio ejecutar Reduce ID:%d ", id_reduce);
+	log_info_consola("Inicio ejecutar Reduce ID:%d ", id_reduce);
 
 	t_list* lista_nodos;
 
@@ -450,7 +453,7 @@ t_msg_id ejecutar_reduce(char*ejecutable, char* nombreArchivoFinal,
 		return FIN_REDUCE_ERROR;
 	}
 	remove(temporal);
-	log_info_interno("Fin ejecutar Reduce ID:%d ", id_reduce);
+	log_info_consola("Fin ejecutar Reduce ID:%d ", id_reduce);
 	return FIN_REDUCE_OK;
 }
 
@@ -586,7 +589,7 @@ int apareo(char* temporal, t_list* lista_nodos_archivos) {
 	free_puntero_puntero(registros);
 	free_puntero_puntero(array_aux);
 	fclose(archivo);
-	log_info_interno("Se aparearon correctamente los archivos.");
+	log_info_consola("Se aparearon correctamente los archivos.");
 	return res;
 }
 
