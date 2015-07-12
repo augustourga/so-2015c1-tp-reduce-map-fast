@@ -92,5 +92,7 @@ int copiar_archivo_temporal_a_mdfs(char* nombre_archivo_tmp, char* archivo);
 t_list* crear_lista_nodos_operativos_duplicada(void);
 void rollback_nodos_operativos(t_list* lista_nodos_operativos_aux);
 void actualizar_nodos_operativos_en_db(void);
+void archivo_eliminar(t_archivo* archivo);
+void nodo_liberar_bloque(char* nombre_nodo, int bloque_nodo);
 
 #endif /* SRC_FILESYSTEM_H_ */

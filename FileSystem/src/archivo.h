@@ -51,7 +51,6 @@ t_archivo* archivo_crear();
 void archivo_set_nombre(t_archivo* archivo, char* nombre);
 void archivo_set_padre(t_archivo* archivo, db_recno_t padreId);
 void archivo_set_tamanio(t_archivo* archivo, int tamanio);
-void archivo_eliminar(t_archivo* archivo);
 void archivo_asignar_estado(t_archivo* archivo, bool estado);
 char* archivo_serializar(t_archivo* archivo, int* bytes_a_serializar);
 t_archivo* archivo_deserealizar(char* archivo_serializado);

@@ -1607,3 +1607,30 @@ void rollback_nodos_operativos(t_list* lista_nodos_operativos_aux) {
 void actualizar_nodos_operativos_en_db(void) {
 	list_iterate(lista_nodos_operativos, (void*) insertar_nodo);
 }
+
+void archivo_eliminar(t_archivo* archivo) {
+	int i, numero_copia;
+	pthread_rwlock_wrlock(&archivo->lock);
+	for (i = 0; i <= archivo->cantidad_bloques; i++) {
+		t_bloque bloque_actual = archivo->bloques[i];
+		for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias; numero_copia++) {
+			t_copia copia_actual = bloque_actual.copias[numero_copia];
+			nodo_liberar_bloque(copia_actual.nombre_nodo, copia_actual.bloque_nodo);
+		}
+		free(bloque_actual.copias);
+	}
+	free(archivo->nombre);
+	free(archivo->bloques);
+	pthread_rwlock_unlock(&archivo->lock);
+	free(archivo);
+}
+
+void nodo_liberar_bloque(char* nombre_nodo, int bloque_nodo) {
+	t_nodo* nodo = nodo_aceptado_por_nombre(nombre_nodo);
+	if (nodo != NULL) {
+		pthread_rwlock_wrlock(&nodo->lock);
+		nodo->bloques[bloque_nodo] = 0;
+		nodo->cantidad_bloques_libres++;
+		pthread_rwlock_unlock(&nodo->lock);
+	}
+}

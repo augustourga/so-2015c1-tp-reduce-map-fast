@@ -23,11 +23,6 @@ void archivo_set_tamanio(t_archivo* archivo, int tamanio) {
 	archivo->tamanio = tamanio;
 }
 
-void archivo_eliminar(t_archivo* archivo) {
-	free(archivo->bloques);
-	free(archivo);
-}
-
 void archivo_asignar_estado(t_archivo* archivo, bool estado) {
 	archivo->disponible = estado;
 }
