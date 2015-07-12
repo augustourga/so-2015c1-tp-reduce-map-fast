@@ -28,7 +28,7 @@
 
 /******************Constantes********************/
 #define PATH_CONFIG "files/NODO_CONFIG.config"
-#define LOG_FILE "files/NODO_LOG.txt"
+#define LOG_FILE "files/log"
 #define PROCESO "Nodo"
 #define BUFF_SIZE 1024
 #define DISCO "files/miarchivo.bin"
