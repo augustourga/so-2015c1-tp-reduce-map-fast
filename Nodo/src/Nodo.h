@@ -25,6 +25,7 @@
 #include <utiles/files.h>
 #include <utiles/log.h>
 #include "ejecuta_script.h"
+#include <semaphore.h>
 
 /******************Constantes********************/
 #define PATH_CONFIG "files/NODO_CONFIG.config"
