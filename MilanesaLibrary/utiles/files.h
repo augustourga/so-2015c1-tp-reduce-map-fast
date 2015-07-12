@@ -19,6 +19,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include "log.h"
 
 #define handle_error(msj) \
 	do{perror(msj);exit(EXIT_FAILURE);} while(0)

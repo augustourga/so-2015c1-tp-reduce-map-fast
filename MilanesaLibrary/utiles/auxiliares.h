@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <commons/string.h>
+#include "log.h"
 
 /* Funciones Macro */
 
