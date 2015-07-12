@@ -1,6 +1,7 @@
 #include "server.h"
 
 extern pthread_mutex_t mutex_args;
+// TODO: ver de cambiar por un semaforo por socket o nodo
 pthread_mutex_t mutex_set_bloque = PTHREAD_MUTEX_INITIALIZER;
 
 void iniciar_server(void* argumentos) {
@@ -88,7 +89,7 @@ void iniciar_server(void* argumentos) {
 }
 
 void decodificar_mensaje(t_msg* mensaje, int socket) {
-	extern int filesystem_operativo;
+	extern bool filesystem_operativo;
 	int res;
 	log_debug_interno("Mensaje %s recibido y decodificandolo",
 			id_string(mensaje->header.id));
