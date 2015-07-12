@@ -31,7 +31,7 @@ int ejecuta_map(char* data, char* path_ejecutable, char* path_salida) {
 
 		//Duplica stdin al lado de lectura in y stdout y stdeer al lado de escritura out
 		dup2(in[0], 0);
-		freopen(path_salida, "w", stdout);
+		freopen(path_salida, "w+", stdout);
 
 		//Cierra los pipes que se usan en el padre
 		close(in[1]);
