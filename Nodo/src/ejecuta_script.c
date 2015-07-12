@@ -77,9 +77,9 @@ int ejecuta_map(char* data, char* path_ejecutable, char* path_salida) {
 		total += enviado;
 		pendiente -= enviado;
 	}
-
 	//Se cierra para generar un EOF y que el proceso hijo termine de leer de stdin
-	close(in[1]);
+	close(out[1]);
+
 	free(data);
 	int status;
 	waitpid(pid_sort, &status, 0);
