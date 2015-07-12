@@ -16,7 +16,9 @@ int ejecutar(char* data, char* path_ejecutable, char* path_salida) {
 		return -1;
 	}
 
-	if (!fork()) {
+	pid_t pid = fork();
+
+	if (!pid) {
 		//Fork devuelve 0 en el hijo y el pid del hijo en el padre, así que acá estoy en el hijo.
 
 		//Cierra stdin stdout y stdeer
@@ -24,7 +26,7 @@ int ejecutar(char* data, char* path_ejecutable, char* path_salida) {
 
 		//Duplica stdin al lado de lectura in y stdout y stdeer al lado de escritura out
 		dup2(in[0], 0);
-		FILE* temp_file = freopen(path_salida, "w", stdout);
+		freopen(path_salida, "w", stdout);
 
 		//Cierra los pipes que se usan en el padre
 		close(in[1]);
@@ -50,19 +52,28 @@ int ejecutar(char* data, char* path_ejecutable, char* path_salida) {
 	//Se cierra para generar un EOF y que el proceso hijo termine de leer de stdin
 	close(in[1]);
 	free(data);
-	wait(NULL);
+	waitpid(pid, NULL, 0);
+	FILE* temp_file = fopen(path_salida, "r");
+	fclose(temp_file);
 	return 0;
 }
-char* generar_nombre_rutina(char*map_o_reduce) {
+char* generar_nombre_rutina(int map_id, char*map_o_reduce, int numeroBloque) {
 	char* file_map1 = string_new();
+		string_append(&file_map1, "rutina_");
 
-	string_append(&file_map1, map_o_reduce);
-	string_append(&file_map1, "_");
-	char* timenow = temporal_get_string_time();
-	string_append(&file_map1, timenow);
-	free(timenow);
-	string_append(&file_map1, ".sh");
-	return file_map1;
+		char str[15];
+
+		sprintf(str, "%d", map_id);
+		string_append(&file_map1, str);
+		string_append(&file_map1, "_");
+
+		string_append(&file_map1, map_o_reduce);
+		string_append(&file_map1, "_");
+		sprintf(str, "%d", numeroBloque);
+		string_append(&file_map1, str);
+
+		string_append(&file_map1, ".txt");
+		return file_map1;
 }
 
 char* generar_nombre_temporal(int map_id, char*map, int numeroBloque) {
