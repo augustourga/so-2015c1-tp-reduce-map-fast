@@ -1,6 +1,7 @@
 #include "server.h"
 
 extern pthread_mutex_t mutex_args;
+pthread_mutex_t mutex_set_bloque = PTHREAD_MUTEX_INITIALIZER;
 
 void iniciar_server(void* argumentos) {
 
@@ -206,6 +207,7 @@ void* mensaje_get_bloque(void* argumentos) {
 }
 
 int mensaje_set_bloque(void* argumentos) {
+	pthread_mutex_lock(&mutex_set_bloque);
 	struct arg_set_bloque* args = argumentos;
 	log_info_interno("Empieza set_bloque del bloque %d", args->bloque_nodo);
 	int res;
@@ -218,7 +220,12 @@ int mensaje_set_bloque(void* argumentos) {
 		log_error_consola(
 				"Mensaje set_bloque fallo por desconexion del nodo, socket: %d",
 				socket);
-		desconexion_nodo(socket);
+		destroy_message(msg_solicitud);
+		free(args->chunk);
+		free(args);
+		pthread_mutex_unlock(&mutex_args);
+//		desconexion_nodo(socket);
+		pthread_mutex_unlock(&mutex_set_bloque);
 		return 1;
 	}
 	destroy_message(msg_solicitud);
@@ -230,17 +237,20 @@ int mensaje_set_bloque(void* argumentos) {
 		log_error_consola(
 				"Mensaje set_bloque fallo porque el nodo no respondió OK, se asume desconexion del nodo, socket: %d",
 				socket);
-		desconexion_nodo(socket);
+//		desconexion_nodo(socket);
+		pthread_mutex_unlock(&mutex_set_bloque);
 		return 1;
 	}
 
 	switch (respuesta->header.id) {
 	case SET_BLOQUE_OK:
 		log_info_interno("Terminó set_bloque OK del bloque: %d", args->bloque_nodo);
+		pthread_mutex_unlock(&mutex_set_bloque);
 		return 0;
 		break;
 	default:
 		log_error_consola("Respuesta Incorrecta del set_bloque: %d", args->bloque_nodo);
+		pthread_mutex_unlock(&mutex_set_bloque);
 		return 1;
 	}
 }

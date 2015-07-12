@@ -36,5 +36,7 @@ t_nodo* nodo_deserealizar_db(char* nodo_serializado);
 void log_info_nodo_conectado_aceptado(t_nodo* nodo);
 void log_info_nodo_conectado_nuevo(t_nodo* nodo);
 void log_info_nodo_desconectado(t_nodo* nodo);
+void nodo_set_cantidad_bloques_libres(t_nodo* nodo, int cant_bloques);
+void nodo_set_nombre(t_nodo* nodo, char* nombre);
 
 #endif /* SRC_NODO_H_ */

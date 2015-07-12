@@ -257,12 +257,18 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 	t_nodo* nodo_actual;
 	pthread_t th_set[cantidad_bloques][3];
 	struct arg_set_bloque* args[cantidad_bloques][3];
+	t_list* lista_nodos_operativos_aux = crear_lista_nodos_operativos_duplicada();
+
 	for (numero_bloque = 0; numero_bloque < cantidad_bloques; numero_bloque++) {
 		t_nodo* nodos[3];
 		int bloques_disponibles[3];
 		if (proximos_nodos_disponibles(nodos, bloques_disponibles)) {
 			log_error_consola("No hay suficientes nodos disponibles");
 			pthread_rwlock_unlock(&directorio_padre->lock);
+			archivo_eliminar(archivo_nuevo);
+			free(chunks);
+			rollback_nodos_operativos(lista_nodos_operativos_aux);
+			list_clean_and_destroy_elements(lista_nodos_operativos_aux, (void*)nodo_eliminar);
 			return 1;
 		}
 		int redundancia;
@@ -274,10 +280,8 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 			strcpy(archivo_nuevo->bloques[numero_bloque].copias[redundancia].nombre_nodo, nodo_actual->nombre);
 			int bloque_nodo = bloques_disponibles[redundancia];
 			archivo_nuevo->bloques[numero_bloque].copias[redundancia].bloque_nodo = bloque_nodo;
-			archivo_nuevo->bloques[numero_bloque].copias[redundancia].conectado =
-			true;
+			archivo_nuevo->bloques[numero_bloque].copias[redundancia].conectado = true;
 			archivo_nuevo->bloques[numero_bloque].copias[redundancia].tamanio_bloque = chunks[numero_bloque].tamanio;
-			insertar_nodo(nodo_actual);
 			pthread_rwlock_unlock(&(nodo_actual->lock));
 
 			pthread_mutex_lock(&mutex_args);
@@ -292,11 +296,27 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 
 	for (numero_bloque = 0; numero_bloque < cantidad_bloques; numero_bloque++) {
 		int redundancia;
+		int res = 0;
 		for (redundancia = 0; redundancia < 3; redundancia++) {
-			pthread_join(th_set[numero_bloque][redundancia], NULL);
+			int int_aux;
+			pthread_join(th_set[numero_bloque][redundancia], (void**) &int_aux);
+			if (int_aux == 1) {
+				res = 1;
+			}
+		}
+		if (res == 1) {
+			log_error_consola("No pudo copiarse el archivo por la desconexion de un nodo");
+			pthread_rwlock_unlock(&directorio_padre->lock);
+			archivo_eliminar(archivo_nuevo);
+			free(chunks);
+			rollback_nodos_operativos(lista_nodos_operativos_aux);
+			list_clean_and_destroy_elements(lista_nodos_operativos_aux, (void*)nodo_eliminar);
+			return 1;
 		}
 	}
+	list_clean_and_destroy_elements(lista_nodos_operativos_aux, (void*)nodo_eliminar);
 
+	actualizar_nodos_operativos_en_db();
 	archivo_asignar_estado(archivo_nuevo, true);
 
 	munmap(map, archivo_size);
@@ -1538,4 +1558,47 @@ int copiar_archivo_temporal_a_mdfs(char* nombre_archivo_tmp, char* archivo) {
 		rename(ruta, nombre_nuevo);
 	}
 	return resultado;
+}
+
+t_list* crear_lista_nodos_operativos_duplicada(void) {
+	t_list* lista_nodos_operativos_aux = list_create();
+
+	void _duplicar_nodos(t_nodo* nodo) {
+		int i;
+		t_nodo* nodo_aux = nodo_crear();
+		nodo_set_nombre(nodo_aux, nodo->nombre);
+		nodo_set_cantidad_bloques_libres(nodo_aux, nodo->cantidad_bloques_libres);
+		nodo_aux->bloques = malloc(nodo->cantidad_bloques_totales * sizeof(int));
+		for (i = 0; i < nodo->cantidad_bloques_totales; i++) {
+			nodo_aux->bloques[i] = nodo->bloques[i];
+		}
+		list_add(lista_nodos_operativos_aux, nodo_aux);
+	}
+
+	list_iterate(lista_nodos_operativos, (void*) _duplicar_nodos);
+	return lista_nodos_operativos_aux;
+}
+
+void rollback_nodos_operativos(t_list* lista_nodos_operativos_aux) {
+
+	void _recuperar_datos_nodos(t_nodo* nodo) {
+
+		bool _nodo_por_nombre(t_nodo* nodo_actual) {
+			return string_equals_ignore_case(nodo_actual->nombre, nodo->nombre);
+		}
+		int i;
+		t_nodo* nodo_aux = list_find(lista_nodos_operativos_aux, (void*) _nodo_por_nombre);
+		nodo_set_cantidad_bloques_libres(nodo, nodo_aux->cantidad_bloques_libres);
+		for (i = 0; i < nodo->cantidad_bloques_totales; i++) {
+			nodo->bloques[i] = nodo_aux->bloques[i];
+		}
+	}
+	// esto se hace en ambas listas, ya que si un nodo se desconectó y se esta haciendo rollback
+	// no va a estar entre los nodos operativos su data, y en la lista de aceptados no va a ser correcta la info
+	list_iterate(lista_nodos_operativos, (void*) _recuperar_datos_nodos);
+	list_iterate(lista_nodos_aceptados, (void*) _recuperar_datos_nodos);
+}
+
+void actualizar_nodos_operativos_en_db(void) {
+	list_iterate(lista_nodos_operativos, (void*) insertar_nodo);
 }

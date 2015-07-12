@@ -26,7 +26,6 @@ struct arg_struct {
 #include <utiles/messages.h>
 #include <utiles/sockets.h>
 
-
 #define PACKAGESIZE 1024	// Define cual va a ser el size maximo del paquete a enviar
 
 struct arg_get_bloque {
