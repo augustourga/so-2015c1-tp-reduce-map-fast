@@ -38,7 +38,7 @@ void nodo_set_cantidad_bloques_libres(t_nodo* nodo, int cant_bloques) {
 int nodo_bloque_disponible(t_nodo* nodo) {
 	int numero_bloque = 0;
 
-	while (nodo->bloques[numero_bloque] == 1) {
+	while ((nodo->bloques[numero_bloque] == 1) && (numero_bloque < nodo->cantidad_bloques_totales)) {
 		numero_bloque++;
 	}
 	return numero_bloque;
