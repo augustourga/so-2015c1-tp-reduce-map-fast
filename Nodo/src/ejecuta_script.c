@@ -26,18 +26,18 @@ int ejecuta_map(char* data, char* path_ejecutable, char* path_salida) {
 	if (!pid_sort) {
 		//Fork devuelve 0 en el hijo y el pid del hijo en el padre, así que acá estoy en el hijo.
 
-		//Cierra stdin stdout y stdeer
-		close(0);
-
 		//Duplica stdin al lado de lectura in y stdout y stdeer al lado de escritura out
 		dup2(in[0], 0);
-		freopen(path_salida, "w", stdout);
+		freopen(path_salida, "w+", stdout);
 
 		//Cierra los pipes que se usan en el padre
 		close(in[1]);
+		close(in[0]);
+		close(out[1]);
+		close(out[0]);
 
 		//La imagen del proceso hijo se reemplaza con la del path_ejecutable
-		execl("usr/bin/sort", "usr/bin/sort", NULL);
+		execlp("/usr/bin/sort", "/usr/bin/sort", NULL);
 		//On success acá nunca llega porque la imágen (incluido el código) se reemplazó en la lina anterior
 		error("No se pudo ejecutar el proceso");
 		return -1;
@@ -48,17 +48,16 @@ int ejecuta_map(char* data, char* path_ejecutable, char* path_salida) {
 	if (!pid_map) {
 		//Fork devuelve 0 en el hijo y el pid del hijo en el padre, así que acá estoy en el hijo.
 
-		//Cierra stdin stdout y stdeer
-		close(0);
-		close(1);
-
 		//Duplica stdin al lado de lectura in y stdout y stdeer al lado de escritura out
 		dup2(out[0], 0);
 		dup2(in[1], 1);
 
 		//Cierra los pipes que se usan en el padre
 		close(in[1]);
+		close(in[0]);
+		close(out[1]);
 		close(out[0]);
+
 
 		//La imagen del proceso hijo se reemplaza con la del path_ejecutable
 		execl(path_ejecutable, path_ejecutable, NULL);
@@ -68,24 +67,27 @@ int ejecuta_map(char* data, char* path_ejecutable, char* path_salida) {
 	}
 
 	//Cierra los lados de los pipes que se usan en el hijo
+	close(out[0]);
+	close(in[1]);
 	close(in[0]);
 	int total = 0;
 	int pendiente = size;
+
 	//Escribe en el lado de escritura del pipe que el proceso hijo va a ver como stdin
 	while (total < pendiente) {
 		int enviado = write(out[1], data, pendiente);
 		total += enviado;
 		pendiente -= enviado;
 	}
-
 	//Se cierra para generar un EOF y que el proceso hijo termine de leer de stdin
-	close(in[1]);
+	close(out[1]);
+
 	free(data);
 	int status;
 	waitpid(pid_sort, &status, 0);
 	FILE* temp_file = fopen(path_salida, "r");
 	fclose(temp_file);
-	return WEXITSTATUS(status);
+	return 0;
 }
 
 int ejecuta_reduce(char* data, char* path_ejecutable, char* path_salida) {

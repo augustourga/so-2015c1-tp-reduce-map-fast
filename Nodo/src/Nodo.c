@@ -392,14 +392,14 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal, int numeroBloqu
 //	sem_t sema_fin_map;
 //	sem_init(&sema_fin_map,0,0);
 	bloque = getBloque(numeroBloque);
-	char* temporal = generar_nombre_temporal(mapid, "map", numeroBloque);
+	//char* temporal = generar_nombre_temporal(mapid, "map", numeroBloque);
 	//char*ruta_sort = "/usr/bin/sort";
 	char* path_ejecutable = generar_nombre_rutina(mapid, "map", numeroBloque);
 	write_file(path_ejecutable, ejecutable, strlen(ejecutable));
 	chmod(path_ejecutable, S_IRWXU);
 	log_info_consola("Fin copia de ejecutable ID:%d en el bloque %d", mapid, numeroBloque);
 	//log_info_consola("El bloque a mappear es: %s", bloque);
-	if (ejecuta_map(bloque, path_ejecutable, temporal)) {
+	if (ejecuta_map(bloque, path_ejecutable, nombreArchivoFinal)) {
 		return FIN_MAP_ERROR;
 	}
 
