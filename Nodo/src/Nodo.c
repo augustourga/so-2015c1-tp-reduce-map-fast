@@ -419,6 +419,7 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal,
 	}
 	log_info_consola("Fin rutina de map ID:%d en el bloque %d", mapid,
 			numeroBloque);
+	sleep(5);
 	char* data = read_whole_file(temporal);
 	if (ejecutar(data, ruta_sort, nombreArchivoFinal)) {
 		return FIN_MAP_ERROR;
