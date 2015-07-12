@@ -17,6 +17,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include "log.h"
 
 /****************** FUNCIONES SOCKET. ******************/
 
