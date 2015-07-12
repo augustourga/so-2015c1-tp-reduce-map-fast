@@ -75,6 +75,7 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 		if (select(fdmax + 1, &read_fds, NULL, NULL, NULL) == -1) {
 			log_error_consola("Falló el select");
 			perror("Falló el select. Error");
+			exit(1);
 		}
 
 		char*bloque = NULL;
@@ -128,6 +129,8 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 						}
 					} else {
 						log_error_consola("Se ha desconectado el File System");
+						shutdown(socket_actual, 2);
+						close(socket_actual);
 						exit(1);
 					}
 				}
@@ -159,6 +162,7 @@ void levantarNuevoServer() {
 		if (select(fdmax + 1, &read_fds, NULL, NULL, NULL) == -1) {
 			log_error_consola("Falló el select");
 			perror("Falló el select. Error");
+			exit(1);
 		}
 
 		for (socket_actual = 0; socket_actual <= fdmax; socket_actual++) {
@@ -345,6 +349,8 @@ void atenderConexiones(void *parametro) {
 				sock_conexion);
 
 	}
+	shutdown(sock_conexion, 2);
+	close(sock_conexion);
 }
 
 void setBloque(int numeroBloque, char* bloque_datos) {
@@ -402,7 +408,7 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal,
 	bloque = getBloque(numeroBloque);
 	char* temporal = generar_nombre_temporal(mapid, "map", numeroBloque);
 	char*ruta_sort = "/usr/bin/sort";
-	char* path_ejecutable = generar_nombre_rutina("map");
+	char* path_ejecutable = generar_nombre_rutina(mapid, "map", numeroBloque);
 	write_file(path_ejecutable, ejecutable, strlen(ejecutable));
 	chmod(path_ejecutable, S_IRWXU);
 	log_info_consola("Fin copia de ejecutable ID:%d en el bloque %d", mapid,
@@ -420,8 +426,8 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal,
 	log_info_consola("Fin rutina de sort ID:%d en el bloque %d", mapid,
 			numeroBloque);
 	list_add_archivo_tmp(nombreArchivoFinal);
-	remove(path_ejecutable);
-	remove(temporal);
+	//remove(path_ejecutable);
+	//remove(temporal);
 	log_info_consola("Fin ejecutarMap ID:%d en el bloque %d", mapid,
 			numeroBloque);
 	return FIN_MAP_OK;
@@ -435,7 +441,7 @@ t_msg_id ejecutar_reduce(char*ejecutable, char* nombreArchivoFinal,
 
 	t_list* lista_nodos;
 
-	char* path_ejecutable = generar_nombre_rutina("reduce");
+	char* path_ejecutable = generar_nombre_rutina(id_reduce, "reduce", 667);
 	write_file(path_ejecutable, ejecutable, strlen(ejecutable));
 	chmod(path_ejecutable, S_IRWXU);
 	char*temporal = generar_nombre_temporal(id_reduce, "reduce", 667);
@@ -444,7 +450,7 @@ t_msg_id ejecutar_reduce(char*ejecutable, char* nombreArchivoFinal,
 	int res;
 	res = apareo(temporal, lista_nodos);
 	if (res == -1) {
-		remove(temporal);
+		//remove(temporal);
 		return FIN_REDUCE_ERROR;
 	}
 	char* data = read_whole_file(temporal);
@@ -452,7 +458,7 @@ t_msg_id ejecutar_reduce(char*ejecutable, char* nombreArchivoFinal,
 		remove(temporal);
 		return FIN_REDUCE_ERROR;
 	}
-	remove(temporal);
+	//remove(temporal);
 	log_info_consola("Fin ejecutar Reduce ID:%d ", id_reduce);
 	return FIN_REDUCE_OK;
 }
