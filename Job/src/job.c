@@ -120,6 +120,7 @@ void esperarTareas() {
 						params->id_operacion = mensaje_actual->argv[1];
 						params->bloque = mensaje_actual->argv[2];
 						levantarHiloMapper(params);
+						usleep(30000);
 					}
 
 					if (mensaje_actual->header.id == MDFS_NO_OPERATIVO) {
