@@ -196,7 +196,7 @@ int hiloReduce(void* dato) {
 	sumar_hilo();
 	t_msg* mensaje;
 	t_msg* mensaje_respuesta;
-	int ret;
+	int res=0;
 	int i;
 	t_params_hiloReduce* args = (t_params_hiloReduce*) dato;
 	int nodo_sock = client_socket(args->ip, args->puerto);
@@ -209,24 +209,31 @@ int hiloReduce(void* dato) {
 		log_debug_consola("Se conectó al proceso %s - IP: %s - Puerto: %d", args->nombre_nodo, args->ip, args->puerto);
 
 		mensaje = string_message(EJECUTAR_REDUCE, args->archivo_final, 1, args->id_operacion);
-
 		log_debug_interno("Enviando mensaje de solicitud de reduce. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id),
 				mensaje->header.argc, mensaje->header.length);
 
-		ret = enviar_mensaje(nodo_sock, mensaje);
-
+		res = enviar_mensaje(nodo_sock, mensaje);
+		if (res == -1) {
+						log_error_consola("Fallo envio mensaje EJECUTAR_REDUCE");
+					}
 		mensaje = string_message(RUTINA, configuracion->reduce, 0);
 
 		log_debug_interno("Enviando mensaje rutina. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id), mensaje->header.argc,
 				mensaje->header.length);
 
-		ret = enviar_mensaje(nodo_sock, mensaje);
+		res = enviar_mensaje(nodo_sock, mensaje);
+		if (res == -1) {
+							log_error_consola("Fallo envio mensaje RUTINA");
+						}
 
 		for (i = 0; i < args->archivos_tmp->elements->elements_count; i++) {
 			mensaje = queue_pop(args->archivos_tmp);
 			log_debug_interno("Enviando mensaje archivos de reduce. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id),
 					mensaje->header.argc, mensaje->header.length);
-			ret = enviar_mensaje(nodo_sock, mensaje);
+			res = enviar_mensaje(nodo_sock, mensaje);
+			if (res == -1) {
+								log_error_consola("Fallo envio mensaje ARCHIVOS_NODOS_REDUCE");
+							}
 		}
 
 		mensaje = id_message(FIN_ENVIO_MENSAJE);
@@ -234,7 +241,10 @@ int hiloReduce(void* dato) {
 		log_debug_interno("Enviando mensaje fin de Mensaje. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id), mensaje->header.argc,
 				mensaje->header.length);
 
-		ret = enviar_mensaje(nodo_sock, mensaje);
+		res = enviar_mensaje(nodo_sock, mensaje);
+		if (res == -1) {
+							log_error_consola("Fallo envio mensaje FIN_ENVIO_MENSAJE");
+						}
 
 		mensaje = recibir_mensaje(nodo_sock);
 
@@ -251,9 +261,9 @@ int hiloReduce(void* dato) {
 	log_debug_interno("Enviando mensaje respuesta a MaRTA. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje_respuesta->header.id),
 			mensaje_respuesta->header.argc, mensaje_respuesta->header.length);
 
-	ret = enviar_mensaje(marta_sock, mensaje_respuesta);
-	if (ret != 0) {
-		log_error_consola("fallo envio de mensaje");
+	res = enviar_mensaje(marta_sock, mensaje_respuesta);
+	if (res != 0) {
+		log_error_consola("fallo mensaje respuesta a MaRTA");
 	}
 	destroy_message(mensaje_respuesta);
 	destroy_message(mensaje);
