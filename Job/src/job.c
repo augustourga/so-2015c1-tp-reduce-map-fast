@@ -226,7 +226,8 @@ int hiloReduce(void* dato) {
 			log_error_consola("Fallo envio mensaje RUTINA");
 		}
 
-		for (i = 0; i < args->archivos_tmp->elements->elements_count; i++) {
+		int cant_elementos = queue_size(args->archivos_tmp);
+		for (i = 0; i < cant_elementos; i++) {
 			mensaje = queue_pop(args->archivos_tmp);
 			log_debug_interno("Enviando mensaje archivos de reduce. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id),
 					mensaje->header.argc, mensaje->header.length);
