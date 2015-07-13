@@ -405,7 +405,7 @@ char* getFileContent(char* filename) {
 	mapped = file_get_mapped(path);
 	memcpy(content, mapped, size);        //
 	file_mmap_free(mapped, path);
-	log_info_consola("Fin getFileContent(%s)", filename);
+	log_info_consola("Fin getFileContent(%s)", path);
 	return content;
 
 }
@@ -526,8 +526,7 @@ int apareo(char* temporal, t_list* lista_nodos_archivos) {
 	char* registro_actual = string_new();
 	char* aux_string;
 
-	char* ruta = file_combine(DIR_TEMP, temporal);
-	FILE* archivo = fopen(ruta, "a");
+	FILE* archivo = fopen(temporal, "a");
 
 	int cantidad_nodos_archivos = list_size(lista_nodos_archivos);
 	t_nodo_archivo* elem = (t_nodo_archivo*) malloc(sizeof(t_nodo_archivo));
@@ -592,7 +591,7 @@ int apareo(char* temporal, t_list* lista_nodos_archivos) {
 
 	free(registro_actual);
 	free(aux_string);
-	free(ruta);
+	free(temporal);
 	free_puntero_puntero(registros);
 	fclose(archivo);
 	log_info_consola("Se aparearon correctamente los archivos.");
@@ -636,12 +635,15 @@ int obtener_posicion_menor_clave(char** registros, int cantidad_nodos_archivos) 
 }
 
 char* obtener_proximo_registro_de_archivo(char* archivo) {
-	fpos_t* posicion_puntero = obtener_posicion_puntero_arch_tmp(archivo);
+	log_info_consola("Obteniendo proximo registro de archivo");
+	char* path = file_combine(DIR_TEMP, archivo);
+	fpos_t* posicion_puntero = obtener_posicion_puntero_arch_tmp(path);
 	int bytes_read;
 	size_t buffer_size = 100;
 	char* linea = (char *) calloc(1, buffer_size);
 
-	FILE* file = fopen(archivo, "r");
+
+	FILE* file = fopen(path, "r");
 	if (file != NULL) {
 		if (posicion_puntero != NULL) {
 			fsetpos(file, posicion_puntero);
@@ -652,7 +654,7 @@ char* obtener_proximo_registro_de_archivo(char* archivo) {
 		} else {
 			posicion_puntero = malloc(sizeof(fpos_t));
 			fgetpos(file, posicion_puntero);
-			actualizar_posicion_puntero_arch_tmp(archivo, posicion_puntero);
+			actualizar_posicion_puntero_arch_tmp(path, posicion_puntero);
 		}
 		fclose(file);
 	} else {
