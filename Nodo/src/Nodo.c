@@ -517,99 +517,79 @@ t_list* deserealizar_cola(t_queue* colaArchivos) {
 
 int apareo(char* temporal, t_list* lista_nodos_archivos) {
 	char** registros = malloc(sizeof(int));
-	int i, pos, valor_actual_1, valor_actual_2;
+	int i, pos;
 	int res = 0;
-	char* clave_actual_1 = string_new();
-	char* clave_actual_2 = string_new();
-	char* registro_actual_1 = string_new();
-	char* registro_actual_2 = string_new();
+	char* registro_actual = string_new();
 	char* aux_string;
 
 	char* ruta = file_combine(DIR_TEMP, temporal);
 	FILE* archivo = fopen(ruta, "a");
 
-	// Obtengo el primer registro de cada archivo
 	int cantidad_nodos_archivos = list_size(lista_nodos_archivos);
 	t_nodo_archivo* elem = (t_nodo_archivo*) malloc(sizeof(t_nodo_archivo));
-	for (i = 0; i < cantidad_nodos_archivos; i++) {
-		elem = (t_nodo_archivo *) list_get(lista_nodos_archivos, i);
-		aux_string = obtener_proximo_registro(elem);
-		if (string_equals_ignore_case(aux_string, "error.rmf")) {
+
+	// Aca se fija si es un solo archivo para aparear o si son varios
+	if (cantidad_nodos_archivos == 1) {
+		int bytes_read;
+		size_t buffer_size = 100;
+		char* linea = (char *) calloc(1, buffer_size);
+
+		elem = (t_nodo_archivo *) list_get(lista_nodos_archivos, 0);
+		FILE* file = fopen(elem->archivo, "r");
+		if (file != NULL) {
+			bytes_read = getline(&linea, &buffer_size, file);
+			while (bytes_read != -1) {
+				// TODO: Esto se cambiaria por un write para no usar el archivo temporal
+				fputs(linea, archivo);
+			}
+			free(linea);
+		} else {
+			log_error_consola("No pudo abrirse el archivo a aparear, con nombre: %s", elem->archivo);
+			free(linea);
 			res = -1;
 			return res;
-		} else {
-			registros[i] = aux_string;
 		}
-	}
-
-	pos = obtener_posicion_menor_clave(registros, cantidad_nodos_archivos);
-	strcpy(registro_actual_1, registros[pos]);
-	elem = (t_nodo_archivo *) list_get(lista_nodos_archivos, pos);
-	aux_string = obtener_proximo_registro(elem);
-	if (string_equals_ignore_case(aux_string, "error.rmf")) {
-		res = -1;
-		return res;
 	} else {
-		registros[pos] = aux_string;
-	}
-	char** array_aux = string_n_split(registro_actual_1, 2, ";");
-	strcpy(clave_actual_1, array_aux[0]);
-	valor_actual_1 = atoi(array_aux[1]);
-
-	pos = obtener_posicion_menor_clave(registros, cantidad_nodos_archivos); // esta pos se obtiene para ya tener un 2do valor antes de entrar al while
-	// obtener_posicion_menor_clave devuelve -1 una vez que en el array ya son todos campos nulos u EOF
-	while (pos != -1) {
-		strcpy(registro_actual_2, registros[pos]);
-		elem = (t_nodo_archivo *) list_get(lista_nodos_archivos, pos);
-		aux_string = obtener_proximo_registro(elem);
-		if (string_equals_ignore_case(aux_string, "error.rmf")) {
-			res = -1;
-			return res;
-		} else {
-			registros[pos] = aux_string;
+		// Obtengo el primer registro de cada archivo
+		for (i = 0; i < cantidad_nodos_archivos; i++) {
+			elem = (t_nodo_archivo *) list_get(lista_nodos_archivos, i);
+			aux_string = obtener_proximo_registro(elem);
+			if (string_equals_ignore_case(aux_string, "error.rmf.GrupoMilanesa.tp")) {
+				res = -1;
+				return res;
+			} else {
+				registros[i] = string_duplicate(aux_string);
+			}
 		}
-		array_aux = string_n_split(registro_actual_2, 2, ";");
-		strcpy(clave_actual_2, array_aux[0]);
-		valor_actual_2 = atoi(array_aux[1]);
 
-		if (strcmp(clave_actual_1, clave_actual_2) == 0) {
-			valor_actual_1 = valor_actual_1 + valor_actual_2;
-		} else {
-			string_append(&clave_actual_1, ";");
-			string_append(&clave_actual_1, string_itoa(valor_actual_1));
-			string_append(&clave_actual_1, "\n");
+		pos = obtener_posicion_menor_clave(registros, cantidad_nodos_archivos);
+		// obtener_posicion_menor_clave devuelve -1 una vez que en el array ya son todos campos nulos u EOF
+		while (pos != -1) {
+			strcpy(registro_actual, registros[pos]);
+			elem = (t_nodo_archivo *) list_get(lista_nodos_archivos, pos);
+			aux_string = obtener_proximo_registro(elem);
+			if (string_equals_ignore_case(aux_string, "error.rmf.GrupoMilanesa.tp")) {
+				res = -1;
+				return res;
+			} else {
+				registros[pos] = string_duplicate(aux_string);
+			}
 			if (archivo != NULL) {
-				fputs(clave_actual_1, archivo);
+				// TODO: Esto se cambiaria por un write para no usar el archivo temporal
+				fputs(registro_actual, archivo);
 			} else {
 				log_error_consola("No se pudo acceder al archivo temporal para guardar data de apareamiento");
 				res = -1;
 				return res;
 			}
-			strcpy(clave_actual_1, clave_actual_2);
-			valor_actual_1 = valor_actual_2;
+			pos = obtener_posicion_menor_clave(registros, cantidad_nodos_archivos);
 		}
-		pos = obtener_posicion_menor_clave(registros, cantidad_nodos_archivos);
 	}
 
-	// guardo en el archivo el ultimo registro con el que estaba trabajando para no perderlo
-	string_append(&clave_actual_1, ";");
-	string_append(&clave_actual_1, string_itoa(valor_actual_1));
-	string_append(&clave_actual_1, "\n");
-	if (archivo != NULL) {
-		fputs(clave_actual_1, archivo);
-	} else {
-		log_error_consola("No se pudo acceder al archivo temporal para guardar data de apareamiento");
-		res = -1;
-		return res;
-	}
-	free(clave_actual_1);
-	free(clave_actual_2);
-	free(registro_actual_1);
-	free(registro_actual_2);
+	free(registro_actual);
 	free(aux_string);
 	free(ruta);
 	free_puntero_puntero(registros);
-	free_puntero_puntero(array_aux);
 	fclose(archivo);
 	log_info_consola("Se aparearon correctamente los archivos.");
 	return res;
@@ -641,7 +621,7 @@ int obtener_posicion_menor_clave(char** registros, int cantidad_nodos_archivos) 
 			aux = strcmp(clave_1, clave_2);
 			if (aux > 0) {
 				pos = i;
-				strcpy(clave_1, clave_2);
+				clave_1 = string_duplicate(clave_2);
 			}
 		}
 	} else {
@@ -685,7 +665,7 @@ char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
 	socket_tmp = client_socket(nodo_archivo->ip, nodo_archivo->puerto);
 	if (socket_tmp < 0) {
 		log_error_consola("No se pudo establecer conexion con el otro nodo para aparear");
-		strcpy(resultado, "error.rmf");
+		resultado = string_duplicate("error.rmf.GrupoMilanesa.tp");
 		return resultado;
 	}
 	t_msg* msg = string_message(GET_NEXT_ROW, nodo_archivo->archivo, 0);
@@ -696,14 +676,14 @@ char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
 	msg = recibir_mensaje(socket_tmp);
 	if (msg) {
 		if (msg->header.id == GET_NEXT_ROW_OK) {
-			strcpy(resultado, msg->stream);
+			resultado = string_duplicate(msg->stream);
 		}
 		if (msg->header.id == GET_NEXT_ROW_ERROR) {
 			log_error_consola("El nodo no devolvio el proximo registro. Devolvio ERROR.");
 		}
 	} else {
 		log_error_consola("No se pudo establecer conexion con el otro nodo para aparear");
-		strcpy(resultado, "error.rmf");
+		resultado = string_duplicate("error.rmf.GrupoMilanesa.tp");
 		return resultado;
 	}
 	return resultado;
