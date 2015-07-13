@@ -29,8 +29,7 @@ int main(int argc, char* argv[]) {
 
 	log_crear(argv[1], RUTA_LOG, "MaRTA");
 
-	leer_archivo_configuracion(&ip_mdfs, &puerto_mdfs, &carga_map,
-			&carga_reduce);
+	leer_archivo_configuracion(&ip_mdfs, &puerto_mdfs, &carga_map, &carga_reduce);
 
 	conectarse_a_mdfs(ip_mdfs, puerto_mdfs);
 
@@ -56,9 +55,7 @@ void genera_maps(t_job* job, char* ruta_mdfs) {
 	char* info_archivo = get_info_archivo(job, ruta_mdfs);
 
 	if (info_archivo == NULL) {
-		log_info_consola(
-				"Error al obtener informacion del FS. Terminando ejecucion Job: %d",
-				job->socket);
+		log_info_consola("Error al obtener informacion del FS. Terminando ejecucion Job: %d", job->socket);
 		finalizar_job_a_si_mismo(job);
 	}
 
@@ -103,14 +100,14 @@ void planifica_maps(t_job* job) {
 		if (map->estado == PENDIENTE || map->estado == FIN_ERROR) {
 			t_temp arch_tmp;
 
-			arch_tmp.nombre = getRandName(map->archivo.nombre,
-					string_itoa(map->archivo.bloque));
+			arch_tmp.nombre = getRandName(map->archivo.nombre, string_itoa(map->archivo.bloque));
 			arch_tmp.nodo = get_nodo_menos_cargado(map->archivo.copias);
 
 			if (arch_tmp.nodo.nombre == NULL) {
-				log_error_consola(
-						"Error encontrando Nodo Disponible. Job %d Cancelado.",
-						job->socket);
+				log_error_consola("Error encontrando Nodo Disponible. Job %d Cancelado.", job->socket);
+				t_msg* messageJob = string_message(FIN_MAP_ERROR, NULL, 0);
+					enviar_mensaje(job->socket, messageJob);
+					destroy_message(messageJob);
 				finalizar_job_a_si_mismo(job);
 			}
 
@@ -181,8 +178,7 @@ void planificar_reduces_sin_combiner(t_job* job) {
 
 	void _contabilizar_nodos(t_map* map) {
 		if (dictionary_has_key(dictionary, map->arch_tmp.nodo.nombre)) {
-			dictionary_put(dictionary, map->arch_tmp.nodo.nombre,
-					dictionary_get(dictionary, map->arch_tmp.nodo.nombre) + 1);
+			dictionary_put(dictionary, map->arch_tmp.nodo.nombre, dictionary_get(dictionary, map->arch_tmp.nodo.nombre) + 1);
 		} else {
 			dictionary_put(dictionary, map->arch_tmp.nodo.nombre, (void*) 1);
 		}
@@ -204,12 +200,10 @@ void planificar_reduces_sin_combiner(t_job* job) {
 	pthread_mutex_lock(&mutex_nodos);
 
 	bool _nodo_por_nombre(t_nodo_global* nodo_global_actual) {
-		return !strcmp(nodo_global_actual->nodo.nombre,
-				nombre_nodo_con_mas_archivos);
+		return !strcmp(nodo_global_actual->nodo.nombre, nombre_nodo_con_mas_archivos);
 	}
 
-	t_nodo_global* nodo_global = list_find(lista_nodos,
-			(void*) _nodo_por_nombre);
+	t_nodo_global* nodo_global = list_find(lista_nodos, (void*) _nodo_por_nombre);
 
 	reduce->arch_tmp.nodo = nodo_global->nodo;
 	reduce->arch_tmp.nombre = getRandName(string_itoa(job->socket), "RD_FINAL"); //TODO: No se qué va acá, generar un nombre para las salidas de los reduces
@@ -252,12 +246,10 @@ void planificar_reduces_sin_combiner(t_job* job) {
 void planifica_reduces(t_job* job) {
 
 	if (job->combiner) {
-		log_debug_consola("planificando reduces CON combiner. job: %d",
-				job->socket);
+		log_debug_consola("planificando reduces CON combiner. job: %d", job->socket);
 		planificar_reduces_con_combiner(job);
 	} else {
-		log_debug_consola("planificando reduces SIN combiner. job:  %d",
-				job->socket);
+		log_debug_consola("planificando reduces SIN combiner. job:  %d", job->socket);
 		planificar_reduces_sin_combiner(job);
 	}
 	log_debug_consola("reduces planificados. job: %d", job->socket);
@@ -321,8 +313,7 @@ t_nodo get_nodo_menos_cargado(t_nodo nodos[3]) {
 		}
 
 		if (nodos[i].nombre != NULL) {
-			t_nodo_global* nodo_global_activo = list_find(lista_nodos,
-					(void*) _nodo_valido);
+			t_nodo_global* nodo_global_activo = list_find(lista_nodos, (void*) _nodo_valido);
 			if (nodo_global_activo != NULL) {
 				list_add(lista_nodos_globales_bloque, nodo_global_activo);
 			}
@@ -338,23 +329,20 @@ t_nodo get_nodo_menos_cargado(t_nodo nodos[3]) {
 	int empty_list = list_is_empty(lista_nodos_globales_bloque);
 
 	if (empty_list) {
-		log_error_consola("ERROR - No se encontro nodo activo.");
-		//TODO llamar a info de archivo para obtener la data de un bloque
+		log_error_consola("ERROR - No se encontro nodo activo. Terminando Job.");
 		ret.nombre = NULL;
 	} else {
 		t_nodo_global* nodo_global = list_get(lista_nodos_globales_bloque, 0);
-		log_debug_consola("Nodo con menor carga: %s, carga: %d",
-				nodo_global->nodo.nombre, nodo_global->carga_trabajo);
+		log_debug_consola("Nodo con menor carga: %s, carga: %d", nodo_global->nodo.nombre, nodo_global->carga_trabajo);
 		nodo_global->carga_trabajo += carga_map;
 		ret = nodo_global->nodo;
-	}
 
-	for (i = 0; i < 3; i++) {
-		if (nodos[i].nombre != NULL && !strcmp(ret.nombre, nodos[i].nombre)) {
-			ret.numero_bloque = nodos[i].numero_bloque;
+		for (i = 0; i < 3; i++) {
+			if (nodos[i].nombre != NULL && !strcmp(ret.nombre, nodos[i].nombre)) {
+				ret.numero_bloque = nodos[i].numero_bloque;
+			}
 		}
 	}
-
 	pthread_mutex_unlock(&mutex_nodos);
 	return ret;
 }
@@ -487,13 +475,11 @@ void eliminar_carga_nodo(t_nodo nodo, int carga_operacion) {
 		return !strcmp(nodo_global_actual->nodo.nombre, nodo.nombre);
 	}
 
-	t_nodo_global* nodo_global = list_find(lista_nodos,
-			(void*) _nodo_por_nombre);
+	t_nodo_global* nodo_global = list_find(lista_nodos, (void*) _nodo_por_nombre);
 
 	if (nodo_global != NULL) {
 		nodo_global->carga_trabajo -= carga_operacion;
-		log_debug_consola("se elimino carga del nodo: %s. carga actual: %d",
-				nodo.nombre, nodo_global->carga_trabajo);
+		log_debug_consola("se elimino carga del nodo: %s. carga actual: %d", nodo.nombre, nodo_global->carga_trabajo);
 	} else {
 		log_debug_consola("nodo: %s no esta activo", nodo.nombre);
 	}
@@ -510,8 +496,7 @@ void elimina_nodo_desconectado(char* nombre_nodo) {
 		return !strcmp(nodo_global_actual->nodo.nombre, nombre_nodo);
 	}
 
-	list_remove_and_destroy_by_condition(lista_nodos, (void*) _nodo_por_nombre,
-			(void*) destroy_nodo);
+	list_remove_and_destroy_by_condition(lista_nodos, (void*) _nodo_por_nombre, (void*) destroy_nodo);
 
 	log_debug_interno(" nodo inactivo eliminado. nodo: %s", nombre_nodo);
 	pthread_mutex_unlock(&mutex_nodos);
@@ -519,8 +504,7 @@ void elimina_nodo_desconectado(char* nombre_nodo) {
 
 void actualiza_job_map_error(int id, int socket) {
 	pthread_mutex_lock(&mutex_jobs);
-	log_debug_interno("actualizando job, map error. job: %d, map: %d", socket,
-			id);
+	log_debug_interno("actualizando job, map error. job: %d, map: %d", socket, id);
 	t_job* job_actual = job_por_socket(socket);
 
 	if (!job_actual) {
@@ -537,9 +521,7 @@ void actualiza_job_map_error(int id, int socket) {
 
 	map_actual->estado = FIN_ERROR;
 
-	log_debug_interno(
-			"job actualizado, map error. job: %d, map: %d -> replanificando",
-			socket, id);
+	log_debug_interno("job actualizado, map error. job: %d, map: %d -> replanificando", socket, id);
 
 	elimina_nodo_desconectado(map_actual->arch_tmp.nodo.nombre);
 	eliminar_carga_nodo(map_actual->arch_tmp.nodo, carga_map);
@@ -547,14 +529,14 @@ void actualiza_job_map_error(int id, int socket) {
 	void _planifica_map(t_map* map) {
 		if (map->estado == PENDIENTE || map->estado == FIN_ERROR) {
 			t_temp arch_tmp;
-			arch_tmp.nombre = getRandName(map->archivo.nombre,
-					string_itoa(map->archivo.bloque));
+			arch_tmp.nombre = getRandName(map->archivo.nombre, string_itoa(map->archivo.bloque));
 			arch_tmp.nodo = get_nodo_menos_cargado(map->archivo.copias);
 
 			if (arch_tmp.nodo.nombre == NULL) {
-				log_error_consola(
-						"Error encontrando Nodo Disponible. Job %d Cancelado.",
-						job_actual->socket);
+				log_error_consola("Error encontrando Nodo Disponible. Job %d Cancelado.", job_actual->socket);
+				t_msg* messageJob = string_message(INFO_ARCHIVO_ERROR, NULL, 0);
+				enviar_mensaje(job_actual->socket, messageJob);
+				destroy_message(messageJob);
 				finalizar_job_a_si_mismo(job_actual);
 			}
 
@@ -565,14 +547,13 @@ void actualiza_job_map_error(int id, int socket) {
 	ejecuta_maps(job_actual);
 
 	pthread_mutex_unlock(&mutex_jobs);
-	eliminar_carga_nodo(map_actual->arch_tmp.nodo, carga_map);
+
 
 }
 
 void actualiza_job_reduce_ok(int id, int socket) {
 	pthread_mutex_lock(&mutex_jobs);
-	log_debug_interno("actualizando job, REDUCE ok. job: %d, reduce: %d",
-			socket, id);
+	log_debug_interno("actualizando job, REDUCE ok. job: %d, reduce: %d", socket, id);
 	t_job* job_actual = job_por_socket(socket);
 
 	if (!job_actual) {
@@ -583,10 +564,10 @@ void actualiza_job_reduce_ok(int id, int socket) {
 	t_reduce* reduce_actual = reduce_por_id(id, job_actual);
 
 	if (!reduce_actual) {
-		log_error_consola("El reduce no existe. job: %d, reduce: %d", socket,
-				id);
+		log_error_consola("El reduce no existe. job: %d, reduce: %d", socket, id);
 		exit(1);
 	}
+	eliminar_carga_nodo(reduce_actual->arch_tmp.nodo, carga_reduce);
 
 	if (id == job_actual->reduce_final->id) {
 		copiar_archivo_final(job_actual);
@@ -603,18 +584,15 @@ void actualiza_job_reduce_ok(int id, int socket) {
 		}
 	}
 	pthread_mutex_unlock(&mutex_jobs);
-	log_debug_interno("job actualizado, REDUCE ok. job: %d, reduce: %d", socket,
-			id);
-	eliminar_carga_nodo(reduce_actual->arch_tmp.nodo, carga_reduce);
+	log_debug_interno("job actualizado, REDUCE ok. job: %d, reduce: %d", socket, id);
+
 
 }
 
 void actualizar_job_reduce_error(int id, int socket, char* nombre_nodo) {
-	//TODO: Ejecutar tareas de limpieza por cancelación de job
-	log_error_interno("fin reduce error. job: %d, reduce: %d. Cancelando Job",
-			socket, id);
+	log_error_interno("fin reduce error. job: %d, reduce: %d. Cancelando Job", socket, id);
 	t_job* job = job_por_socket(socket);
-	finalizar_job_hijo(job); 	//TODO eliminar hilo job
+	finalizar_job_hijo(job);
 
 	if (!job) {
 		log_error_consola("El job no existe. job: %d, reduce: %d", socket, id);
@@ -622,13 +600,15 @@ void actualizar_job_reduce_error(int id, int socket, char* nombre_nodo) {
 	}
 
 	t_reduce* reduce_actual = reduce_por_id(id, job);
-
 	if (!reduce_actual) {
-		log_error_consola("El reduce no existe. job: %d, reduce: %d", socket,
-				id);
+		log_error_consola("El reduce no existe. job: %d, reduce: %d", socket, id);
 		exit(1);
 	}
 
+	t_msg* messageJob = string_message(FIN_REDUCE_ERROR, NULL, 0);
+	enviar_mensaje(job->socket, messageJob);
+	destroy_message(messageJob);
+	finalizar_job_hijo(job);
 	eliminar_carga_nodo(reduce_actual->arch_tmp.nodo, carga_reduce);
 }
 

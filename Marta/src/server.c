@@ -67,7 +67,12 @@ void iniciar_server(uint16_t puerto_listen) {
 				} else {
 					log_info_consola("mensaje del socket: %d", socket_actual);
 					t_msg* mensaje = recibir_mensaje(socket_actual);
-					decodificar_mensaje(mensaje, socket_actual);
+					if (mensaje == NULL) {
+						log_info_consola("Mensaje en NULL.");
+					}else {
+						decodificar_mensaje(mensaje, socket_actual);
+					}
+
 				}
 			}
 		}

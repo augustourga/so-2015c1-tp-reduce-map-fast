@@ -120,6 +120,7 @@ void esperarTareas() {
 						params->id_operacion = mensaje_actual->argv[1];
 						params->bloque = mensaje_actual->argv[2];
 						levantarHiloMapper(params);
+						usleep(30000);
 					}
 
 					if (mensaje_actual->header.id == MDFS_NO_OPERATIVO) {
@@ -127,11 +128,18 @@ void esperarTareas() {
 								"ERROR - El MDFS no esta operativo. Reintente mas tarde.");
 						terminar_job();
 					}
-
 					if (mensaje_actual->header.id == INFO_ARCHIVO_ERROR) {
 						log_info_consola(
 								"ERROR - No se encontro la informacion del archivo %s.Compruebe la existencia del archivo y vuelva a intentarlo.",
 								mensaje_actual->stream);
+						terminar_job();
+					}
+					if (mensaje_actual->header.id == FIN_MAP_ERROR) {
+						log_info_consola("ERROR - No se pudo ejecutar map. Revise disponibilidad de los archivos y vuelva a ejecutar.");
+						terminar_job();
+					}
+					if (mensaje_actual->header.id == FIN_REDUCE_ERROR) {
+						log_info_consola("ERROR - No se pudo ejecutar reduce. Revise estado del MDFS y vuelva a ejecutar.");
 						terminar_job();
 					}
 				}
