@@ -197,8 +197,8 @@ void* file_get_mapped(char* filename) {
 }
 
 void file_mmap_free(char* mapped, char* filename) {
-	int res =munmap(mapped, file_get_size(filename));
-if(res==-1){
-	handle_error("munmap");
-}
+	int res = munmap(mapped, file_get_size(filename));
+	if (res == -1) {
+		handle_error("munmap");
+	}
 }

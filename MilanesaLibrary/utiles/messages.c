@@ -187,8 +187,7 @@ t_msg *recibir_mensaje(int sock_fd) {
 
 int enviar_mensaje(int sock_fd, t_msg *msg) {
 	int total = 0;
-	int pending = msg->header.length + sizeof(t_header)
-			+ msg->header.argc * sizeof(uint32_t);
+	int pending = msg->header.length + sizeof(t_header) + msg->header.argc * sizeof(uint32_t);
 	char *buffer = malloc(pending);
 
 	/* Fill buffer with the struct's data. */
@@ -196,12 +195,10 @@ int enviar_mensaje(int sock_fd, t_msg *msg) {
 
 	int i;
 	for (i = 0; i < msg->header.argc; i++) {
-		memcpy(buffer + sizeof(t_header) + i * sizeof(uint32_t), msg->argv + i,
-				sizeof(uint32_t));
+		memcpy(buffer + sizeof(t_header) + i * sizeof(uint32_t), msg->argv + i, sizeof(uint32_t));
 	}
 
-	memcpy(buffer + sizeof(t_header) + msg->header.argc * sizeof(uint32_t),
-			msg->stream, msg->header.length);
+	memcpy(buffer + sizeof(t_header) + msg->header.argc * sizeof(uint32_t), msg->stream, msg->header.length);
 
 	/* Send message(s). */
 	pthread_mutex_lock(&mutex_enviar);
@@ -217,8 +214,7 @@ int enviar_mensaje(int sock_fd, t_msg *msg) {
 	}
 	pthread_mutex_unlock(&mutex_enviar);
 	free(buffer);
-	log_debug_interno("Mensaje %s enviado con exito",
-			id_string(msg->header.id));
+	log_debug_interno("Mensaje %s enviado con exito", id_string(msg->header.id));
 //	log_msg(msg); TODO: Descomentar si se quiere para que loguee el contenido del mensaje en su totalidad
 	return total;
 }
@@ -266,7 +262,7 @@ void log_msg(t_msg *msg) {
 	log_debug_interno("- CUERPO: ");
 
 	for (i = 0; i < msg->header.length; i++) {
-		log_debug_interno((char*)(msg->stream + i));
+		log_debug_interno((char*) (msg->stream + i));
 	}
 	log_debug_interno("==================================================");
 }

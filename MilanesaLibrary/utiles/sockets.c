@@ -80,7 +80,7 @@ int accept_connection(int sock_fd) {
 		perror("accept");
 		return -1;
 	}
-	log_info_interno("Nueva conexion aceptada con exito. id:%d",new_fd);
+	log_info_interno("Nueva conexion aceptada con exito. id:%d", new_fd);
 	return new_fd;
 }
 

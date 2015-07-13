@@ -24,8 +24,8 @@ void ejecuta_maps(t_job* job) {
 			t_msg* message = string_message(EJECUTAR_MAP, stream, 3, map->arch_tmp.nodo.puerto, map->id, map->arch_tmp.nodo.numero_bloque);
 			map->estado = EN_EJECUCION;
 			enviar_mensaje(job->socket, message);
-			log_info_interno("Enviando MAP. job: %d, id_operacion: %d, ip_nodo: %s,puerto_nodo: %d, bloque: %d,nombre_temp: %s",
-					job->socket,map->id, map->arch_tmp.nodo.ip,map->arch_tmp.nodo.puerto, map->arch_tmp.nodo.numero_bloque, map->arch_tmp.nombre);
+			log_info_interno("Enviando MAP. job: %d, id_operacion: %d, ip_nodo: %s,puerto_nodo: %d, bloque: %d,nombre_temp: %s", job->socket, map->id,
+					map->arch_tmp.nodo.ip, map->arch_tmp.nodo.puerto, map->arch_tmp.nodo.numero_bloque, map->arch_tmp.nombre);
 			destroy_message(message);
 		}
 	}

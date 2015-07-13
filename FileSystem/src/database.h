@@ -16,7 +16,7 @@
 #define	ARCHIVOS_DB "files/archivos.db"
 #define	NODOS_DB "files/nodos.db"
 
-int formatear_filesystem() ;
+int formatear_filesystem();
 int crear_database();
 int recuperar_directorios();
 int recuperar_archivos();

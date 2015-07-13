@@ -58,7 +58,6 @@ int ejecuta_map(char* data, char* path_ejecutable, char* path_salida) {
 		close(out[1]);
 		close(out[0]);
 
-
 		//La imagen del proceso hijo se reemplaza con la del path_ejecutable
 		execl(path_ejecutable, path_ejecutable, NULL);
 		//On success acá nunca llega porque la imágen (incluido el código) se reemplazó en la lina anterior

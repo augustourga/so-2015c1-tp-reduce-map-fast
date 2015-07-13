@@ -13,11 +13,8 @@
 #include <stdlib.h>
 
 typedef enum {
-	PENDIENTE,
-	EN_EJECUCION,
-	FIN_OK,
-	FIN_ERROR
-}t_estado;
+	PENDIENTE, EN_EJECUCION, FIN_OK, FIN_ERROR
+} t_estado;
 
 typedef struct {
 	char* ip;
@@ -25,7 +22,6 @@ typedef struct {
 	int puerto;
 	int numero_bloque; //Solo se usa para cuando está en t_archivo
 } t_nodo;
-
 
 typedef struct {
 	t_nodo nodo;

@@ -60,7 +60,7 @@ typedef enum {
 	MDFS_NO_OPERATIVO,			//El mdfs no está operativo todavía
 
 	INFO_ARCHIVO,				//Marta le pide al mdfs info sobre un archivo - Formato string_message: "{ruta_archivo}"
-	INFO_ARCHIVO_OK,			//Mdfs devuelve la info - Formato string_message: "{nombre_nodo};{ip};{puerto};{bloque};(esto se repite por cada copia)|" (el | es solo cuando termina un bloque)
+	INFO_ARCHIVO_OK,//Mdfs devuelve la info - Formato string_message: "{nombre_nodo};{ip};{puerto};{bloque};(esto se repite por cada copia)|" (el | es solo cuando termina un bloque)
 	INFO_ARCHIVO_ERROR,
 
 	GET_ARCHIVO_TMP,			//Marta le pida al mdfs un archivo temporal de un nodo - Formato string_message: "{nombre_archivo_tmp}|{nombre_nodo}"

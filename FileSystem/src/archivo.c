@@ -66,9 +66,9 @@ t_archivo* archivo_deserealizar(char* archivo_serializado) {
 
 	paquete_deserializar(&(archivo->id), archivo_serializado, sizeof(archivo->id), &offset);
 
-	paquete_deserializar(archivo->nombre, archivo_serializado,  sizeof(archivo->nombre), &offset);
+	paquete_deserializar(archivo->nombre, archivo_serializado, sizeof(archivo->nombre), &offset);
 
-	paquete_deserializar(&archivo->tamanio, archivo_serializado,  sizeof(archivo->tamanio), &offset);
+	paquete_deserializar(&archivo->tamanio, archivo_serializado, sizeof(archivo->tamanio), &offset);
 
 	paquete_deserializar(&archivo->padreId, archivo_serializado, sizeof(archivo->padreId), &offset);
 

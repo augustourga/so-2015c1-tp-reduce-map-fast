@@ -42,8 +42,7 @@ void iniciar_server(uint16_t puerto_listen) {
 					log_info_consola("Nueva conexion entrante");
 					// handle new connections
 					addrlen = sizeof addr_client;
-					newfd = accept(listen_socket,
-							(struct sockaddr *) &addr_client, &addrlen);
+					newfd = accept(listen_socket, (struct sockaddr *) &addr_client, &addrlen);
 					if (newfd == -1) {
 						log_error_consola("Falló el accept");
 						perror("Falló el accept. Error");
@@ -54,8 +53,7 @@ void iniciar_server(uint16_t puerto_listen) {
 						}
 						t_msg* mensaje = recibir_mensaje(newfd);
 						if (mensaje->header.id == CONEXION_JOB) {
-							log_info_consola(
-									"Creando nuevo hilo Job. job_id=%d", newfd);
+							log_info_consola("Creando nuevo hilo Job. job_id=%d", newfd);
 							FD_SET(newfd, &master); // add to master set
 							crear_hilo_job(newfd, mensaje->stream, mensaje->argv[0]);
 						}
@@ -69,7 +67,7 @@ void iniciar_server(uint16_t puerto_listen) {
 					t_msg* mensaje = recibir_mensaje(socket_actual);
 					if (mensaje == NULL) {
 						log_info_consola("Mensaje en NULL.");
-					}else {
+					} else {
 						decodificar_mensaje(mensaje, socket_actual);
 					}
 
@@ -128,37 +126,33 @@ void conectarse_a_mdfs(char* ip_mdfs, uint16_t puerto_mdfs) {
 	log_debug_consola("Conexion con MFDS OK.");
 }
 
-char* get_info_archivo(t_job* job,char* ruta_mdfs) {
+char* get_info_archivo(t_job* job, char* ruta_mdfs) {
 
 	char* ret = NULL;
 	t_msg_id msg_id_job;
 	bool mensaje_job = false;
-	log_info_interno("Se busca la info del MDFS para el arhivo: %s",
-			ruta_mdfs);
+	log_info_interno("Se busca la info del MDFS para el arhivo: %s", ruta_mdfs);
 	t_msg* message = string_message(INFO_ARCHIVO, ruta_mdfs, 0);
 	enviar_mensaje(socket_mdfs, message);
 	t_msg* respuesta = recibir_mensaje(socket_mdfs);
 
 	if (respuesta == NULL) {
-		log_error_consola("Error al obtener la informacion del archivo: %s",
-				ruta_mdfs);
+		log_error_consola("Error al obtener la informacion del archivo: %s", ruta_mdfs);
 		msg_id_job = INFO_ARCHIVO_ERROR;
 		mensaje_job = true;
 	} else if (respuesta->header.id == INFO_ARCHIVO_OK) {
 		ret = string_duplicate(respuesta->stream);
 		log_info_interno("Info obtenida: %s. arhivo: %s", &ret, ruta_mdfs);
 	} else if (respuesta->header.id == INFO_ARCHIVO_ERROR) {
-		log_error_consola("Error al obtener la informacion del archivo: %s. cancelando job.",
-						ruta_mdfs);
+		log_error_consola("Error al obtener la informacion del archivo: %s. cancelando job.", ruta_mdfs);
 		msg_id_job = INFO_ARCHIVO_ERROR;
 		mensaje_job = true;
-	} else if (respuesta->header.id == MDFS_NO_OPERATIVO){
+	} else if (respuesta->header.id == MDFS_NO_OPERATIVO) {
 		log_error_consola("Filesystem no operativo. cancelando Job.");
 		msg_id_job = MDFS_NO_OPERATIVO;
 		mensaje_job = true;
 	} else {
-		log_error_consola("Error desconocido al llamar al MDFS. Archivo: %s. cancelando job.",
-				ruta_mdfs);
+		log_error_consola("Error desconocido al llamar al MDFS. Archivo: %s. cancelando job.", ruta_mdfs);
 		msg_id_job = INFO_ARCHIVO_ERROR;
 		mensaje_job = true;
 	}
@@ -166,8 +160,8 @@ char* get_info_archivo(t_job* job,char* ruta_mdfs) {
 	if (mensaje_job) {
 		log_info_interno("Se envia mensaje a el job para que finalice.");
 		t_msg* messageJob = string_message(msg_id_job, ruta_mdfs, 0);
-			enviar_mensaje(job->socket, messageJob);
-			destroy_message(messageJob);
+		enviar_mensaje(job->socket, messageJob);
+		destroy_message(messageJob);
 	}
 
 	destroy_message(respuesta);
@@ -176,8 +170,7 @@ char* get_info_archivo(t_job* job,char* ruta_mdfs) {
 }
 
 void copiar_archivo_final(t_job* job) {
-	log_info_consola("Copiando archivo final. Temporal: %s Nombre Final: %s",
-			job->reduce_final->arch_tmp.nodo.nombre, job->archivo_final);
+	log_info_consola("Copiando archivo final. Temporal: %s Nombre Final: %s", job->reduce_final->arch_tmp.nodo.nombre, job->archivo_final);
 	char* stream = string_duplicate(job->archivo_final);
 	string_append(&stream, "|");
 	string_append(&stream, job->reduce_final->arch_tmp.nodo.nombre);

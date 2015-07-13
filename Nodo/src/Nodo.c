@@ -55,7 +55,7 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 	int socket_actual;
 	int fdmax;
 	int socket_fs = reg_conexion->sock_fs;
-	int res;
+	int res = 0;
 
 	socket_fs = client_socket(IP_FS, PUERTO_FS);
 	t_msg* mensaje = string_message(CONEXION_NODO, NOMBRE_NODO, 2, CANT_BLOQUES, PUERTO_NODO);
@@ -66,7 +66,6 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 
 		exit(1);
 	}
-
 
 	destroy_message(mensaje);
 	log_info_consola("Conectado al File System en el socket %d", socket_fs);
@@ -96,7 +95,11 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 
 							bloque = getBloque(codigo->argv[0]);
 							mensaje2 = string_message(GET_BLOQUE_OK, bloque, 1, codigo->argv[1]);
-							enviar_mensaje(socket_fs, mensaje2);
+							res = enviar_mensaje(socket_fs, mensaje2);
+							if (res == -1) {
+								log_error_consola("Fallo envio mensaje GET_BLOQUE_OK");
+							}
+
 							free(bloque);
 							destroy_message(mensaje2);
 							destroy_message(codigo);
@@ -110,11 +113,14 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 								memset(bloque + codigo->argv[1], '\0', tamanio_bloque - codigo->argv[1]);
 								setBloque(codigo->argv[0], bloque);
 								mensaje2 = id_message(SET_BLOQUE_OK);
-								enviar_mensaje(socket_fs, mensaje2);
+
 								free(bloque);
 							} else {
 								mensaje2 = id_message(SET_BLOQUE_ERROR);
-								enviar_mensaje(socket_fs, mensaje2);
+							}
+							res = enviar_mensaje(socket_fs, mensaje2);
+							if (res == -1) {
+								log_error_consola("Fallo envio mensaje SET_BLOQUE");
 							}
 
 							destroy_message(codigo);
@@ -125,7 +131,10 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 							bloque = getFileContent(codigo->stream);
 							mensaje2 = id_message(GET_FILE_CONTENT);
 							mensaje2->stream = bloque;
-							enviar_mensaje(socket_fs, mensaje2);
+							res = enviar_mensaje(socket_fs, mensaje2);
+							if (res == -1) {
+								log_error_consola("Fallo envio mensaje GET_FILE_CONTENT");
+							}
 							destroy_message(mensaje2);
 							destroy_message(codigo);
 							free(bloque);
@@ -199,6 +208,7 @@ void atenderConexiones(void *parametro) {
 	t_nodo_archivo* nodo_arch;
 	char*rutina_reduce;
 	int band = 0;
+	int res = 0;
 
 	if ((codigo = recibir_mensaje(sock_conexion)) != NULL) {
 
@@ -207,20 +217,33 @@ void atenderConexiones(void *parametro) {
 		case GET_BLOQUE:
 			bloque = getBloque(codigo->argv[0]);
 			mensaje2 = string_message(GET_BLOQUE_OK, bloque, 1, codigo->argv[1]);
-			enviar_mensaje(sock_conexion, mensaje2);
+			res = enviar_mensaje(sock_conexion, mensaje2);
+			if (res == -1) {
+				log_error_consola("Fallo envio mensaje GET_BLOQUE_OK");
+			}
+
 			free(bloque);
 			destroy_message(mensaje2);
 			destroy_message(codigo);
 			break;
 
 		case SET_BLOQUE:
-			bloque = malloc(tamanio_bloque);
-			memcpy(bloque, codigo->stream, codigo->argv[1]); //1 es el tamaño real, el stream es el bloque de 20mb(aprox)
-			memset(bloque + codigo->argv[1], '\0', tamanio_bloque - codigo->argv[1]);
-			setBloque(codigo->argv[0], bloque);
-			mensaje2 = id_message(SET_BLOQUE_OK);
-			enviar_mensaje(sock_conexion, mensaje2);
-			free(bloque);
+			if (codigo->argv[0] < CANT_BLOQUES) {
+				bloque = malloc(tamanio_bloque);
+				memcpy(bloque, codigo->stream, codigo->argv[1]); //1 es el tamaño real, el stream es el bloque de 20mb(aprox)
+				memset(bloque + codigo->argv[1], '\0', tamanio_bloque - codigo->argv[1]);
+				setBloque(codigo->argv[0], bloque);
+				mensaje2 = id_message(SET_BLOQUE_OK);
+
+				free(bloque);
+			} else {
+				mensaje2 = id_message(SET_BLOQUE_ERROR);
+			}
+			res = enviar_mensaje(sock_conexion, mensaje2);
+			if (res == -1) {
+				log_error_consola("Fallo envio mensaje SET_BLOQUE");
+			}
+
 			destroy_message(codigo);
 			break;
 
@@ -231,7 +254,10 @@ void atenderConexiones(void *parametro) {
 			mensaje2 = id_message(GET_FILE_CONTENT);
 			mensaje2->stream = bloque;
 
-			enviar_mensaje(sock_conexion, mensaje2);
+			res = enviar_mensaje(sock_conexion, mensaje2);
+			if (res == -1) {
+				log_error_consola("Fallo envio mensaje GET_FILE_CONTENT");
+			}
 			destroy_message(mensaje2);
 			destroy_message(codigo);
 			free(bloque);
@@ -255,7 +281,10 @@ void atenderConexiones(void *parametro) {
 
 				}
 				mensaje2 = id_message(fin);
-				enviar_mensaje(sock_conexion, mensaje2);
+				res = enviar_mensaje(sock_conexion, mensaje2);
+				if (res == -1) {
+					log_error_consola("Fallo envio mensaje FIN_MAP");
+				}
 			} else {
 				log_error_consola("Fallo en Recibir Rutina. Se esperaba el id RUTINA.");
 			}
@@ -300,7 +329,10 @@ void atenderConexiones(void *parametro) {
 				if (band == 0) {
 					fin = ejecutar_reduce(rutina_reduce, codigo->stream, cola_nodos, codigo->argv[0]);
 					mensaje2 = id_message(fin);
-					enviar_mensaje(sock_conexion, mensaje2);
+					res = enviar_mensaje(sock_conexion, mensaje2);
+					if (res == -1) {
+						log_error_consola("Fallo envio mensaje FIN_REDUCE");
+					}
 				} else {
 					log_error_consola("No se puede ejecutar Reduce, ya que no se han recibido correctamente los archivos ");
 				}
@@ -323,7 +355,10 @@ void atenderConexiones(void *parametro) {
 				mensaje2 = id_message(GET_NEXT_ROW_ERROR);
 				log_info_consola("GET_NEXT_ROW_ERROR");
 			}
-			enviar_mensaje(sock_conexion, mensaje2);
+			res = enviar_mensaje(sock_conexion, mensaje2);
+			if (res == -1) {
+				log_error_consola("Fallo envio mensaje GET_BLOQUE_OK");
+			}
 			destroy_message(mensaje2);
 			destroy_message(codigo);
 
@@ -386,19 +421,18 @@ void liberar_Espacio_datos(char* _data, char* path) {
 	file_mmap_free(_data, path);
 }
 
-t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal, int numeroBloque, int mapid) {
+t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivo, int numeroBloque, int mapid) {
 	log_info_consola("Inicio ejecutarMap ID:%d en el bloque %d", mapid, numeroBloque);
 	char*bloque = NULL;
-//	sem_t sema_fin_map;
-//	sem_init(&sema_fin_map,0,0);
 	bloque = getBloque(numeroBloque);
 	//char* temporal = generar_nombre_temporal(mapid, "map", numeroBloque);
 	//char*ruta_sort = "/usr/bin/sort";
-	char* path_ejecutable = generar_nombre_rutina(mapid, "map", numeroBloque);
+	char* nombre_rutina = generar_nombre_rutina(mapid, "map", numeroBloque);
+	char* path_ejecutable = file_combine(DIR_TEMP, nombre_rutina);
 	write_file(path_ejecutable, ejecutable, strlen(ejecutable));
 	chmod(path_ejecutable, S_IRWXU);
+	char*nombreArchivoFinal = file_combine(DIR_TEMP, nombreArchivo);
 	log_info_consola("Fin copia de ejecutable ID:%d en el bloque %d", mapid, numeroBloque);
-	//log_info_consola("El bloque a mappear es: %s", bloque);
 	if (ejecuta_map(bloque, path_ejecutable, nombreArchivoFinal)) {
 		return FIN_MAP_ERROR;
 	}
@@ -412,7 +446,6 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal, int numeroBloqu
 	 log_info_consola("Fin rutina de sort ID:%d en el bloque %d", mapid,
 	 numeroBloque);
 	 */
-
 
 	list_add_archivo_tmp(nombreArchivoFinal);
 	//remove(path_ejecutable);
@@ -428,10 +461,12 @@ t_msg_id ejecutar_reduce(char*ejecutable, char* nombreArchivoFinal, t_queue* col
 
 	t_list* lista_nodos;
 
-	char* path_ejecutable = generar_nombre_rutina(id_reduce, "reduce", 667);
+	char* nombre_rutina = generar_nombre_rutina(id_reduce, "reduce", 667);
+	char* path_ejecutable = file_combine(DIR_TEMP, nombre_rutina);
 	write_file(path_ejecutable, ejecutable, strlen(ejecutable));
 	chmod(path_ejecutable, S_IRWXU);
-	char*temporal = generar_nombre_temporal(id_reduce, "reduce", 667);
+	char* nombretemporal = generar_nombre_temporal(id_reduce, "reduce", 667);
+	char* temporal = file_combine(DIR_TEMP, nombretemporal);
 
 	lista_nodos = deserealizar_cola(colaArchivos);
 	int res;
@@ -486,99 +521,79 @@ t_list* deserealizar_cola(t_queue* colaArchivos) {
 
 int apareo(char* temporal, t_list* lista_nodos_archivos) {
 	char** registros = malloc(sizeof(int));
-	int i, pos, valor_actual_1, valor_actual_2;
+	int i, pos;
 	int res = 0;
-	char* clave_actual_1 = string_new();
-	char* clave_actual_2 = string_new();
-	char* registro_actual_1 = string_new();
-	char* registro_actual_2 = string_new();
+	char* registro_actual = string_new();
 	char* aux_string;
 
 	char* ruta = file_combine(DIR_TEMP, temporal);
 	FILE* archivo = fopen(ruta, "a");
 
-	// Obtengo el primer registro de cada archivo
 	int cantidad_nodos_archivos = list_size(lista_nodos_archivos);
 	t_nodo_archivo* elem = (t_nodo_archivo*) malloc(sizeof(t_nodo_archivo));
-	for (i = 0; i < cantidad_nodos_archivos; i++) {
-		elem = (t_nodo_archivo *) list_get(lista_nodos_archivos, i);
-		aux_string = obtener_proximo_registro(elem);
-		if (string_equals_ignore_case(aux_string, "error.rmf")) {
+
+	// Aca se fija si es un solo archivo para aparear o si son varios
+	if (cantidad_nodos_archivos == 1) {
+		int bytes_read;
+		size_t buffer_size = 100;
+		char* linea = (char *) calloc(1, buffer_size);
+
+		elem = (t_nodo_archivo *) list_get(lista_nodos_archivos, 0);
+		FILE* file = fopen(elem->archivo, "r");
+		if (file != NULL) {
+			bytes_read = getline(&linea, &buffer_size, file);
+			while (bytes_read != -1) {
+				// TODO: Esto se cambiaria por un write para no usar el archivo temporal
+				fputs(linea, archivo);
+			}
+			free(linea);
+		} else {
+			log_error_consola("No pudo abrirse el archivo a aparear, con nombre: %s", elem->archivo);
+			free(linea);
 			res = -1;
 			return res;
-		} else {
-			registros[i] = aux_string;
 		}
-	}
-
-	pos = obtener_posicion_menor_clave(registros, cantidad_nodos_archivos);
-	strcpy(registro_actual_1, registros[pos]);
-	elem = (t_nodo_archivo *) list_get(lista_nodos_archivos, pos);
-	aux_string = obtener_proximo_registro(elem);
-	if (string_equals_ignore_case(aux_string, "error.rmf")) {
-		res = -1;
-		return res;
 	} else {
-		registros[pos] = aux_string;
-	}
-	char** array_aux = string_n_split(registro_actual_1, 2, ";");
-	strcpy(clave_actual_1, array_aux[0]);
-	valor_actual_1 = atoi(array_aux[1]);
-
-	pos = obtener_posicion_menor_clave(registros, cantidad_nodos_archivos); // esta pos se obtiene para ya tener un 2do valor antes de entrar al while
-	// obtener_posicion_menor_clave devuelve -1 una vez que en el array ya son todos campos nulos u EOF
-	while (pos != -1) {
-		strcpy(registro_actual_2, registros[pos]);
-		elem = (t_nodo_archivo *) list_get(lista_nodos_archivos, pos);
-		aux_string = obtener_proximo_registro(elem);
-		if (string_equals_ignore_case(aux_string, "error.rmf")) {
-			res = -1;
-			return res;
-		} else {
-			registros[pos] = aux_string;
+		// Obtengo el primer registro de cada archivo
+		for (i = 0; i < cantidad_nodos_archivos; i++) {
+			elem = (t_nodo_archivo *) list_get(lista_nodos_archivos, i);
+			aux_string = obtener_proximo_registro(elem);
+			if (string_equals_ignore_case(aux_string, "error.rmf.GrupoMilanesa.tp")) {
+				res = -1;
+				return res;
+			} else {
+				registros[i] = string_duplicate(aux_string);
+			}
 		}
-		array_aux = string_n_split(registro_actual_2, 2, ";");
-		strcpy(clave_actual_2, array_aux[0]);
-		valor_actual_2 = atoi(array_aux[1]);
 
-		if (strcmp(clave_actual_1, clave_actual_2) == 0) {
-			valor_actual_1 = valor_actual_1 + valor_actual_2;
-		} else {
-			string_append(&clave_actual_1, ";");
-			string_append(&clave_actual_1, string_itoa(valor_actual_1));
-			string_append(&clave_actual_1, "\n");
+		pos = obtener_posicion_menor_clave(registros, cantidad_nodos_archivos);
+		// obtener_posicion_menor_clave devuelve -1 una vez que en el array ya son todos campos nulos u EOF
+		while (pos != -1) {
+			strcpy(registro_actual, registros[pos]);
+			elem = (t_nodo_archivo *) list_get(lista_nodos_archivos, pos);
+			aux_string = obtener_proximo_registro(elem);
+			if (string_equals_ignore_case(aux_string, "error.rmf.GrupoMilanesa.tp")) {
+				res = -1;
+				return res;
+			} else {
+				registros[pos] = string_duplicate(aux_string);
+			}
 			if (archivo != NULL) {
-				fputs(clave_actual_1, archivo);
+				// TODO: Esto se cambiaria por un write para no usar el archivo temporal
+				fputs(registro_actual, archivo);
 			} else {
 				log_error_consola("No se pudo acceder al archivo temporal para guardar data de apareamiento");
 				res = -1;
 				return res;
 			}
-			strcpy(clave_actual_1, clave_actual_2);
-			valor_actual_1 = valor_actual_2;
+			pos = obtener_posicion_menor_clave(registros, cantidad_nodos_archivos);
 		}
-		pos = obtener_posicion_menor_clave(registros, cantidad_nodos_archivos);
 	}
 
-	// guardo en el archivo el ultimo registro con el que estaba trabajando para no perderlo
-	string_append(&clave_actual_1, ";");
-	string_append(&clave_actual_1, string_itoa(valor_actual_1));
-	string_append(&clave_actual_1, "\n");
-	if (archivo != NULL) {
-		fputs(clave_actual_1, archivo);
-	} else {
-		log_error_consola("No se pudo acceder al archivo temporal para guardar data de apareamiento");
-		res = -1;
-		return res;
-	}
-	free(clave_actual_1);
-	free(clave_actual_2);
-	free(registro_actual_1);
-	free(registro_actual_2);
+	free(registro_actual);
 	free(aux_string);
 	free(ruta);
 	free_puntero_puntero(registros);
-	free_puntero_puntero(array_aux);
 	fclose(archivo);
 	log_info_consola("Se aparearon correctamente los archivos.");
 	return res;
@@ -610,7 +625,7 @@ int obtener_posicion_menor_clave(char** registros, int cantidad_nodos_archivos) 
 			aux = strcmp(clave_1, clave_2);
 			if (aux > 0) {
 				pos = i;
-				strcpy(clave_1, clave_2);
+				clave_1 = string_duplicate(clave_2);
 			}
 		}
 	} else {
@@ -650,25 +665,29 @@ char* obtener_proximo_registro_de_archivo(char* archivo) {
 char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
 	char* resultado = string_new();
 	int socket_tmp;
+	int res = 0;
 	socket_tmp = client_socket(nodo_archivo->ip, nodo_archivo->puerto);
 	if (socket_tmp < 0) {
 		log_error_consola("No se pudo establecer conexion con el otro nodo para aparear");
-		strcpy(resultado, "error.rmf");
+		resultado = string_duplicate("error.rmf.GrupoMilanesa.tp");
 		return resultado;
 	}
 	t_msg* msg = string_message(GET_NEXT_ROW, nodo_archivo->archivo, 0);
-	enviar_mensaje(socket_tmp, msg);
+	res = enviar_mensaje(socket_tmp, msg);
+	if (res == -1) {
+		log_error_consola("Fallo envio mensaje GET_NEXT_ROW");
+	}
 	msg = recibir_mensaje(socket_tmp);
 	if (msg) {
 		if (msg->header.id == GET_NEXT_ROW_OK) {
-			strcpy(resultado, msg->stream);
+			resultado = string_duplicate(msg->stream);
 		}
 		if (msg->header.id == GET_NEXT_ROW_ERROR) {
 			log_error_consola("El nodo no devolvio el proximo registro. Devolvio ERROR.");
 		}
 	} else {
 		log_error_consola("No se pudo establecer conexion con el otro nodo para aparear");
-		strcpy(resultado, "error.rmf");
+		resultado = string_duplicate("error.rmf.GrupoMilanesa.tp");
 		return resultado;
 	}
 	return resultado;

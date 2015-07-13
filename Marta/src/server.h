@@ -29,7 +29,6 @@ struct arg_job {
 	bool combiner;
 };
 
-
 void iniciar_server(uint16_t puerto_listen);
 void decodificar_mensaje(t_msg* mensaje, int socket);
 int socket_conectado(int socket);
