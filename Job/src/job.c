@@ -263,7 +263,7 @@ int hiloReduce(void* dato) {
 			mensaje_respuesta->header.argc, mensaje_respuesta->header.length);
 
 	res = enviar_mensaje(marta_sock, mensaje_respuesta);
-	if (res == 0) {
+	if (res == -1) {
 		log_error_consola("fallo mensaje respuesta a MaRTA");
 	}
 	destroy_message(mensaje_respuesta);
@@ -318,7 +318,7 @@ int hiloMap(void* dato) {
 			mensaje_respuesta->header.argc, mensaje_respuesta->header.length);
 
 	ret = enviar_mensaje(marta_sock, mensaje_respuesta);
-	if (ret != 0) {
+	if (ret == -1) {
 		log_error_consola("Fallo envio de Mensaje");
 	}
 	destroy_message(mensaje_respuesta);
