@@ -55,7 +55,7 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 	int socket_actual;
 	int fdmax;
 	int socket_fs = reg_conexion->sock_fs;
-	int res;
+	int res = 0;
 
 	socket_fs = client_socket(IP_FS, PUERTO_FS);
 	t_msg* mensaje = string_message(CONEXION_NODO, NOMBRE_NODO, 2, CANT_BLOQUES, PUERTO_NODO);
@@ -66,7 +66,6 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 
 		exit(1);
 	}
-
 
 	destroy_message(mensaje);
 	log_info_consola("Conectado al File System en el socket %d", socket_fs);
@@ -96,7 +95,11 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 
 							bloque = getBloque(codigo->argv[0]);
 							mensaje2 = string_message(GET_BLOQUE_OK, bloque, 1, codigo->argv[1]);
-							enviar_mensaje(socket_fs, mensaje2);
+							res = enviar_mensaje(socket_fs, mensaje2);
+							if (res == -1) {
+								log_error_consola("Fallo envio mensaje GET_BLOQUE_OK");
+							}
+
 							free(bloque);
 							destroy_message(mensaje2);
 							destroy_message(codigo);
@@ -110,11 +113,14 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 								memset(bloque + codigo->argv[1], '\0', tamanio_bloque - codigo->argv[1]);
 								setBloque(codigo->argv[0], bloque);
 								mensaje2 = id_message(SET_BLOQUE_OK);
-								enviar_mensaje(socket_fs, mensaje2);
+
 								free(bloque);
 							} else {
 								mensaje2 = id_message(SET_BLOQUE_ERROR);
-								enviar_mensaje(socket_fs, mensaje2);
+							}
+							res = enviar_mensaje(socket_fs, mensaje2);
+							if (res == -1) {
+								log_error_consola("Fallo envio mensaje SET_BLOQUE");
 							}
 
 							destroy_message(codigo);
@@ -125,7 +131,10 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 							bloque = getFileContent(codigo->stream);
 							mensaje2 = id_message(GET_FILE_CONTENT);
 							mensaje2->stream = bloque;
-							enviar_mensaje(socket_fs, mensaje2);
+							res = enviar_mensaje(socket_fs, mensaje2);
+							if (res == -1) {
+								log_error_consola("Fallo envio mensaje GET_FILE_CONTENT");
+							}
 							destroy_message(mensaje2);
 							destroy_message(codigo);
 							free(bloque);
@@ -199,6 +208,7 @@ void atenderConexiones(void *parametro) {
 	t_nodo_archivo* nodo_arch;
 	char*rutina_reduce;
 	int band = 0;
+	int res = 0;
 
 	if ((codigo = recibir_mensaje(sock_conexion)) != NULL) {
 
@@ -207,20 +217,33 @@ void atenderConexiones(void *parametro) {
 		case GET_BLOQUE:
 			bloque = getBloque(codigo->argv[0]);
 			mensaje2 = string_message(GET_BLOQUE_OK, bloque, 1, codigo->argv[1]);
-			enviar_mensaje(sock_conexion, mensaje2);
+			res = enviar_mensaje(sock_conexion, mensaje2);
+			if (res == -1) {
+				log_error_consola("Fallo envio mensaje GET_BLOQUE_OK");
+			}
+
 			free(bloque);
 			destroy_message(mensaje2);
 			destroy_message(codigo);
 			break;
 
 		case SET_BLOQUE:
-			bloque = malloc(tamanio_bloque);
-			memcpy(bloque, codigo->stream, codigo->argv[1]); //1 es el tamaño real, el stream es el bloque de 20mb(aprox)
-			memset(bloque + codigo->argv[1], '\0', tamanio_bloque - codigo->argv[1]);
-			setBloque(codigo->argv[0], bloque);
-			mensaje2 = id_message(SET_BLOQUE_OK);
-			enviar_mensaje(sock_conexion, mensaje2);
-			free(bloque);
+			if (codigo->argv[0] < CANT_BLOQUES) {
+				bloque = malloc(tamanio_bloque);
+				memcpy(bloque, codigo->stream, codigo->argv[1]); //1 es el tamaño real, el stream es el bloque de 20mb(aprox)
+				memset(bloque + codigo->argv[1], '\0', tamanio_bloque - codigo->argv[1]);
+				setBloque(codigo->argv[0], bloque);
+				mensaje2 = id_message(SET_BLOQUE_OK);
+
+				free(bloque);
+			} else {
+				mensaje2 = id_message(SET_BLOQUE_ERROR);
+			}
+			res = enviar_mensaje(sock_conexion, mensaje2);
+			if (res == -1) {
+				log_error_consola("Fallo envio mensaje SET_BLOQUE");
+			}
+
 			destroy_message(codigo);
 			break;
 
@@ -231,7 +254,10 @@ void atenderConexiones(void *parametro) {
 			mensaje2 = id_message(GET_FILE_CONTENT);
 			mensaje2->stream = bloque;
 
-			enviar_mensaje(sock_conexion, mensaje2);
+			res = enviar_mensaje(sock_conexion, mensaje2);
+			if (res == -1) {
+				log_error_consola("Fallo envio mensaje GET_FILE_CONTENT");
+			}
 			destroy_message(mensaje2);
 			destroy_message(codigo);
 			free(bloque);
@@ -255,7 +281,10 @@ void atenderConexiones(void *parametro) {
 
 				}
 				mensaje2 = id_message(fin);
-				enviar_mensaje(sock_conexion, mensaje2);
+				res = enviar_mensaje(sock_conexion, mensaje2);
+				if (res == -1) {
+					log_error_consola("Fallo envio mensaje FIN_MAP");
+				}
 			} else {
 				log_error_consola("Fallo en Recibir Rutina. Se esperaba el id RUTINA.");
 			}
@@ -300,7 +329,10 @@ void atenderConexiones(void *parametro) {
 				if (band == 0) {
 					fin = ejecutar_reduce(rutina_reduce, codigo->stream, cola_nodos, codigo->argv[0]);
 					mensaje2 = id_message(fin);
-					enviar_mensaje(sock_conexion, mensaje2);
+					res = enviar_mensaje(sock_conexion, mensaje2);
+					if (res == -1) {
+						log_error_consola("Fallo envio mensaje FIN_REDUCE");
+					}
 				} else {
 					log_error_consola("No se puede ejecutar Reduce, ya que no se han recibido correctamente los archivos ");
 				}
@@ -323,7 +355,10 @@ void atenderConexiones(void *parametro) {
 				mensaje2 = id_message(GET_NEXT_ROW_ERROR);
 				log_info_consola("GET_NEXT_ROW_ERROR");
 			}
-			enviar_mensaje(sock_conexion, mensaje2);
+			res = enviar_mensaje(sock_conexion, mensaje2);
+			if (res == -1) {
+				log_error_consola("Fallo envio mensaje GET_BLOQUE_OK");
+			}
 			destroy_message(mensaje2);
 			destroy_message(codigo);
 
@@ -389,8 +424,6 @@ void liberar_Espacio_datos(char* _data, char* path) {
 t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal, int numeroBloque, int mapid) {
 	log_info_consola("Inicio ejecutarMap ID:%d en el bloque %d", mapid, numeroBloque);
 	char*bloque = NULL;
-//	sem_t sema_fin_map;
-//	sem_init(&sema_fin_map,0,0);
 	bloque = getBloque(numeroBloque);
 	//char* temporal = generar_nombre_temporal(mapid, "map", numeroBloque);
 	//char*ruta_sort = "/usr/bin/sort";
@@ -398,7 +431,6 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal, int numeroBloqu
 	write_file(path_ejecutable, ejecutable, strlen(ejecutable));
 	chmod(path_ejecutable, S_IRWXU);
 	log_info_consola("Fin copia de ejecutable ID:%d en el bloque %d", mapid, numeroBloque);
-	//log_info_consola("El bloque a mappear es: %s", bloque);
 	if (ejecuta_map(bloque, path_ejecutable, nombreArchivoFinal)) {
 		return FIN_MAP_ERROR;
 	}
@@ -412,7 +444,6 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal, int numeroBloqu
 	 log_info_consola("Fin rutina de sort ID:%d en el bloque %d", mapid,
 	 numeroBloque);
 	 */
-
 
 	list_add_archivo_tmp(nombreArchivoFinal);
 	//remove(path_ejecutable);
@@ -650,6 +681,7 @@ char* obtener_proximo_registro_de_archivo(char* archivo) {
 char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
 	char* resultado = string_new();
 	int socket_tmp;
+	int res = 0;
 	socket_tmp = client_socket(nodo_archivo->ip, nodo_archivo->puerto);
 	if (socket_tmp < 0) {
 		log_error_consola("No se pudo establecer conexion con el otro nodo para aparear");
@@ -657,7 +689,10 @@ char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
 		return resultado;
 	}
 	t_msg* msg = string_message(GET_NEXT_ROW, nodo_archivo->archivo, 0);
-	enviar_mensaje(socket_tmp, msg);
+	res = enviar_mensaje(socket_tmp, msg);
+	if (res == -1) {
+		log_error_consola("Fallo envio mensaje GET_NEXT_ROW");
+	}
 	msg = recibir_mensaje(socket_tmp);
 	if (msg) {
 		if (msg->header.id == GET_NEXT_ROW_OK) {
