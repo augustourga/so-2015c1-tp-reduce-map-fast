@@ -1,7 +1,5 @@
 #include "server.h"
 
-extern pthread_mutex_t mutex_args;
-// TODO: ver de cambiar por un semaforo por socket o nodo
 pthread_mutex_t mutex_set_bloque = PTHREAD_MUTEX_INITIALIZER;
 
 void iniciar_server(void* argumentos) {
@@ -46,8 +44,7 @@ void iniciar_server(void* argumentos) {
 				if (socket_actual == listen_socket) {
 					// handle new connections
 					addrlen = sizeof addr_client;
-					newfd = accept(listen_socket,
-							(struct sockaddr *) &addr_client, &addrlen);
+					newfd = accept(listen_socket, (struct sockaddr *) &addr_client, &addrlen);
 					if (newfd == -1) {
 						log_error_consola("Falló el accept");
 					} else {
@@ -91,15 +88,13 @@ void iniciar_server(void* argumentos) {
 void decodificar_mensaje(t_msg* mensaje, int socket) {
 	extern bool filesystem_operativo;
 	int res;
-	log_debug_interno("Mensaje %s recibido y decodificandolo",
-			id_string(mensaje->header.id));
+	log_debug_interno("Mensaje %s recibido y decodificandolo", id_string(mensaje->header.id));
 	switch (mensaje->header.id) {
 	case CONEXION_NODO:
 		registrar_nodo(nodo_deserealizar_socket(mensaje, socket));
 		break;
 	case CONEXION_MARTA:
-		log_debug_interno("Marta se conectó correctamente. Su socket es %d",
-				socket);
+		log_debug_interno("Marta se conectó correctamente. Su socket es %d", socket);
 		break;
 	case INFO_ARCHIVO:
 		if (filesystem_operativo) {
@@ -116,8 +111,7 @@ void decodificar_mensaje(t_msg* mensaje, int socket) {
 		break;
 	case GET_ARCHIVO_TMP:
 		if (filesystem_operativo) {
-			t_msg* msg_rta = mensaje_copiar_archivo_temporal_a_mdfs(
-					mensaje->stream);
+			t_msg* msg_rta = mensaje_copiar_archivo_temporal_a_mdfs(mensaje->stream);
 			res = enviar_mensaje(socket, msg_rta);
 			if (res < 0) {
 				log_error_consola("No se pudo enviar mensaje de %s a Marta. Se asume su desconexion", id_string(msg_rta->header.id));
@@ -129,8 +123,7 @@ void decodificar_mensaje(t_msg* mensaje, int socket) {
 		}
 		break;
 	default:
-		log_error_interno("Mensaje Incorrecto: %s",
-				id_string(mensaje->header.id));
+		log_error_interno("Mensaje Incorrecto: %s", id_string(mensaje->header.id));
 		break;
 	}
 }
@@ -167,9 +160,7 @@ void* mensaje_get_bloque(void* argumentos) {
 	t_msg* msg_solicitud = argv_message(GET_BLOQUE, 2, bloque, bloque_archivo);
 	ret = enviar_mensaje(socket, msg_solicitud);
 	if (ret < 0) {
-		log_error_consola(
-				"Mensaje get_bloque fallo por desconexion del nodo, socket: %d",
-				socket);
+		log_error_consola("Mensaje get_bloque fallo por desconexion del nodo, socket: %d", socket);
 		desconexion_nodo(socket);
 		return NULL;
 	}
@@ -177,9 +168,7 @@ void* mensaje_get_bloque(void* argumentos) {
 	free(args);
 	t_msg* respuesta = recibir_mensaje(socket);
 	if (respuesta == NULL) {
-		log_error_consola(
-				"Mensaje get_bloque fallo porque el nodo no respondió, se asume desconexion del nodo, socket: %d",
-				socket);
+		log_error_consola("Mensaje get_bloque fallo porque el nodo no respondió, se asume desconexion del nodo, socket: %d", socket);
 		desconexion_nodo(socket);
 		return NULL;
 	}
@@ -195,8 +184,7 @@ void* mensaje_get_bloque(void* argumentos) {
 		res->stream = malloc(respuesta->header.length);
 		res->bloque_archivo = respuesta->argv[0];
 		memcpy(res->stream, respuesta->stream, respuesta->header.length);
-		log_info_interno("Mensaje get_bloque_ok recibido por el bloque: %d",
-				bloque);
+		log_info_interno("Mensaje get_bloque_ok recibido por el bloque: %d", bloque);
 		destroy_message(respuesta);
 		return res;
 		break;
@@ -208,50 +196,37 @@ void* mensaje_get_bloque(void* argumentos) {
 }
 
 int mensaje_set_bloque(void* argumentos) {
-	pthread_mutex_lock(&mutex_set_bloque);
 	struct arg_set_bloque* args = argumentos;
 	log_info_interno("Empieza set_bloque del bloque %d", args->bloque_nodo);
 	int res;
 	int socket = args->socket;
 	int size = strlen(args->chunk);
-	t_msg* msg_solicitud = string_message(SET_BLOQUE, args->chunk, 2,
-			args->bloque_nodo, size);
+
+	t_msg* msg_solicitud = string_message(SET_BLOQUE, args->chunk, 2, args->bloque_nodo, size);
 	res = enviar_mensaje(socket, msg_solicitud);
 	if (res < 0) {
-		log_error_consola(
-				"Mensaje set_bloque fallo por desconexion del nodo, socket: %d",
-				socket);
+		log_error_consola("Mensaje set_bloque fallo por desconexion del nodo, socket: %d", socket);
 		destroy_message(msg_solicitud);
 		free(args->chunk);
 		free(args);
-		pthread_mutex_unlock(&mutex_args);
-//		desconexion_nodo(socket);
-		pthread_mutex_unlock(&mutex_set_bloque);
 		return 1;
 	}
 	destroy_message(msg_solicitud);
 	free(args->chunk);
 	free(args);
-	pthread_mutex_unlock(&mutex_args);
 	t_msg* respuesta = recibir_mensaje(socket);
 	if (respuesta == NULL) {
-		log_error_consola(
-				"Mensaje set_bloque fallo porque el nodo no respondió OK, se asume desconexion del nodo, socket: %d",
-				socket);
-//		desconexion_nodo(socket);
-		pthread_mutex_unlock(&mutex_set_bloque);
+		log_error_consola("Mensaje set_bloque fallo porque el nodo no respondió OK, se asume desconexion del nodo, socket: %d", socket);
 		return 1;
 	}
 
 	switch (respuesta->header.id) {
 	case SET_BLOQUE_OK:
 		log_info_interno("Terminó set_bloque OK del bloque: %d", args->bloque_nodo);
-		pthread_mutex_unlock(&mutex_set_bloque);
 		return 0;
 		break;
 	default:
 		log_error_consola("Respuesta Incorrecta del set_bloque: %d", args->bloque_nodo);
-		pthread_mutex_unlock(&mutex_set_bloque);
 		return 1;
 	}
 }
@@ -284,28 +259,22 @@ t_msg* mensaje_copiar_archivo_temporal_a_mdfs(char* mensaje) {
 	nodo = nodo_operativo_por_nombre(nombre_nodo);
 	free(nombre_nodo);
 	if (nodo == NULL) {
-		log_error_interno(
-				"El nodo no se encuentra operativo para solicitarle un archivo temporal");
+		log_error_interno("El nodo no se encuentra operativo para solicitarle un archivo temporal");
 		free(nombre_archivo_tmp);
 		return id_message(GET_ARCHIVO_TMP_ERROR);
 	}
 
-	t_msg* msg_solicitud = string_message(GET_FILE_CONTENT, nombre_archivo_tmp,
-			0);
+	t_msg* msg_solicitud = string_message(GET_FILE_CONTENT, nombre_archivo_tmp, 0);
 	res = enviar_mensaje(nodo->socket, msg_solicitud);
 	if (res < 0) {
-		log_error_consola(
-				"Mensaje GET_FILE_CONTENT fallo por desconexion del nodo, socket: %d",
-				nodo->socket);
+		log_error_consola("Mensaje GET_FILE_CONTENT fallo por desconexion del nodo, socket: %d", nodo->socket);
 		desconexion_nodo(nodo->socket);
 		free(nombre_archivo_tmp);
 		return id_message(GET_ARCHIVO_TMP_ERROR);
 	}
 	t_msg* msg_respuesta = recibir_mensaje(nodo->socket);
 	if (msg_respuesta == NULL) {
-		log_error_consola(
-				"Mensaje recibido despues del GET_FILE_CONTENT es NULL, se asume desconexion del nodo, socket: %d",
-				nodo->socket);
+		log_error_consola("Mensaje recibido despues del GET_FILE_CONTENT es NULL, se asume desconexion del nodo, socket: %d", nodo->socket);
 		desconexion_nodo(nodo->socket);
 		free(nombre_archivo_tmp);
 		return id_message(GET_ARCHIVO_TMP_ERROR);
@@ -316,11 +285,9 @@ t_msg* mensaje_copiar_archivo_temporal_a_mdfs(char* mensaje) {
 		respuesta = id_message(GET_ARCHIVO_TMP_ERROR);
 		break;
 	case GET_FILE_CONTENT_OK:
-		valor = copiar_archivo_temporal_a_mdfs(nombre_archivo_tmp,
-				msg_respuesta->stream);
+		valor = copiar_archivo_temporal_a_mdfs(nombre_archivo_tmp, msg_respuesta->stream);
 		if (valor) {
-			log_info_interno(
-					"Pudo copiarse el archivo tmp a la raiz del mdfs con exito");
+			log_info_interno("Pudo copiarse el archivo tmp a la raiz del mdfs con exito");
 			respuesta = id_message(GET_ARCHIVO_TMP_OK);
 		} else {
 			log_error_consola("No se pudo copiar el archivo tmp al mdfs");

@@ -168,6 +168,8 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 	int pos_actual = 0;
 	int ret = 0;
 
+	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+
 	int fildes_local = open(ruta_local, O_RDONLY);
 
 	if (fildes_local < 0) {
@@ -257,7 +259,6 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 	t_nodo* nodo_actual;
 	pthread_t th_set[cantidad_bloques][3];
 	struct arg_set_bloque* args[cantidad_bloques][3];
-	t_list* lista_nodos_operativos_aux = crear_lista_nodos_operativos_duplicada();
 
 	for (numero_bloque = 0; numero_bloque < cantidad_bloques; numero_bloque++) {
 		t_nodo* nodos[3];
@@ -267,8 +268,6 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 			pthread_rwlock_unlock(&directorio_padre->lock);
 			archivo_eliminar(archivo_nuevo);
 			free(chunks);
-			rollback_nodos_operativos(lista_nodos_operativos_aux);
-			list_clean_and_destroy_elements(lista_nodos_operativos_aux, (void*)nodo_eliminar);
 			return 1;
 		}
 		int redundancia;
@@ -284,7 +283,6 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 			archivo_nuevo->bloques[numero_bloque].copias[redundancia].tamanio_bloque = chunks[numero_bloque].tamanio;
 			pthread_rwlock_unlock(&(nodo_actual->lock));
 
-			pthread_mutex_lock(&mutex_args);
 			args[numero_bloque][redundancia] = malloc(sizeof(struct arg_set_bloque));
 			args[numero_bloque][redundancia]->bloque_nodo = bloque_nodo;
 			args[numero_bloque][redundancia]->socket = nodo_actual->socket;
@@ -293,10 +291,10 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 			pthread_create(&th_set[numero_bloque][redundancia], NULL, (void*) mensaje_set_bloque, (void*) args[numero_bloque][redundancia]);
 		}
 	}
+	int res = 0;
 
 	for (numero_bloque = 0; numero_bloque < cantidad_bloques; numero_bloque++) {
 		int redundancia;
-		int res = 0;
 		for (redundancia = 0; redundancia < 3; redundancia++) {
 			int int_aux;
 			pthread_join(th_set[numero_bloque][redundancia], (void**) &int_aux);
@@ -304,17 +302,15 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 				res = 1;
 			}
 		}
-		if (res == 1) {
-			log_error_consola("No pudo copiarse el archivo por la desconexion de un nodo");
-			pthread_rwlock_unlock(&directorio_padre->lock);
-			archivo_eliminar(archivo_nuevo);
-			free(chunks);
-			rollback_nodos_operativos(lista_nodos_operativos_aux);
-			list_clean_and_destroy_elements(lista_nodos_operativos_aux, (void*)nodo_eliminar);
-			return 1;
-		}
 	}
-	list_clean_and_destroy_elements(lista_nodos_operativos_aux, (void*)nodo_eliminar);
+
+	if (res == 1) {
+		log_error_consola("No pudo copiarse el archivo por la desconexion de un nodo");
+		pthread_rwlock_unlock(&directorio_padre->lock);
+		archivo_eliminar(archivo_nuevo);
+		free(chunks);
+		return 1;
+	}
 
 	actualizar_nodos_operativos_en_db();
 	archivo_asignar_estado(archivo_nuevo, true);
@@ -358,7 +354,7 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 	ftruncate(fildes_local, tamanio_archivo);
 	int offset_actual = 0;
 
-	//char* map = mmap(0, tamanio_archivo, PROT_WRITE, MAP_SHARED, fildes_local, 0);
+//char* map = mmap(0, tamanio_archivo, PROT_WRITE, MAP_SHARED, fildes_local, 0);
 
 	close(fildes_local);
 	char* map = file_get_mapped(ruta_local);
@@ -790,8 +786,8 @@ int agregar_nodo(char* nombre_nodo) {
 	list_remove_by_condition(lista_nodos_pendientes, (void*) _nodo_por_nombre);
 	pthread_mutex_unlock(&mutex_nodos_pendientes);
 
-	// Esto se hace xq si ya se encuentra entre los aceptados,
-	// se lo borra y se lo vuelve a agregar para tener la data actualizada. Y asi no se repite el nodo.
+// Esto se hace xq si ya se encuentra entre los aceptados,
+// se lo borra y se lo vuelve a agregar para tener la data actualizada. Y asi no se repite el nodo.
 	t_nodo* nodo_aux = nodo_aceptado_por_nombre(nombre_nodo);
 	if (nodo_aux != NULL) {
 		pthread_mutex_lock(&mutex_nodos_aceptados);
@@ -806,7 +802,7 @@ int agregar_nodo(char* nombre_nodo) {
 }
 
 int eliminar_nodo(char* nombre_nodo) {
-	// Lo saca de los nodos operativos y lo pone en espera para que pueda ser agregado nuevamente
+// Lo saca de los nodos operativos y lo pone en espera para que pueda ser agregado nuevamente
 	t_nodo* nodo = nodo_aceptado_por_nombre(nombre_nodo);
 	if (nodo == NULL) {
 		log_error_consola("El nodo %s no existe", nombre_nodo);
@@ -976,7 +972,7 @@ int ver_bloque_de_nodo(int numero_bloque_nodo, char* nombre_nodo) {
 		return 1;
 	}
 
-	//TODO: pedirle al nodo que me el contenido del bloque numero_bloque_nodo
+//TODO: pedirle al nodo que me el contenido del bloque numero_bloque_nodo
 	pthread_rwlock_unlock(&nodo->lock);
 	return 0;
 }
@@ -1120,7 +1116,7 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_orige
 	pthread_rwlock_wrlock(&nodo_destino->lock);
 	int numero_bloque_nodo_destino = nodo_asignar_bloque_disponible(nodo_destino); //TODO: OJO ACA que se pueden armar quilombos
 
-	//TODO: Testear que esto funcione
+//TODO: Testear que esto funcione
 	pthread_t th_bloque;
 
 	struct arg_get_bloque* args;
@@ -1144,13 +1140,12 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_orige
 
 	pthread_t th_bloque_2;
 	pthread_mutex_lock(&mutex_args);
-	struct arg_set_bloque* args2= malloc(sizeof(struct arg_set_bloque));
+	struct arg_set_bloque* args2 = malloc(sizeof(struct arg_set_bloque));
 	args2->bloque_nodo = numero_bloque_nodo_destino;
 	args2->socket = nodo_destino->socket;
 	args2->chunk = string_duplicate(res->stream);
 	free(res->stream);
 	free(res);
-
 
 	pthread_create(&th_bloque_2, NULL, (void *) mensaje_set_bloque, (void*) &args2);
 	int resultado;
@@ -1598,8 +1593,8 @@ void rollback_nodos_operativos(t_list* lista_nodos_operativos_aux) {
 			nodo->bloques[i] = nodo_aux->bloques[i];
 		}
 	}
-	// esto se hace en ambas listas, ya que si un nodo se desconectó y se esta haciendo rollback
-	// no va a estar entre los nodos operativos su data, y en la lista de aceptados no va a ser correcta la info
+// esto se hace en ambas listas, ya que si un nodo se desconectó y se esta haciendo rollback
+// no va a estar entre los nodos operativos su data, y en la lista de aceptados no va a ser correcta la info
 	list_iterate(lista_nodos_operativos, (void*) _recuperar_datos_nodos);
 	list_iterate(lista_nodos_aceptados, (void*) _recuperar_datos_nodos);
 }
@@ -1611,7 +1606,7 @@ void actualizar_nodos_operativos_en_db(void) {
 void archivo_eliminar(t_archivo* archivo) {
 	int i, numero_copia;
 	pthread_rwlock_wrlock(&archivo->lock);
-	for (i = 0; i <= archivo->cantidad_bloques; i++) {
+	for (i = 0; i < archivo->cantidad_bloques; i++) {
 		t_bloque bloque_actual = archivo->bloques[i];
 		for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias; numero_copia++) {
 			t_copia copia_actual = bloque_actual.copias[numero_copia];
@@ -1619,7 +1614,6 @@ void archivo_eliminar(t_archivo* archivo) {
 		}
 		free(bloque_actual.copias);
 	}
-	free(archivo->nombre);
 	free(archivo->bloques);
 	pthread_rwlock_unlock(&archivo->lock);
 	free(archivo);

@@ -13,6 +13,9 @@ void iniciar_consola() {
 		if (bytes_read == -1) {
 			log_error_consola("Error en getline");
 		}
+		if (bytes_read == 1) {
+			continue;
+		}
 		if (ejecutar_comando(comando) == 0) {
 			char* comando_listo = comando_preparado(comando);
 			log_debug_interno("El comando %s fue ejecutado con éxito", comando_listo);

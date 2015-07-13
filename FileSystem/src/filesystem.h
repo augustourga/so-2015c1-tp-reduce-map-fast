@@ -18,6 +18,7 @@
 #include <commons/string.h>
 #include <commons/log.h>
 #include <stdio.h>
+#include <signal.h>
 #include "directorio.h"
 #include "archivo.h"
 #include "nodo.h"

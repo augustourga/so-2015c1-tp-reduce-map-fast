@@ -106,8 +106,8 @@ void planifica_maps(t_job* job) {
 			if (arch_tmp.nodo.nombre == NULL) {
 				log_error_consola("Error encontrando Nodo Disponible. Job %d Cancelado.", job->socket);
 				t_msg* messageJob = string_message(FIN_MAP_ERROR, NULL, 0);
-					enviar_mensaje(job->socket, messageJob);
-					destroy_message(messageJob);
+				enviar_mensaje(job->socket, messageJob);
+				destroy_message(messageJob);
 				finalizar_job_a_si_mismo(job);
 			}
 
@@ -174,33 +174,63 @@ void planificar_reduces_sin_combiner(t_job* job) {
 
 	t_reduce* reduce = reduce_crear();
 
-	t_dictionary* dictionary = dictionary_create();
+	//t_dictionary* dictionary = dictionary_create();
 
+	t_list* nodos_con_maps = list_create();
+
+	/*void _contabilizar_nodos(t_map* map) {
+	 if (dictionary_has_key(dictionary, map->arch_tmp.nodo.nombre)) {
+	 dictionary_put(dictionary, map->arch_tmp.nodo.nombre, dictionary_get(dictionary, map->arch_tmp.nodo.nombre) + 1);
+	 } else {
+	 dictionary_put(dictionary, map->arch_tmp.nodo.nombre, (void*) 1);
+	 }
+	 }*/
 	void _contabilizar_nodos(t_map* map) {
-		if (dictionary_has_key(dictionary, map->arch_tmp.nodo.nombre)) {
-			dictionary_put(dictionary, map->arch_tmp.nodo.nombre, dictionary_get(dictionary, map->arch_tmp.nodo.nombre) + 1);
+
+		bool _nodo_por_nombre(t_nodo* nodo) {
+			return !strcmp(nodo->nombre, map->arch_tmp.nodo.nombre);
+		}
+
+		t_nodo* nodo_actual = list_find(nodos_con_maps, (void*) _nodo_por_nombre);
+
+		if (nodo_actual) {
+			nodo_actual->numero_bloque++;
 		} else {
-			dictionary_put(dictionary, map->arch_tmp.nodo.nombre, (void*) 1);
+			nodo_actual = malloc(sizeof(t_nodo));
+			nodo_actual->ip = string_duplicate(map->arch_tmp.nodo.ip);
+			nodo_actual->nombre = string_duplicate(map->arch_tmp.nodo.nombre);
+			nodo_actual->puerto = map->arch_tmp.nodo.puerto;
+			nodo_actual->numero_bloque = 1;
+			list_add(nodos_con_maps, nodo_actual);
 		}
 	}
 
 	list_iterate(job->maps, (void*) _contabilizar_nodos);
 
-	int max = 1;
-	char* nombre_nodo_con_mas_archivos;
-	void _nodo_con_mas_archivos(char* nombre, int value) {
-		if (value >= max) {
-			nombre_nodo_con_mas_archivos = string_duplicate(nombre);
-			max = value;
-		}
+	/*
+	 int max = 1;
+	 char* nombre_nodo_con_mas_archivos;
+	 void _nodo_con_mas_archivos(char* nombre, int value) {
+	 if (value >= max) {
+	 nombre_nodo_con_mas_archivos = string_duplicate(nombre);
+	 max = value;
+	 }
+	 }
+	 */
+
+	//dictionary_iterator(dictionary, (void*) _nodo_con_mas_archivos);
+	bool _nodo_por_cant_archivos(t_nodo* nodo1, t_nodo* nodo2) {
+		return nodo1->numero_bloque > nodo2->numero_bloque;
 	}
 
-	dictionary_iterator(dictionary, (void*) _nodo_con_mas_archivos);
+	list_sort(nodos_con_maps, (void*) _nodo_por_cant_archivos);
+
+	t_nodo* nodo_con_mas_archivos = list_get(nodos_con_maps, 0);
 
 	pthread_mutex_lock(&mutex_nodos);
 
 	bool _nodo_por_nombre(t_nodo_global* nodo_global_actual) {
-		return !strcmp(nodo_global_actual->nodo.nombre, nombre_nodo_con_mas_archivos);
+		return !strcmp(nodo_global_actual->nodo.nombre, nodo_con_mas_archivos->nombre);
 	}
 
 	t_nodo_global* nodo_global = list_find(lista_nodos, (void*) _nodo_por_nombre);
@@ -217,10 +247,10 @@ void planificar_reduces_sin_combiner(t_job* job) {
 	char* nombre_actual = primer_map->arch_tmp.nodo.nombre;
 	t_temp* temp_actual = malloc(sizeof(t_temp));
 	temp_actual->nodo = primer_map->arch_tmp.nodo;
+	temp_actual->nombre = string_new();
 
 	void _genera_temporales(t_map* map) {
 		if (!strcmp(nombre_actual, map->arch_tmp.nodo.nombre)) {
-			temp_actual->nombre = string_new();
 			string_append(&temp_actual->nombre, map->arch_tmp.nombre);
 			string_append(&temp_actual->nombre, ";");
 		} else {
@@ -548,7 +578,6 @@ void actualiza_job_map_error(int id, int socket) {
 
 	pthread_mutex_unlock(&mutex_jobs);
 
-
 }
 
 void actualiza_job_reduce_ok(int id, int socket) {
@@ -585,7 +614,6 @@ void actualiza_job_reduce_ok(int id, int socket) {
 	}
 	pthread_mutex_unlock(&mutex_jobs);
 	log_debug_interno("job actualizado, REDUCE ok. job: %d, reduce: %d", socket, id);
-
 
 }
 
