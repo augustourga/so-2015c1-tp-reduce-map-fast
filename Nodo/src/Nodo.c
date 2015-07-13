@@ -610,21 +610,21 @@ char* obtener_proximo_registro(t_nodo_archivo* nodo_archivo) {
 
 int obtener_posicion_menor_clave(char** registros, int cantidad_nodos_archivos) {
 	int pos, i, aux;
-	char* clave_1 = string_new();
-	char* clave_2 = string_new();
+	char* registro_1 = string_new();
+	char* registro_2 = string_new();
 
 	// obtiene primer campo != NULL
-	for (pos = 0; (registros[pos] != NULL) && (string_is_empty(clave_1) && (pos < cantidad_nodos_archivos)); pos++) {
-		clave_1 = string_n_split(registros[pos], 2, ";")[0];
+	for (pos = 0; (registros[pos] != NULL) && (string_is_empty(registro_1) && (pos < cantidad_nodos_archivos)); pos++) {
+		registro_1 = registros[pos];
 	}
 
-	if (!string_is_empty(clave_1)) {
+	if (!string_is_empty(registro_1)) {
 		for (i = pos + 1; i < cantidad_nodos_archivos; i++) {
-			clave_2 = string_n_split(registros[i], 2, ";")[0];
-			aux = strcmp(clave_1, clave_2);
+			registro_2 = registros[i];
+			aux = strcmp(registro_1, registro_2);
 			if (aux > 0) {
 				pos = i;
-				clave_1 = string_duplicate(clave_2);
+				registro_1 = string_duplicate(registro_2);
 			}
 		}
 	} else {
