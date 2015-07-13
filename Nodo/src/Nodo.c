@@ -421,15 +421,17 @@ void liberar_Espacio_datos(char* _data, char* path) {
 	file_mmap_free(_data, path);
 }
 
-t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal, int numeroBloque, int mapid) {
+t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivo, int numeroBloque, int mapid) {
 	log_info_consola("Inicio ejecutarMap ID:%d en el bloque %d", mapid, numeroBloque);
 	char*bloque = NULL;
 	bloque = getBloque(numeroBloque);
 	//char* temporal = generar_nombre_temporal(mapid, "map", numeroBloque);
 	//char*ruta_sort = "/usr/bin/sort";
-	char* path_ejecutable = generar_nombre_rutina(mapid, "map", numeroBloque);
+	char* nombre_rutina = generar_nombre_rutina(mapid, "map", numeroBloque);
+	char* path_ejecutable =file_combine(DIR_TEMP,nombre_rutina);
 	write_file(path_ejecutable, ejecutable, strlen(ejecutable));
 	chmod(path_ejecutable, S_IRWXU);
+	char*nombreArchivoFinal= file_combine(DIR_TEMP,nombreArchivo);
 	log_info_consola("Fin copia de ejecutable ID:%d en el bloque %d", mapid, numeroBloque);
 	if (ejecuta_map(bloque, path_ejecutable, nombreArchivoFinal)) {
 		return FIN_MAP_ERROR;
@@ -459,10 +461,12 @@ t_msg_id ejecutar_reduce(char*ejecutable, char* nombreArchivoFinal, t_queue* col
 
 	t_list* lista_nodos;
 
-	char* path_ejecutable = generar_nombre_rutina(id_reduce, "reduce", 667);
+	char* nombre_rutina = generar_nombre_rutina(id_reduce, "reduce", 667);
+	char* path_ejecutable = file_combine(DIR_TEMP,nombre_rutina);
 	write_file(path_ejecutable, ejecutable, strlen(ejecutable));
 	chmod(path_ejecutable, S_IRWXU);
-	char*temporal = generar_nombre_temporal(id_reduce, "reduce", 667);
+	char* nombretemporal = generar_nombre_temporal(id_reduce, "reduce", 667);
+	char* temporal = file_combine(DIR_TEMP,nombretemporal);
 
 	lista_nodos = deserealizar_cola(colaArchivos);
 	int res;
