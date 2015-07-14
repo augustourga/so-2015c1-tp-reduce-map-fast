@@ -8,6 +8,7 @@
 #ifndef NODO_NODO_H_
 #define NODO_NODO_H_
 
+#define _FILE_OFFSET_BITS 64
 #include <stdio.h>
 #include <unistd.h>
 #include <libio.h>

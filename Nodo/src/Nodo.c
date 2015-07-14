@@ -540,27 +540,15 @@ int apareo(char* temporal, t_list* lista_nodos_archivos, char* path_ejecutable, 
 
 	// Aca se fija si es un solo archivo para aparear o si son varios
 	if (cantidad_nodos_archivos == 1) {
-		int bytes_read;
-		size_t buffer_size = 100;
-		char* linea = (char *) calloc(1, buffer_size);
-
 		elem = (t_nodo_archivo *) list_get(lista_nodos_archivos, 0);
-		FILE* file = fopen(elem->archivo, "r");
-		if (file != NULL) {
-			bytes_read = getline(&linea, &buffer_size, file);
-			while (bytes_read != -1) {
-				// TODO: Esto se cambiaria por un write para no usar el archivo temporal
-				fputs(linea, archivo);
-			}
-			free(linea);
-		} else {
-			log_error_consola("No pudo abrirse el archivo a aparear, con nombre: %s", elem->archivo);
-			free(linea);
-			res = -1;
-			return res;
-		}
+
+		char* archivo = read_whole_file(elem->archivo);
+
+		write(in[1], archivo, strlen(archivo));
+
+		free(archivo);
 	} else {
-		// Obtengo el primer registro de cada archivo
+// Obtengo el primer registro de cada archivo
 		for (i = 0; i < cantidad_nodos_archivos; i++) {
 			elem = (t_nodo_archivo *) list_get(lista_nodos_archivos, i);
 			aux_string = obtener_proximo_registro(elem);
@@ -573,7 +561,7 @@ int apareo(char* temporal, t_list* lista_nodos_archivos, char* path_ejecutable, 
 		}
 
 		pos = obtener_posicion_menor_clave(registros, cantidad_nodos_archivos);
-		// obtener_posicion_menor_clave devuelve -1 una vez que en el array ya son todos campos nulos u EOF
+// obtener_posicion_menor_clave devuelve -1 una vez que en el array ya son todos campos nulos u EOF
 		while (pos != -1) {
 			registro_actual = registros[pos];
 			elem = (t_nodo_archivo *) list_get(lista_nodos_archivos, pos);
@@ -603,8 +591,8 @@ int apareo(char* temporal, t_list* lista_nodos_archivos, char* path_ejecutable, 
 	}
 
 	close(in[1]);
-	//free_puntero_puntero(registros);
-	//fclose(archivo);
+//free_puntero_puntero(registros);
+//fclose(archivo);
 	int status;
 	waitpid(pid, &status, 0);
 	log_info_consola("Se aparearon correctamente los archivos.");
@@ -623,15 +611,17 @@ char* obtener_proximo_registro(t_nodo_archivo* nodo_archivo) {
 			respuesta = enviar_mensaje_proximo_registro(nodo_archivo);
 		}
 		nodo_archivo->lineas = string_split(respuesta, "\n");
-		nodo_archivo->numero_linea = 1;
+		free(respuesta);
 	}
 	char* linea = nodo_archivo->lineas[nodo_archivo->numero_linea];
 	if (linea != NULL) {
 		resultado = string_duplicate(linea);
 		string_append(&resultado, "\n");
 		nodo_archivo->numero_linea++;
+		free(linea);
 	} else {
 		resultado = NULL;
+		free(nodo_archivo->lineas);
 	}
 
 	return resultado;
@@ -641,13 +631,13 @@ int obtener_posicion_menor_clave(char** registros, int cantidad_nodos_archivos) 
 	int pos, i;
 	char* registro_1 = NULL;
 
-	// obtiene primer campo != NULL
+// obtiene primer campo != NULL
 	for (pos = 0; pos < cantidad_nodos_archivos; pos++) {
 		if (registros[pos] != NULL) {
 			registro_1 = registros[pos];
 			break;
 		}
-		// devuelve -1 una vez que en el array ya son todos campos nulos
+// devuelve -1 una vez que en el array ya son todos campos nulos
 	}
 	if (registro_1 == NULL) {
 		pos = -1;
