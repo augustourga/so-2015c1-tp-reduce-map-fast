@@ -305,6 +305,8 @@ void procesa_job(void* argumentos) {
 
 	log_info_consola("Esperando a que finalice el reduce final...");
 	sem_wait(&job->sem_reduce_final_fin);
+
+	copiar_archivo_final(job);
 }
 
 t_nodo get_nodo_menos_cargado(t_nodo nodos[3]) {
@@ -568,13 +570,19 @@ void actualiza_job_reduce_ok(int id, int socket) {
 		log_error_consola("El job no existe. job: %d, reduce: %d", socket, id);
 		exit(1);
 	}
+	t_reduce* reduce_actual;
+	if (id == job_actual->reduce_final->id) {
+		reduce_actual = job_actual->reduce_final;
 
-	t_reduce* reduce_actual = reduce_por_id(id, job_actual);
+	} else {
+		reduce_actual = reduce_por_id(id, job_actual);
 
-	if (!reduce_actual) {
-		log_error_consola("El reduce no existe. job: %d, reduce: %d", socket, id);
-		exit(1);
+		if (!reduce_actual) {
+			log_error_consola("El reduce no existe. job: %d, reduce: %d", socket, id);
+			exit(1);
+		}
 	}
+
 	eliminar_carga_nodo(reduce_actual->arch_tmp.nodo, carga_reduce);
 
 	if (id == job_actual->reduce_final->id) {

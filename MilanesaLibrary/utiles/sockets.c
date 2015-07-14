@@ -84,20 +84,16 @@ int accept_connection(int sock_fd) {
 	return new_fd;
 }
 
-void make_socket_non_blocking(int sfd) {
-	int flags = fcntl(sfd, F_GETFL, 0);
-	if (flags == -1) {
-		log_error_consola("Error en la funcion: fcntl");
-		perror("fcntl");
-		exit(EXIT_FAILURE);
-	}
+int fd_set_blocking(int fd, int blocking) {
+    /* Save the current flags */
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1)
+        return 0;
 
-	flags |= O_NONBLOCK;
-
-	if (fcntl(sfd, F_SETFL, flags) == -1) {
-		log_error_consola("Error en la funcion fcntl");
-		perror("fcntl");
-		exit(EXIT_FAILURE);
-	}
+    if (blocking)
+        flags &= ~O_NONBLOCK;
+    else
+        flags |= O_NONBLOCK;
+    return fcntl(fd, F_SETFL, flags) != -1;
 }
 

@@ -39,6 +39,6 @@ int accept_connection(int sock_fd);
 /*
  * Convierte al socket en no bloqueante
  */
-void make_socket_non_blocking(int sfd);
+int fd_set_blocking(int fd, int blocking);
 
 #endif /* UTILES_SOCKETS_H_ */

@@ -44,6 +44,8 @@ typedef struct {
 	char* ip;
 	char* nombre;
 	char* archivo;
+	char** lineas;
+	int numero_linea;
 } t_nodo_archivo;
 
 typedef struct {
@@ -83,7 +85,7 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal, int numeroBloqu
 t_msg_id ejecutar_reduce(char*ejecutable, char*archivo_final, t_queue* colaArchivos, int id_reduce);
 
 /******************APAREO***************************/
-int apareo(char* temporal, t_list* lista_nodos_archivos);
+int apareo(char* temporal, t_list* lista_nodos_archivos, char* path_ejecutable, char* path_salida);
 char* obtener_proximo_registro(t_nodo_archivo* nodo_archivo);
 int obtener_posicion_menor_clave(char** registros, int cantidad_nodos_archivos);
 char* obtener_proximo_registro_de_archivo(char* archivo);
