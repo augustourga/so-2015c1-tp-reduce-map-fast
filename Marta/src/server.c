@@ -102,15 +102,6 @@ void decodificar_mensaje(t_msg* mensaje, int socket) {
 	}
 }
 
-int socket_conectado(int socket) {
-	char buf[1];
-	int bytes;
-	if ((bytes = recv(socket, buf, 1, MSG_PEEK)) == 0) {
-		close(socket);
-	}
-	return bytes;
-}
-
 void conectarse_a_mdfs(char* ip_mdfs, uint16_t puerto_mdfs) {
 
 	log_debug_consola("Conectando al MDFS.");

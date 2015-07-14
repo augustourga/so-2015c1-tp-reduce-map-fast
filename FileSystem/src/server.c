@@ -72,11 +72,11 @@ void iniciar_server(void* argumentos) {
 					}
 					FD_CLR(socket_actual, &master);
 				} else if (socket_actual == socket_marta) {
-					t_msg* mensaje = recibir_mensaje(newfd);
+					t_msg* mensaje = recibir_mensaje(socket_actual);
 					if (mensaje == NULL) {
 						log_error_consola("Error al recibir mensaje de Marta");
 					} else {
-						decodificar_mensaje(mensaje, newfd);
+						decodificar_mensaje(mensaje, socket_actual);
 						destroy_message(mensaje);
 					}
 				}
@@ -241,7 +241,6 @@ t_msg* mensaje_info_archivo(char* ruta_archivo) {
 	} else {
 		respuesta = id_message(INFO_ARCHIVO_ERROR);
 	}
-	free(ruta_archivo);
 	return respuesta;
 }
 

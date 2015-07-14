@@ -41,13 +41,3 @@ int socket_listen(char* puerto_listen) {
 	}
 	return listen_socket;
 }
-
-int socket_conectado(int socket) {
-	char buf[1];
-	int bytes;
-	if ((bytes = recv(socket, buf, 1, MSG_PEEK)) == 0) {
-		shutdown(socket, 2);
-		close(socket);
-	}
-	return bytes;
-}

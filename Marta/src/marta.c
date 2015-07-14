@@ -174,17 +174,8 @@ void planificar_reduces_sin_combiner(t_job* job) {
 
 	t_reduce* reduce = reduce_crear();
 
-	//t_dictionary* dictionary = dictionary_create();
-
 	t_list* nodos_con_maps = list_create();
 
-	/*void _contabilizar_nodos(t_map* map) {
-	 if (dictionary_has_key(dictionary, map->arch_tmp.nodo.nombre)) {
-	 dictionary_put(dictionary, map->arch_tmp.nodo.nombre, dictionary_get(dictionary, map->arch_tmp.nodo.nombre) + 1);
-	 } else {
-	 dictionary_put(dictionary, map->arch_tmp.nodo.nombre, (void*) 1);
-	 }
-	 }*/
 	void _contabilizar_nodos(t_map* map) {
 
 		bool _nodo_por_nombre(t_nodo* nodo) {
@@ -207,18 +198,6 @@ void planificar_reduces_sin_combiner(t_job* job) {
 
 	list_iterate(job->maps, (void*) _contabilizar_nodos);
 
-	/*
-	 int max = 1;
-	 char* nombre_nodo_con_mas_archivos;
-	 void _nodo_con_mas_archivos(char* nombre, int value) {
-	 if (value >= max) {
-	 nombre_nodo_con_mas_archivos = string_duplicate(nombre);
-	 max = value;
-	 }
-	 }
-	 */
-
-	//dictionary_iterator(dictionary, (void*) _nodo_con_mas_archivos);
 	bool _nodo_por_cant_archivos(t_nodo* nodo1, t_nodo* nodo2) {
 		return nodo1->numero_bloque > nodo2->numero_bloque;
 	}

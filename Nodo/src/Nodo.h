@@ -42,6 +42,7 @@ typedef struct {
 typedef struct {
 	int puerto;
 	char* ip;
+	char* nombre;
 	char* archivo;
 } t_nodo_archivo;
 

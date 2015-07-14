@@ -27,8 +27,11 @@ int ejecuta_map(char* data, char* path_ejecutable, char* path_salida) {
 		//Fork devuelve 0 en el hijo y el pid del hijo en el padre, así que acá estoy en el hijo.
 
 		//Duplica stdin al lado de lectura in y stdout y stdeer al lado de escritura out
+		int fd = open(path_salida, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 		dup2(in[0], 0);
-		freopen(path_salida, "w+", stdout);
+		dup2(fd, 1);
+
+		close(fd);
 
 		//Cierra los pipes que se usan en el padre
 		close(in[1]);
@@ -73,19 +76,19 @@ int ejecuta_map(char* data, char* path_ejecutable, char* path_salida) {
 	int pendiente = size;
 
 	//Escribe en el lado de escritura del pipe que el proceso hijo va a ver como stdin
-	while (total < pendiente) {
+	while (total < size) {
 		int enviado = write(out[1], data, pendiente);
 		total += enviado;
 		pendiente -= enviado;
 	}
 	//Se cierra para generar un EOF y que el proceso hijo termine de leer de stdin
 	close(out[1]);
-	free(data);
 	int status;
 	waitpid(pid_sort, &status, 0);
 	FILE* temp_file = fopen(path_salida, "r");
+	free(data);
 	fclose(temp_file);
-	return 0;
+	return status;
 }
 
 int ejecuta_reduce(char* data, char* path_ejecutable, char* path_salida) {

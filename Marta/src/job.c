@@ -47,6 +47,8 @@ void ejecuta_reduce(t_job* job, t_reduce* reduce) {
 	void _genera_mensaje(t_temp* temp) {
 		stream = string_duplicate(temp->nodo.ip);
 		string_append(&stream, "|");
+		string_append(&stream, temp->nodo.nombre);
+		string_append(&stream, "|");
 		string_append(&stream, string_duplicate(temp->nombre));
 		t_msg* message = string_message(ARCHIVOS_NODO_REDUCE, stream, 1, temp->nodo.puerto);
 		enviar_mensaje(job->socket, message);

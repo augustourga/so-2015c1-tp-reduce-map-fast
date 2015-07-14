@@ -252,6 +252,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 		pthread_rwlock_unlock(&directorio_padre->lock);
 		archivo_eliminar(archivo_nuevo);
 		free(chunks);
+		munmap(map, archivo_size);
 		return 1;
 	}
 
@@ -268,6 +269,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 			pthread_rwlock_unlock(&directorio_padre->lock);
 			archivo_eliminar(archivo_nuevo);
 			free(chunks);
+			munmap(map, archivo_size);
 			return 1;
 		}
 		int redundancia;
@@ -309,6 +311,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 		pthread_rwlock_unlock(&directorio_padre->lock);
 		archivo_eliminar(archivo_nuevo);
 		free(chunks);
+		munmap(map, archivo_size);
 		return 1;
 	}
 
@@ -1612,7 +1615,9 @@ void archivo_eliminar(t_archivo* archivo) {
 			t_copia copia_actual = bloque_actual.copias[numero_copia];
 			nodo_liberar_bloque(copia_actual.nombre_nodo, copia_actual.bloque_nodo);
 		}
-		free(bloque_actual.copias);
+		if (bloque_actual.cantidad_copias > 0) {
+			free(bloque_actual.copias);
+		}
 	}
 	free(archivo->bloques);
 	pthread_rwlock_unlock(&archivo->lock);
