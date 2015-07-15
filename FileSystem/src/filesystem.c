@@ -22,6 +22,7 @@ pthread_mutex_t mutex_nodos_pendientes = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_filesysem_operativo = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_args = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_res = PTHREAD_MUTEX_INITIALIZER;
+sem_t sem_set_bloque;
 
 bool filesystem_operativo = false;
 int cantidad_nodos_minima = 0;
@@ -167,6 +168,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 	int offset_actual = 0;
 	int pos_actual = 0;
 	int ret = 0;
+	sem_init(&sem_set_bloque, 0, 4);
 
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
@@ -285,6 +287,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 			archivo_nuevo->bloques[numero_bloque].copias[redundancia].tamanio_bloque = chunks[numero_bloque].tamanio;
 			pthread_rwlock_unlock(&(nodo_actual->lock));
 
+			sem_wait(&sem_set_bloque);
 			args[numero_bloque][redundancia] = malloc(sizeof(struct arg_set_bloque));
 			args[numero_bloque][redundancia]->bloque_nodo = bloque_nodo;
 			args[numero_bloque][redundancia]->socket = nodo_actual->socket;

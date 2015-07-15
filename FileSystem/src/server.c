@@ -1,6 +1,6 @@
 #include "server.h"
 
-pthread_mutex_t mutex_set_bloque = PTHREAD_MUTEX_INITIALIZER;
+extern sem_t sem_set_bloque;
 
 void iniciar_server(void* argumentos) {
 
@@ -203,17 +203,19 @@ int mensaje_set_bloque(void* argumentos) {
 	int size = strlen(args->chunk);
 
 	t_msg* msg_solicitud = string_message(SET_BLOQUE, args->chunk, 2, args->bloque_nodo, size);
+	free(args->chunk);
+	free(args);
 	res = enviar_mensaje(socket, msg_solicitud);
 	if (res < 0) {
 		log_error_consola("Mensaje set_bloque fallo por desconexion del nodo, socket: %d", socket);
 		destroy_message(msg_solicitud);
 		free(args->chunk);
 		free(args);
+		sem_post(&sem_set_bloque);
 		return 1;
 	}
 	destroy_message(msg_solicitud);
-	free(args->chunk);
-	free(args);
+	sem_post(&sem_set_bloque);
 	t_msg* respuesta = recibir_mensaje(socket);
 	if (respuesta == NULL) {
 		log_error_consola("Mensaje set_bloque fallo porque el nodo no respondió OK, se asume desconexion del nodo, socket: %d", socket);
