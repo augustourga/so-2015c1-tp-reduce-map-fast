@@ -634,7 +634,11 @@ t_directorio* directorio_por_ruta(char* ruta) {
 	int i = 0;
 	while (nombres[i] != NULL) {
 		directorio_padre = hijo_de_con_nombre(directorio_padre, nombres[i]);
-		i++;
+		if (directorio_padre == NULL) {
+			break;
+		} else {
+			i++;
+		}
 	}
 	free_puntero_puntero(nombres);
 	return directorio_padre;
