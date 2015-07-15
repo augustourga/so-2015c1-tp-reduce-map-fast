@@ -111,7 +111,8 @@ void decodificar_mensaje(t_msg* mensaje, int socket) {
 		break;
 	case GET_ARCHIVO_TMP:
 		if (filesystem_operativo) {
-			t_msg* msg_rta = mensaje_copiar_archivo_temporal_a_mdfs(mensaje->stream);
+			char* archivo = string_duplicate(mensaje->stream);
+			t_msg* msg_rta = mensaje_copiar_archivo_temporal_a_mdfs(archivo);
 			res = enviar_mensaje(socket, msg_rta);
 			if (res < 0) {
 				log_error_consola("No se pudo enviar mensaje de %s a Marta. Se asume su desconexion", id_string(msg_rta->header.id));

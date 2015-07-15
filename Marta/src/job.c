@@ -9,6 +9,7 @@ t_job* job_crear() {
 	job->reduces = list_create();
 	sem_init(&job->sem_maps_fin, 0, 0);
 	sem_init(&job->sem_reduces_fin, 0, 0);
+	sem_init(&job->sem_reduce_final_fin, 0, 0);
 	log_debug_consola("Se creo con exito el job. id: %d", job->id);
 	return job;
 }

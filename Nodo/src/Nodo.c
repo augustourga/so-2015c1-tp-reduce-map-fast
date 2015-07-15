@@ -343,7 +343,7 @@ void atenderConexiones(void *parametro) {
 			} else {
 				log_error_consola("Fallo en Recibir Rutina.Se esperaba el id RUTINA.");
 			}
-			remove(path_rutina);
+			//remove(path_rutina);
 			destroy_message(mensaje2);
 			destroy_message(codigo);
 			break;
@@ -453,7 +453,7 @@ t_msg_id ejecutar_map(char*path_ejecutable, char* nombreArchivo, int numeroBloqu
 	log_info_consola("Fin rutina de map ID:%d en el bloque %d", mapid, numeroBloque);
 
 	list_add_archivo_tmp(nombreArchivoFinal);
-	remove(path_ejecutable);
+	//remove(path_ejecutable);
 
 	log_info_consola("Fin ejecutarMap ID:%d en el bloque %d", mapid, numeroBloque);
 	return FIN_MAP_OK;
@@ -577,7 +577,7 @@ int apareo(t_list* lista_nodos_archivos, char* path_ejecutable, char* path_salid
 	close(in[1]);
 	int status;
 	waitpid(pid, &status, 0);
-	remove(path_ejecutable);
+	//remove(path_ejecutable);
 	log_info_consola("Se aparearon correctamente los archivos.");
 	return status;
 	return res;
