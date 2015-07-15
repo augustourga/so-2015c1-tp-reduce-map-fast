@@ -165,7 +165,6 @@ void* mensaje_get_bloque(void* argumentos) {
 		return NULL;
 	}
 	destroy_message(msg_solicitud);
-	free(args);
 	t_msg* respuesta = recibir_mensaje(socket);
 	if (respuesta == NULL) {
 		log_error_consola("Mensaje get_bloque fallo porque el nodo no respondió, se asume desconexion del nodo, socket: %d", socket);
@@ -176,7 +175,7 @@ void* mensaje_get_bloque(void* argumentos) {
 
 	switch (respuesta->header.id) {
 	case GET_BLOQUE_ERROR:
-		log_error_consola("No se pudo obtener el bloque %d", bloque);
+		log_error_consola("No se pudo obtener el bloque %d", bloque_archivo);
 		destroy_message(respuesta);
 		return res;
 		break;
@@ -184,7 +183,7 @@ void* mensaje_get_bloque(void* argumentos) {
 		res->stream = malloc(respuesta->header.length);
 		res->bloque_archivo = respuesta->argv[0];
 		memcpy(res->stream, respuesta->stream, respuesta->header.length);
-		log_info_interno("Mensaje get_bloque_ok recibido por el bloque: %d", bloque);
+		log_info_interno("Mensaje get_bloque_ok recibido por el bloque: %d", bloque_archivo);
 		destroy_message(respuesta);
 		return res;
 		break;
@@ -208,7 +207,6 @@ int mensaje_set_bloque(void* argumentos) {
 		log_error_consola("Mensaje set_bloque fallo por desconexion del nodo, socket: %d", socket);
 		destroy_message(msg_solicitud);
 		free(args->chunk);
-		free(args);
 		return 1;
 	}
 	destroy_message(msg_solicitud);
