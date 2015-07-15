@@ -101,23 +101,23 @@ void esperarTareas() {
 						usleep(1);
 					} else if (mensaje_actual->header.id == GET_ARCHIVO_TMP_OK) {
 						log_info_consola("El Job finalizó con éxito"); //TODO: Mejorar el log para indicar donde buscar el archivo en el mdfs
-						terminar_job();
+						exit(EXIT_SUCCESS);
 					} else if (mensaje_actual->header.id == MDFS_NO_OPERATIVO) {
 						log_info_consola("ERROR - El MDFS no esta operativo. Reintente mas tarde.");
-						terminar_job();
+						exit(EXIT_FAILURE);
 					} else if (mensaje_actual->header.id == INFO_ARCHIVO_ERROR) {
 						log_info_consola("ERROR - No se encontro la informacion del archivo %s.Compruebe la existencia del archivo y vuelva a intentarlo.",
 								mensaje_actual->stream);
-						terminar_job();
+						exit(EXIT_FAILURE);
 					} else if (mensaje_actual->header.id == FIN_MAP_ERROR) {
 						log_info_consola("ERROR - No se pudo ejecutar map. Revise disponibilidad de los archivos y vuelva a ejecutar.");
-						terminar_job();
+						exit(EXIT_FAILURE);
 					} else if (mensaje_actual->header.id == FIN_REDUCE_ERROR) {
 						log_info_consola("ERROR - No se pudo ejecutar reduce. Revise estado del MDFS y vuelva a ejecutar.");
-						terminar_job();
+						exit(EXIT_FAILURE);
 					} else if (mensaje_actual->header.id == GET_ARCHIVO_TMP_ERROR) {
 						log_info_consola("ERROR - No se pudo copiar el archivo final en el MDFS. Revise estado del MDFS y vuelva a ejecutar.");
-						terminar_job();
+						exit(EXIT_FAILURE);
 					}
 				}
 			}
@@ -197,7 +197,7 @@ void conectarseAMarta() {
 }
 
 int hiloReduce(void* dato) {
-	sumar_hilo();
+	//sumar_hilo();
 	t_msg* mensaje;
 	t_msg* mensaje_respuesta;
 	int res = 0;
@@ -221,7 +221,7 @@ int hiloReduce(void* dato) {
 			log_error_consola("Fallo envio mensaje EJECUTAR_REDUCE");
 		}
 
-		mensaje = string_message(RUTINA, configuracion->reduce, 1,configuracion->tamanio_reduce);
+		mensaje = string_message(RUTINA, configuracion->reduce, 1, configuracion->tamanio_reduce);
 
 		log_debug_interno("Enviando mensaje rutina. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id), mensaje->header.argc,
 				mensaje->header.length);
@@ -278,12 +278,12 @@ int hiloReduce(void* dato) {
 //TODO: No habría que cerrar la conexión con el nodo como en el HiloMap?
 //Lo agregue, no entiendo por que no deberia no hacerse
 	shutdown(nodo_sock, 2);
-	restar_hilo();
+	//restar_hilo();
 	return 0;
 }
 
 int hiloMap(void* dato) {
-	sumar_hilo();
+	//sumar_hilo();
 	t_msg* mensaje;
 	t_msg* mensaje_respuesta;
 	t_params_hiloMap* args = (t_params_hiloMap*) dato;
@@ -302,7 +302,7 @@ int hiloMap(void* dato) {
 
 		ret = enviar_mensaje(nodo_sock, mensaje);
 
-		mensaje = string_message(RUTINA, configuracion->mapper, 1, args->id_operacion,configuracion->tamanio_mapper);
+		mensaje = string_message(RUTINA, configuracion->mapper, 1, args->id_operacion, configuracion->tamanio_mapper);
 
 		log_debug_interno("Enviando mensaje de rutina. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id), mensaje->header.argc,
 				mensaje->header.length);
@@ -332,7 +332,7 @@ int hiloMap(void* dato) {
 
 //CERRAR CONEXIÓN CON EL NODO//
 	shutdown(nodo_sock, 2);
-	restar_hilo();
+	//restar_hilo();
 	return 0;
 }
 
@@ -376,34 +376,34 @@ void levantarHiloReduce(t_params_hiloReduce* nodo) {
 	}
 }
 
-void terminar_job() {
+/*void terminar_job(int status) {
 
-	log_info_interno("Esperando a que terminen los hilos pendientes");
-	//sem_wait(&sem_sin_hilos);
-	log_info_interno("Hilos finalizados. Terminando proceso Job");
-	exit(1);
-}
+ log_info_interno("Esperando a que terminen los hilos pendientes");
+ //sem_wait(&sem_sin_hilos);
+ log_info_interno("Hilos finalizados. Terminando proceso Job");
+ exit(1);
+ }*/
 
-void sumar_hilo() {
+/*void sumar_hilo() {
 
-	pthread_mutex_lock(&mutex_cantidad_hilos);
+ pthread_mutex_lock(&mutex_cantidad_hilos);
 
-	if (cantidad_hilos == 0) {
-		sem_wait(&sem_sin_hilos);
-	}
-	cantidad_hilos += 1;
-	pthread_mutex_unlock(&mutex_cantidad_hilos);
+ if (cantidad_hilos == 0) {
+ sem_wait(&sem_sin_hilos);
+ }
+ cantidad_hilos += 1;
+ pthread_mutex_unlock(&mutex_cantidad_hilos);
 
-}
+ }
 
-void restar_hilo() {
-	pthread_mutex_lock(&mutex_cantidad_hilos);
+ void restar_hilo() {
+ pthread_mutex_lock(&mutex_cantidad_hilos);
 
-	cantidad_hilos -= 1;
-	if (cantidad_hilos == 0) {
-		sem_post(&sem_sin_hilos);
-	}
-	pthread_mutex_unlock(&mutex_cantidad_hilos);
+ cantidad_hilos -= 1;
+ if (cantidad_hilos == 0) {
+ sem_post(&sem_sin_hilos);
+ }
+ pthread_mutex_unlock(&mutex_cantidad_hilos);
 
-}
+ }*/
 

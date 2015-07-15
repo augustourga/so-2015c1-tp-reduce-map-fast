@@ -12,10 +12,10 @@ int main(int argc, char*argv[]) {
 	_data = levantar_espacio_datos();
 	archivos_temporales = list_create();
 
-//	if (levantarHiloFile()) {
-//		log_error_consola("Conexion con File System fallida.");
-//		exit(1);
-//	}
+	if (levantarHiloFile()) {
+		log_error_consola("Conexion con File System fallida.");
+		exit(1);
+	}
 
 	levantarNuevoServer();
 
