@@ -121,7 +121,7 @@ void planifica_maps(t_job* job) {
 
 void planificar_reduces_con_combiner(t_job* job) {
 	bool _ordena_por_nombre(t_map* map1, t_map* map2) {
-		return map1->arch_tmp.nombre <= map2->arch_tmp.nombre;
+		return strcmp(map1->arch_tmp.nodo.nombre, map2->arch_tmp.nodo.nombre) > 0;
 	}
 
 	list_sort(job->maps, (void*) _ordena_por_nombre);
@@ -131,34 +131,36 @@ void planificar_reduces_con_combiner(t_job* job) {
 	temp_actual->nodo = primer_map->arch_tmp.nodo;
 	t_reduce* reduce_actual = reduce_crear();
 	reduce_actual->arch_tmp.nodo = primer_map->arch_tmp.nodo;
-	reduce_actual->arch_tmp.nombre = getRandName("Sarasa1", "sarasa2"); //TODO: Generar nombre de archivo
+	reduce_actual->arch_tmp.nombre = getRandName("rd_parcial", string_itoa(reduce_actual->id)); //TODO: Generar nombre de archivo
+	temp_actual->nombre = string_new();
 
 	void _genera_reduces(t_map* map) {
 		if (!strcmp(nombre_actual, map->arch_tmp.nodo.nombre)) {
-			temp_actual->nombre = string_new();
 			string_append(&temp_actual->nombre, map->arch_tmp.nombre);
-			string_append(&temp_actual->nombre, "|");
+			string_append(&temp_actual->nombre, ";");
 		} else {
 			list_add(reduce_actual->temporales, temp_actual);
 			list_add(job->reduces, reduce_actual);
-			t_reduce* reduce_actual = reduce_crear();
+			reduce_actual = reduce_crear();
 			reduce_actual->arch_tmp.nodo = map->arch_tmp.nodo;
-			reduce_actual->arch_tmp.nombre = getRandName("Sarasa1", "sarasa2"); //TODO: Generar nombre de archivo
+			reduce_actual->arch_tmp.nombre = getRandName("rd_parcial", string_itoa(reduce_actual->id)); //TODO: Generar nombre de archivo
 			temp_actual = malloc(sizeof(t_temp));
 			nombre_actual = string_duplicate(map->arch_tmp.nodo.nombre);
 			temp_actual->nodo = map->arch_tmp.nodo;
 			temp_actual->nombre = string_duplicate(map->arch_tmp.nombre);
-			string_append(&temp_actual->nombre, "|");
+			string_append(&temp_actual->nombre, ";");
 		}
 	}
 
 	list_iterate(job->maps, (void*) _genera_reduces);
+	list_add(reduce_actual->temporales, temp_actual);
+	list_add(job->reduces, reduce_actual);
 
 	t_reduce* primer_reduce = list_get(job->reduces, 0);
 
 	t_reduce* reduce_final = reduce_crear();
-	reduce_final->arch_tmp.nodo = primer_reduce->arch_tmp.nodo; //TODO: ver si se puede elegir otro con algún criterio mejor
-	reduce_final->arch_tmp.nombre = getRandName("Saras", "jojo"); //TODO: Generar nombre
+	reduce_final->arch_tmp.nodo = primer_reduce->arch_tmp.nodo; //TODO: Obtener el nodo con menor carga
+	reduce_final->arch_tmp.nombre = getRandName("rd_final", string_itoa(job->socket)); //TODO: Generar nombre
 
 	void _temporales_reduce_final(t_reduce* reduce) {
 		list_add(reduce_final->temporales, &reduce->arch_tmp);
@@ -215,10 +217,10 @@ void planificar_reduces_sin_combiner(t_job* job) {
 	t_nodo_global* nodo_global = list_find(lista_nodos, (void*) _nodo_por_nombre);
 
 	reduce->arch_tmp.nodo = nodo_global->nodo;
-	reduce->arch_tmp.nombre = getRandName(string_itoa(job->socket), "RD_FINAL"); //TODO: No se qué va acá, generar un nombre para las salidas de los reduces
+	reduce->arch_tmp.nombre = getRandName("rd_final", string_itoa(job->socket)); //TODO: No se qué va acá, generar un nombre para las salidas de los reduces
 
 	bool _ordena_por_nombre(t_map* map1, t_map* map2) {
-		return map1->arch_tmp.nodo.nombre <= map2->arch_tmp.nodo.nombre;
+		return strcmp(map1->arch_tmp.nodo.nombre, map2->arch_tmp.nodo.nombre) > 0;
 	}
 
 	list_sort(job->maps, (void*) _ordena_por_nombre);
@@ -306,7 +308,7 @@ void procesa_job(void* argumentos) {
 	log_info_consola("Esperando a que finalice el reduce final...");
 	sem_wait(&job->sem_reduce_final_fin);
 
-	copiar_archivo_final(job);
+	//copiar_archivo_final(job);
 }
 
 t_nodo get_nodo_menos_cargado(t_nodo nodos[3]) {
@@ -586,7 +588,6 @@ void actualiza_job_reduce_ok(int id, int socket) {
 	eliminar_carga_nodo(reduce_actual->arch_tmp.nodo, carga_reduce);
 
 	if (id == job_actual->reduce_final->id) {
-		copiar_archivo_final(job_actual);
 		sem_post(&job_actual->sem_reduce_final_fin);
 	} else {
 		reduce_actual->estado = FIN_OK;

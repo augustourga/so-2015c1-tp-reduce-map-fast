@@ -72,13 +72,10 @@ void ejecuta_reduce_final(t_job* job) {
 
 void ejecuta_reduces_parciales(t_job* job) {
 
-	while (true) {
-
-		void _ejecuta_reduce(t_reduce* reduce) {
-			ejecuta_reduce(job, reduce);
-		}
-		log_debug_interno("creando reduce parciales threads. job: %d", job->socket);
-		list_iterate(job->reduces, (void*) _ejecuta_reduce);
-		log_debug_interno("reduces threads creados. job: %d", job->socket);
+	void _ejecuta_reduce(t_reduce* reduce) {
+		ejecuta_reduce(job, reduce);
 	}
+	log_debug_interno("creando reduce parciales threads. job: %d", job->socket);
+	list_iterate(job->reduces, (void*) _ejecuta_reduce);
+	log_debug_interno("reduces threads creados. job: %d", job->socket);
 }
