@@ -43,6 +43,8 @@
 
 #define COMANDO_LISTAR "ls"
 #define COMANDO_LISTAR_NODOS "ls_nodo"
+#define COMANDO_LISTAR_ARCHIVO "ls_archivo"
+#define COMANDO_LISTAR_BLOQUES "ls_bloques"
 
 #define COMANDO_DT "dt"
 #define COMANDO_DF "df"

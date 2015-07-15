@@ -1,5 +1,13 @@
 #include "consola.h"
 
+#define ANSI_COLOR_RED         "\033[31m"
+#define ANSI_COLOR_GREEN       "\033[32m"
+#define ANSI_COLOR_BLUE        "\033[34m"
+#define ANSI_COLOR_RESET       "\033[0m"
+
+int listar_archivo(char* nombre_archivo);
+int listar_bloques(char* nombre_nodo);
+
 void iniciar_consola() {
 
 	//En realidad no importa el tamaño del buffer porque si se pasa getLine se da cuenta y hace un realloc :D
@@ -162,6 +170,20 @@ int ejecutar_comando(char* comando) {
 		}
 		ret = listar_nodos(parametros[1]);
 		return ret;
+	} else if (string_equals_ignore_case(parametros[0], COMANDO_LISTAR_ARCHIVO)) {
+		if (parametros[1] == NULL) {
+			log_error_parametros_faltantes();
+			return 1;
+		}
+		ret = listar_archivo(parametros[1]);
+		return ret;
+	} else if (string_equals_ignore_case(parametros[0], COMANDO_LISTAR_BLOQUES)) {
+		if (parametros[1] == NULL) {
+			log_error_parametros_faltantes();
+			return 1;
+		}
+		ret = listar_bloques(parametros[1]);
+		return ret;
 	} else if (string_equals_ignore_case(parametros[0], COMANDO_DF)) {
 		ret = espacio_libre();
 		return ret;
@@ -220,6 +242,70 @@ int listar_nodos(char* lista_nodos) {
 	return 0;
 }
 
+int listar_archivo(char* nombre_archivo) {
+
+	bool _archivo_por_nombre(t_archivo* archivo_aux) {
+		return string_equals_ignore_case(archivo_aux->nombre, nombre_archivo);
+	}
+
+	t_archivo* archivo = NULL;
+	archivo = list_find_archivo((void *) _archivo_por_nombre);
+
+	if (archivo == NULL) {
+		log_error_consola("No existe un archivo con nombre: %s", nombre_archivo);
+		return 1;
+	}
+
+	printf(ANSI_COLOR_BLUE"Archivo:"ANSI_COLOR_RESET"%s\n", nombre_archivo);
+	printf("Tamaño: %ld bytes\n", archivo->tamanio);
+	printf("Directorio padre: %d\nEstado: ", archivo->padreId);
+	if (archivo->disponible) {
+		printf(ANSI_COLOR_GREEN"Disponible"ANSI_COLOR_RESET"\n");
+	} else {
+		printf(ANSI_COLOR_RED"No disponible"ANSI_COLOR_RESET"\n");
+	}
+	int numero_bloque, numero_copia;
+	for (numero_bloque = 0; numero_bloque < archivo->cantidad_bloques; numero_bloque++) {
+		printf("Bloque: %d --> ", numero_bloque + 1);
+		for (numero_copia = 0; numero_copia < archivo->bloques[numero_bloque].cantidad_copias; numero_copia++) {
+			printf("Copia %d: ", numero_copia + 1);
+			printf("%s ", archivo->bloques[numero_bloque].copias[numero_copia].nombre_nodo);
+			printf("%d ", archivo->bloques[numero_bloque].copias[numero_copia].bloque_nodo+1);
+			if (archivo->bloques[numero_bloque].copias[numero_copia].conectado) {
+				printf("ON  |");
+			} else {
+				printf("OFF |");
+			}
+		}
+		printf("\n");
+	}
+
+	return 0;
+}
+
+int listar_bloques(char* nombre_nodo) {
+	t_nodo* nodo = NULL;
+	nodo = nodo_operativo_por_nombre(nombre_nodo);
+
+	if (nodo == NULL) {
+		log_error_consola("No se encuentra el nodo con nombre: %s", nombre_nodo);
+		return 1;
+	}
+	int i;
+	printf("Cantidad bloques totales: %d\n",nodo->cantidad_bloques_totales);
+	printf("Cantidad bloques libres: %d\n", nodo->cantidad_bloques_libres);
+	printf("Bloques: [ ");
+	for (i = 0; i < nodo->cantidad_bloques_totales; i++) {
+		printf("%d",nodo->bloques[i]);
+		if (i != nodo->cantidad_bloques_totales-1) {
+			printf(", ");
+		}
+	}
+	printf(" ]\n");
+
+	return 0;
+}
+
 int listar_hijos(char* ruta_directorio) {
 
 	t_directorio* directorio_actual = NULL;
@@ -264,7 +350,7 @@ int listar_hijos(char* ruta_directorio) {
 int mostrar_ayuda(char* parametro) {
 	if (parametro == NULL) {
 		puts(
-				"Accion 			=> Comando\n---------------------	=> -----------------\nFORMATEAR 		=> formatear\nELIMINAR ARCHIVO 	=> rm_archivo\nRENOMBRAR ARCHIVO 	=> cn_archivo\nMOVER ARCHIVO 		=> mv_archivo\nCREAR DIRECTORIO 	=> mk_directorio\nELIMINAR DIRECTORIO 	=> rm_directorio\nRENOMBRAR DIRECTORIO 	=> cn_directorio\nMOVER DIRECTORIO 	=> mv_directorio\nCOPIAR MDFS LOCAL 	=> cp_mdfs_local\nCOPIAR LOCAL MDFS 	=> cp_local_mdfs\nMD5 			=> md5\nVER BLOQUE 		=> ls_bloque_archivo\nBORRAR BLOQUE 		=> rm_bloque\nCOPIAR BLOQUE 		=> cp_bloque\nAGREGAR NODO 		=> ag_nodo\nELIMINAR NODO 		=> rm_nodo\nLISTAR 			=> ls\nLISTAR NODOS 		=> ls_nodo\nDT 			=> dt\nDF 			=> df");
+				"Accion 			=> Comando\n---------------------	=> -----------------\nFORMATEAR 		=> formatear\nELIMINAR ARCHIVO 	=> rm_archivo\nRENOMBRAR ARCHIVO 	=> cn_archivo\nMOVER ARCHIVO 		=> mv_archivo\nCREAR DIRECTORIO 	=> mk_directorio\nELIMINAR DIRECTORIO 	=> rm_directorio\nRENOMBRAR DIRECTORIO 	=> cn_directorio\nMOVER DIRECTORIO 	=> mv_directorio\nCOPIAR MDFS LOCAL 	=> cp_mdfs_local\nCOPIAR LOCAL MDFS 	=> cp_local_mdfs\nMD5 			=> md5\nVER BLOQUE 		=> ls_bloque_archivo\nBORRAR BLOQUE 		=> rm_bloque\nCOPIAR BLOQUE 		=> cp_bloque\nAGREGAR NODO 		=> ag_nodo\nELIMINAR NODO 		=> rm_nodo\nLISTAR 			=> ls\nLISTAR NODOS 		=> ls_nodo\nLISTAR ARCHIVO 		=> ls_archivo\nLISTAR BLOQUES 		=> ls_bloques\nDT 			=> dt\nDF 			=> df");
 	} else {
 		if (string_equals_ignore_case(parametro, COMANDO_FORMATEAR)) {
 			printf("No recibe parametros\n");
@@ -293,7 +379,8 @@ int mostrar_ayuda(char* parametro) {
 		} else if (string_equals_ignore_case(parametro, COMANDO_BORRAR_BLOQUE)) {
 			printf("Recibe como primer parametro el numero del bloque y como segundo, el nombre del nodo (Los numeros de los bloques empiezan en 1)\n");
 		} else if (string_equals_ignore_case(parametro, COMANDO_COPIAR_BLOQUE)) {
-			printf("Recibe como primer parametro el numero del bloque, como segundo el nombre del nodo origen y como tercero, el nombre del nodo destino (Los numeros de los bloques empiezan en 1)\n");
+			printf(
+					"Recibe como primer parametro el numero del bloque, como segundo el nombre del nodo origen y como tercero, el nombre del nodo destino (Los numeros de los bloques empiezan en 1)\n");
 		} else if (string_equals_ignore_case(parametro, COMANDO_AGREGAR_NODO)) {
 			printf("Recibe como parametro el nombre del nodo\n");
 		} else if (string_equals_ignore_case(parametro, COMANDO_ELIMINAR_NODO)) {
@@ -302,6 +389,10 @@ int mostrar_ayuda(char* parametro) {
 			printf("Recibe como parametro la ruta del directorio que se quieren saber los hijos\n");
 		} else if (string_equals_ignore_case(parametro, COMANDO_LISTAR_NODOS)) {
 			printf("Recibe como parametro el nombre de la lista de nodos que se quiere mostrar, puede ser: pendientes, aceptados u operativos\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_LISTAR_ARCHIVO)) {
+			printf("Recibe como parametro el nombre del archivo que se quiere mostrar su informacion\n");
+		} else if (string_equals_ignore_case(parametro, COMANDO_LISTAR_BLOQUES)) {
+			printf("Recibe como parametro el nombre del nodo que se quieren conocer sus bloques\n");
 		} else if (string_equals_ignore_case(parametro, COMANDO_DF)) {
 			printf("No recibe parametros\n");
 		} else if (string_equals_ignore_case(parametro, COMANDO_DT)) {
