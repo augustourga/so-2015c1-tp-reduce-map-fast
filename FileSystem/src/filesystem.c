@@ -168,7 +168,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 	int offset_actual = 0;
 	int pos_actual = 0;
 	int ret = 0;
-	sem_init(&sem_set_bloque, 0, 4);
+	sem_init(&sem_set_bloque, 0, 1);
 
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
@@ -919,11 +919,12 @@ int ver_bloque_de_archivo(int numero_bloque_archivo, char* ruta_archivo) {
 		pthread_rwlock_unlock(&archivo->lock);
 		return 1;
 	}
-	log_info_interno("Se solicito bloque: Nombre del archivo: %s; Cantidad de bloques: %d; Numero de bloque pedido: %d", archivo->nombre, archivo->cantidad_bloques, numero_bloque_archivo);
+	log_info_interno("Se solicito bloque: Nombre del archivo: %s; Cantidad de bloques: %d; Numero de bloque pedido: %d", archivo->nombre,
+			archivo->cantidad_bloques, numero_bloque_archivo);
 	int redundancia = 0;
 	// Aca se le resta 1 al numero ingresado, xq los arrays que manejamos empiezan en 0 y las cantidades empiezan en 1
 	numero_bloque_archivo = numero_bloque_archivo - 1;
-	while ((!archivo->bloques[numero_bloque_archivo].copias[redundancia].conectado)&&(redundancia < archivo->bloques[numero_bloque_archivo].cantidad_copias)) {
+	while ((!archivo->bloques[numero_bloque_archivo].copias[redundancia].conectado) && (redundancia < archivo->bloques[numero_bloque_archivo].cantidad_copias)) {
 		redundancia++;
 	}
 	t_copia copia_actual = archivo->bloques[numero_bloque_archivo].copias[redundancia];
@@ -1556,21 +1557,25 @@ char* serializar_info_archivo(t_archivo* archivo) {
 	return respuesta;
 }
 
-int copiar_archivo_temporal_a_mdfs(char* nombre_archivo_tmp, char* archivo) {
+int copiar_archivo_temporal_a_mdfs(char* ruta_completa_archivo_final, char* archivo) {
 	int resultado = 0;
 	char* ruta = string_new();
 
-	string_append(&ruta, "/tmp/");
-	string_append(&ruta, nombre_archivo_tmp);
+	char** datos = string_split(ruta_completa_archivo_final, "/");
+	char* directorio_mdfs = string_duplicate("/");
 
-	FILE *fp = fopen(ruta, "ab");
-	if (fp != NULL) {
-		fputs(archivo, fp);
-		fclose(fp);
-		resultado = copiar_archivo_local_a_mdfs(ruta, "/");
-	} else {
-		resultado = 1;
-	}
+	int i;
+	for (i = 0; datos[i + 1] != NULL; i++) {
+		string_append(&directorio_mdfs, datos[i]);
+		string_append(&directorio_mdfs, "/");
+	};
+
+	string_append(&ruta, "/tmp/");
+	string_append(&ruta, datos[i]);
+
+	write_file(ruta, archivo, strlen(archivo));
+	resultado = copiar_archivo_local_a_mdfs(datos[i], directorio_mdfs);
+
 	if (resultado == 0) {
 		char* nombre_nuevo = string_new();
 		nombre_nuevo = string_duplicate(ruta);

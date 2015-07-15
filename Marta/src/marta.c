@@ -308,7 +308,7 @@ void procesa_job(void* argumentos) {
 	log_info_consola("Esperando a que finalice el reduce final...");
 	sem_wait(&job->sem_reduce_final_fin);
 
-	//copiar_archivo_final(job);
+	copiar_archivo_final(job);
 }
 
 t_nodo get_nodo_menos_cargado(t_nodo nodos[3]) {

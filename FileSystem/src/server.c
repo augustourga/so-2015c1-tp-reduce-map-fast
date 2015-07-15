@@ -203,13 +203,11 @@ int mensaje_set_bloque(void* argumentos) {
 
 	t_msg* msg_solicitud = string_message(SET_BLOQUE, args->chunk, 2, args->bloque_nodo, size);
 	free(args->chunk);
-	free(args);
 	res = enviar_mensaje(socket, msg_solicitud);
+	free(args);
 	if (res < 0) {
 		log_error_consola("Mensaje set_bloque fallo por desconexion del nodo, socket: %d", socket);
 		destroy_message(msg_solicitud);
-		free(args->chunk);
-		free(args);
 		sem_post(&sem_set_bloque);
 		return 1;
 	}
@@ -250,12 +248,14 @@ t_msg* mensaje_copiar_archivo_temporal_a_mdfs(char* mensaje) {
 	t_nodo* nodo;
 	char* nombre_archivo_tmp = string_new();
 	char* nombre_nodo = string_new();
+	char* nombre_archivo_final = string_new();
 	int valor, res;
 
-	char** parametros = string_n_split(mensaje, 2, "|");
+	char** parametros = string_n_split(mensaje, 3, "|");
 	free(mensaje);
 	string_append(&nombre_archivo_tmp, parametros[0]);
 	string_append(&nombre_nodo, parametros[1]);
+	string_append(&nombre_archivo_final, parametros[2]);
 	nodo = nodo_operativo_por_nombre(nombre_nodo);
 	free(nombre_nodo);
 	if (nodo == NULL) {
@@ -284,8 +284,8 @@ t_msg* mensaje_copiar_archivo_temporal_a_mdfs(char* mensaje) {
 		log_error_consola("No se pudo obtener el archivo temporal del nodo");
 		respuesta = id_message(GET_ARCHIVO_TMP_ERROR);
 		break;
-	case GET_FILE_CONTENT_OK:
-		valor = copiar_archivo_temporal_a_mdfs(nombre_archivo_tmp, msg_respuesta->stream);
+	case GET_FILE_CONTENT:
+		valor = copiar_archivo_temporal_a_mdfs(nombre_archivo_final, msg_respuesta->stream);
 		if (valor) {
 			log_info_interno("Pudo copiarse el archivo tmp a la raiz del mdfs con exito");
 			respuesta = id_message(GET_ARCHIVO_TMP_OK);

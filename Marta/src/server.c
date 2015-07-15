@@ -60,7 +60,7 @@ void iniciar_server(uint16_t puerto_listen) {
 					}
 				} else if (!socket_conectado(socket_actual)) {
 					log_info_consola("Desconectando socket: %d", socket_actual);
-					//manejar_desconexion(socket_actual); //TODO: Manejardesconexion
+					//manejar_desconexion(socket_actual); //TODO: Manejar desconexion
 					FD_CLR(socket_actual, &master);
 				} else {
 					log_info_consola("mensaje del socket: %d", socket_actual);
@@ -161,10 +161,12 @@ char* get_info_archivo(t_job* job, char* ruta_mdfs) {
 }
 
 void copiar_archivo_final(t_job* job) {
-	log_info_consola("Copiando archivo final. Temporal: %s Nombre Final: %s", job->reduce_final->arch_tmp.nodo.nombre, job->archivo_final);
-	char* stream = string_duplicate(job->archivo_final);
+	log_info_consola("Copiando archivo final. Temporal: %s Nombre Final: %s", job->reduce_final->arch_tmp.nombre, job->archivo_final);
+	char* stream = string_duplicate(job->reduce_final->arch_tmp.nombre);
 	string_append(&stream, "|");
 	string_append(&stream, job->reduce_final->arch_tmp.nodo.nombre);
+	string_append(&stream, "|");
+	string_append(&stream, job->archivo_final);
 
 	t_msg* message = string_message(GET_ARCHIVO_TMP, stream, 0);
 	enviar_mensaje(socket_mdfs, message);
