@@ -289,11 +289,11 @@ int mostrar_ayuda(char* parametro) {
 		} else if (string_equals_ignore_case(parametro, COMANDO_MD5)) {
 			printf("Recibe como parametro la ruta del archivo en el mdfs\n");
 		} else if (string_equals_ignore_case(parametro, COMANDO_VER_BLOQUE)) {
-			printf("Recibe como primer parametro el numero del bloque y como segundo, la ruta del archivo\n");
+			printf("Recibe como primer parametro el numero del bloque y como segundo, la ruta del archivo (Los numeros de los bloques empiezan en 1)\n");
 		} else if (string_equals_ignore_case(parametro, COMANDO_BORRAR_BLOQUE)) {
-			printf("Recibe como primer parametro el numero del bloque y como segundo, el nombre del nodo\n");
+			printf("Recibe como primer parametro el numero del bloque y como segundo, el nombre del nodo (Los numeros de los bloques empiezan en 1)\n");
 		} else if (string_equals_ignore_case(parametro, COMANDO_COPIAR_BLOQUE)) {
-			printf("Recibe como primer parametro el numero del bloque, como segundo el nombre del nodo origen y como tercero, el nombre del nodo destino\n");
+			printf("Recibe como primer parametro el numero del bloque, como segundo el nombre del nodo origen y como tercero, el nombre del nodo destino (Los numeros de los bloques empiezan en 1)\n");
 		} else if (string_equals_ignore_case(parametro, COMANDO_AGREGAR_NODO)) {
 			printf("Recibe como parametro el nombre del nodo\n");
 		} else if (string_equals_ignore_case(parametro, COMANDO_ELIMINAR_NODO)) {

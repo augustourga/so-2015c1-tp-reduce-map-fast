@@ -41,6 +41,7 @@ int nodo_bloque_disponible(t_nodo* nodo) {
 	while ((nodo->bloques[numero_bloque] == 1) && (numero_bloque < nodo->cantidad_bloques_totales)) {
 		numero_bloque++;
 	}
+
 	return numero_bloque;
 }
 

@@ -637,7 +637,11 @@ t_directorio* directorio_por_ruta(char* ruta) {
 	int i = 0;
 	while (nombres[i] != NULL) {
 		directorio_padre = hijo_de_con_nombre(directorio_padre, nombres[i]);
-		i++;
+		if (directorio_padre == NULL) {
+			break;
+		} else {
+			i++;
+		}
 	}
 	free_puntero_puntero(nombres);
 	return directorio_padre;
@@ -893,8 +897,8 @@ int ver_bloque_de_archivo(int numero_bloque_archivo, char* ruta_archivo) {
 
 	archivo = archivo_por_ruta(ruta_archivo);
 
-	if (numero_bloque_archivo < 0) {
-		log_error_consola("El número de bloque no puede ser negativo");
+	if (numero_bloque_archivo <= 0) {
+		log_error_consola("El número de bloque no puede ser negativo o cero.");
 		return 1;
 	}
 
@@ -915,9 +919,11 @@ int ver_bloque_de_archivo(int numero_bloque_archivo, char* ruta_archivo) {
 		pthread_rwlock_unlock(&archivo->lock);
 		return 1;
 	}
-
+	log_info_interno("Se solicito bloque: Nombre del archivo: %s; Cantidad de bloques: %d; Numero de bloque pedido: %d", archivo->nombre, archivo->cantidad_bloques, numero_bloque_archivo);
 	int redundancia = 0;
-	while (!archivo->bloques[numero_bloque_archivo].copias[redundancia].conectado) {
+	// Aca se le resta 1 al numero ingresado, xq los arrays que manejamos empiezan en 0 y las cantidades empiezan en 1
+	numero_bloque_archivo = numero_bloque_archivo - 1;
+	while ((!archivo->bloques[numero_bloque_archivo].copias[redundancia].conectado)&&(redundancia < archivo->bloques[numero_bloque_archivo].cantidad_copias)) {
 		redundancia++;
 	}
 	t_copia copia_actual = archivo->bloques[numero_bloque_archivo].copias[redundancia];
@@ -935,18 +941,20 @@ int ver_bloque_de_archivo(int numero_bloque_archivo, char* ruta_archivo) {
 	struct arg_get_bloque args;
 	args.bloque_nodo = copia_actual.bloque_nodo;
 	args.socket = nodo->socket;
+	args.bloque_archivo = numero_bloque_archivo;
 
 	pthread_create(&th_bloque, NULL, (void *) mensaje_get_bloque, (void*) &args);
-	char* dato_bloque = malloc(10000);
-	pthread_join(th_bloque, (void*) &dato_bloque);
+	struct res_get_bloque* res;
+	pthread_join(th_bloque, (void*) &res);
 	pthread_rwlock_unlock(&nodo->lock);
-	if (dato_bloque == NULL) {
+	if (res == NULL) {
 		log_error_consola("Ocurrió un error al obtener el bloque del archivo");
+		free(res);
 		return 1;
 	}
 
-	printf("%s\n", dato_bloque);
-
+	printf("%s", res->stream);
+	free(res);
 	return 0;
 }
 
@@ -986,8 +994,8 @@ int ver_bloque_de_nodo(int numero_bloque_nodo, char* nombre_nodo) {
 int borrar_bloque_de_nodo(int numero_bloque_nodo, char* nombre_nodo) {
 	t_nodo* nodo;
 
-	if (numero_bloque_nodo < 0) {
-		log_error_consola("El número de bloque no puede ser negativo");
+	if (numero_bloque_nodo <= 0) {
+		log_error_consola("El número de bloque no puede ser negativo o cero.");
 		return 1;
 	}
 
@@ -1004,7 +1012,8 @@ int borrar_bloque_de_nodo(int numero_bloque_nodo, char* nombre_nodo) {
 		pthread_rwlock_unlock(&nodo->lock);
 		return 1;
 	}
-
+	// Aca se le resta 1 al numero ingresado, xq los arrays que manejamos empiezan en 0 y las cantidades empiezan en 1
+	numero_bloque_nodo = numero_bloque_nodo - 1;
 	if (nodo->bloques[numero_bloque_nodo] == 0) {
 		log_error_consola("El bloque a borrar está vacío");
 		pthread_rwlock_unlock(&nodo->lock);
@@ -1039,7 +1048,7 @@ int borrar_bloque_de_nodo(int numero_bloque_nodo, char* nombre_nodo) {
 	archivo = list_find_archivo((void*) _archivo_de_bloque);
 
 	if (archivo == NULL) {
-		log_error_consola("Ocurrió un error");
+		log_error_consola("Ocurrió un error. No se encontró el archivo al que pertenece el bloque.");
 		return 1;
 	}
 
@@ -1080,24 +1089,27 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_orige
 	t_nodo* nodo_origen;
 	t_nodo* nodo_destino;
 
-	if (numero_bloque_nodo < 0) {
-		log_error_consola("El número de bloque no puede ser negativo");
+	if (numero_bloque_nodo <= 0) {
+		log_error_consola("El número de bloque no puede ser negativo o cero.");
 		return 1;
 	}
 
 	nodo_origen = nodo_operativo_por_nombre(nombre_nodo_origen);
 
 	if (nodo_origen == NULL) {
-		log_error_consola("El nodo %s no está operativo", nombre_nodo_origen);
+		log_error_consola("El nodo origen: %s no está operativo", nombre_nodo_origen);
 		return 1;
 	}
 	pthread_rwlock_rdlock(&nodo_origen->lock);
 
 	if (numero_bloque_nodo > nodo_origen->cantidad_bloques_totales) {
-		log_error_consola("El bloque %d no existe", numero_bloque_nodo);
+		log_error_consola("El bloque %d no existe en el nodo origen: %s", numero_bloque_nodo, nombre_nodo_origen);
 		pthread_rwlock_unlock(&nodo_origen->lock);
 		return 1;
 	}
+
+	// Aca se le resta 1 al numero ingresado, xq los arrays que manejamos empiezan en 0 y las cantidades empiezan en 1
+	numero_bloque_nodo = numero_bloque_nodo - 1;
 
 	if (nodo_origen->bloques[numero_bloque_nodo] == 0) {
 		log_error_consola("El bloque a copiar está vacío");
@@ -1108,7 +1120,7 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_orige
 	nodo_destino = nodo_operativo_por_nombre(nombre_nodo_destino);
 
 	if (nodo_destino == NULL) {
-		log_error_consola("El nodo %s no está operativo", nombre_nodo_destino);
+		log_error_consola("El nodo destino %s no está operativo", nombre_nodo_destino);
 		pthread_rwlock_unlock(&nodo_origen->lock);
 		return 1;
 	}
@@ -1120,9 +1132,9 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_orige
 	}
 
 	pthread_rwlock_wrlock(&nodo_destino->lock);
-	int numero_bloque_nodo_destino = nodo_asignar_bloque_disponible(nodo_destino); //TODO: OJO ACA que se pueden armar quilombos
+	int numero_bloque_nodo_destino = nodo_asignar_bloque_disponible(nodo_destino);
 
-//TODO: Testear que esto funcione
+	//TODO: Testear que esto funcione
 	pthread_t th_bloque;
 
 	struct arg_get_bloque* args;
@@ -1131,18 +1143,16 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_orige
 	args->socket = nodo_origen->socket;
 
 	pthread_create(&th_bloque, NULL, (void *) mensaje_get_bloque, (void*) args);
-	void* dato_bloque;
-	pthread_join(th_bloque, (void*) &dato_bloque);
+	struct res_get_bloque* res;
+	pthread_join(th_bloque, (void*) &res);
 
 	pthread_rwlock_unlock(&nodo_origen->lock);
-	if (dato_bloque == NULL) {
-		log_error_consola("Ocurrió un error al obtener el bloque del archivo");
+	if (res == NULL) {
+		log_error_consola("Ocurrió un error al obtener el bloque del nodo origen: %s", nombre_nodo_origen);
 		return 1;
 	}
 
-	struct res_get_bloque* res = dato_bloque;
-
-	log_debug_interno("Recibido respuesta correspondiente al bloque %d", res->bloque_archivo);
+	log_info_interno("Respuesta recibida correctamente correspondiente al bloque %d", (numero_bloque_nodo + 1));
 
 	pthread_t th_bloque_2;
 	pthread_mutex_lock(&mutex_args);
@@ -1153,16 +1163,18 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_orige
 	free(res->stream);
 	free(res);
 
-	pthread_create(&th_bloque_2, NULL, (void *) mensaje_set_bloque, (void*) &args2);
+	pthread_create(&th_bloque_2, NULL, (void *) mensaje_set_bloque, (void*) args2);
 	int resultado;
 	pthread_join(th_bloque_2, (void*) &resultado);
+	pthread_mutex_unlock(&mutex_args);
 	if (resultado != 0) {
 		log_error_consola("Ocurrió un error al setear el bloque del archivo en el nodo destino");
 		return 1;
 	}
 	insertar_nodo(nodo_destino);
 	pthread_rwlock_unlock(&nodo_destino->lock);
-
+	log_info_interno("El bloque fue seteado correctamente en el nodo destino: %s en el bloque: %d", nombre_nodo_destino, numero_bloque_nodo_destino);
+	// Ahora se actualiza el archivo
 	int numero_bloque_copiado;
 	int tamanio_bloque_copiado;
 
@@ -1187,7 +1199,7 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_orige
 	archivo = list_find_archivo((void*) _archivo_de_bloque);
 
 	if (archivo == NULL) {
-		log_error_consola("Ocurrió un error");
+		log_error_consola("No se encontró el archivo al que pertenece el bloque");
 		return 1;
 	}
 
@@ -1207,6 +1219,8 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_orige
 	actualizar_archivo(archivo);
 
 	pthread_rwlock_unlock(&archivo->lock);
+
+	log_info_interno("El archivo correspondiente al bloque copiado fue actualizado correctamente.");
 	return 0;
 }
 
