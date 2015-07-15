@@ -538,11 +538,11 @@ int apareo(t_list* lista_nodos_archivos, char* path_ejecutable, char* path_salid
 	// Aca se fija si es un solo archivo para aparear o si son varios
 	if (cantidad_nodos_archivos == 1) {
 		elem = (t_nodo_archivo *) list_get(lista_nodos_archivos, 0);
-
-		char* archivo = read_whole_file(elem->archivo);
+		char* path = file_combine(DIR_TEMP, elem->archivo);
+		char* archivo = read_whole_file(path);
 
 		write(in[1], archivo, strlen(archivo));
-
+		free(path);
 		free(archivo);
 	} else {
 // Obtengo el primer registro de cada archivo
