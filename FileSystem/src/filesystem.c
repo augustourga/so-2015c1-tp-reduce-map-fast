@@ -1574,7 +1574,7 @@ int copiar_archivo_temporal_a_mdfs(char* ruta_completa_archivo_final, char* arch
 	string_append(&ruta, datos[i]);
 
 	write_file(ruta, archivo, strlen(archivo));
-	resultado = copiar_archivo_local_a_mdfs(datos[i], directorio_mdfs);
+	resultado = copiar_archivo_local_a_mdfs(ruta, directorio_mdfs);
 
 	if (resultado == 0) {
 		char* nombre_nuevo = string_new();

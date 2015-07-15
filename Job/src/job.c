@@ -88,8 +88,7 @@ void esperarTareas() {
 							}
 						}
 						levantarHiloReduce(paramsR);
-					}
-					if (mensaje_actual->header.id == EJECUTAR_MAP) {
+					} else if (mensaje_actual->header.id == EJECUTAR_MAP) {
 						t_params_hiloMap* params = (t_params_hiloMap*) malloc(sizeof(t_params_hiloMap));
 						char** argumentos = string_split(mensaje_actual->stream, "|");
 						strcpy(params->ip, argumentos[0]);
@@ -100,23 +99,24 @@ void esperarTareas() {
 						params->bloque = mensaje_actual->argv[2];
 						levantarHiloMapper(params);
 						usleep(1);
-					}
-
-					if (mensaje_actual->header.id == MDFS_NO_OPERATIVO) {
+					} else if (mensaje_actual->header.id == GET_ARCHIVO_TMP_OK) {
+						log_info_consola("El Job finalizó con éxito"); //TODO: Mejorar el log para indicar donde buscar el archivo en el mdfs
+						terminar_job();
+					} else if (mensaje_actual->header.id == MDFS_NO_OPERATIVO) {
 						log_info_consola("ERROR - El MDFS no esta operativo. Reintente mas tarde.");
 						terminar_job();
-					}
-					if (mensaje_actual->header.id == INFO_ARCHIVO_ERROR) {
+					} else if (mensaje_actual->header.id == INFO_ARCHIVO_ERROR) {
 						log_info_consola("ERROR - No se encontro la informacion del archivo %s.Compruebe la existencia del archivo y vuelva a intentarlo.",
 								mensaje_actual->stream);
 						terminar_job();
-					}
-					if (mensaje_actual->header.id == FIN_MAP_ERROR) {
+					} else if (mensaje_actual->header.id == FIN_MAP_ERROR) {
 						log_info_consola("ERROR - No se pudo ejecutar map. Revise disponibilidad de los archivos y vuelva a ejecutar.");
 						terminar_job();
-					}
-					if (mensaje_actual->header.id == FIN_REDUCE_ERROR) {
+					} else if (mensaje_actual->header.id == FIN_REDUCE_ERROR) {
 						log_info_consola("ERROR - No se pudo ejecutar reduce. Revise estado del MDFS y vuelva a ejecutar.");
+						terminar_job();
+					} else if (mensaje_actual->header.id == GET_ARCHIVO_TMP_ERROR) {
+						log_info_consola("ERROR - No se pudo copiar el archivo final en el MDFS. Revise estado del MDFS y vuelva a ejecutar.");
 						terminar_job();
 					}
 				}
@@ -259,7 +259,7 @@ int hiloReduce(void* dato) {
 		}
 	}
 
-	//Se reenvía el resultado del reduce a marta
+//Se reenvía el resultado del reduce a marta
 	log_debug_interno("Enviando mensaje respuesta a MaRTA. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje_respuesta->header.id),
 			mensaje_respuesta->header.argc, mensaje_respuesta->header.length);
 
@@ -270,8 +270,8 @@ int hiloReduce(void* dato) {
 	destroy_message(mensaje_respuesta);
 	destroy_message(mensaje);
 
-	//TODO: No habría que cerrar la conexión con el nodo como en el HiloMap?
-	//Lo agregue, no entiendo por que no deberia no hacerse
+//TODO: No habría que cerrar la conexión con el nodo como en el HiloMap?
+//Lo agregue, no entiendo por que no deberia no hacerse
 	shutdown(nodo_sock, 2);
 	restar_hilo();
 	return 0;
@@ -314,7 +314,7 @@ int hiloMap(void* dato) {
 					mensaje->header.argc, mensaje->header.length);
 		}
 	}
-	//Se reenvía el resultado del map a marta
+//Se reenvía el resultado del map a marta
 	log_debug_interno("Enviando mensaje respuesta a MaRTA. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje_respuesta->header.id),
 			mensaje_respuesta->header.argc, mensaje_respuesta->header.length);
 
@@ -325,7 +325,7 @@ int hiloMap(void* dato) {
 	destroy_message(mensaje_respuesta);
 	destroy_message(mensaje);
 
-	//CERRAR CONEXIÓN CON EL NODO//
+//CERRAR CONEXIÓN CON EL NODO//
 	shutdown(nodo_sock, 2);
 	restar_hilo();
 	return 0;
@@ -374,7 +374,7 @@ void levantarHiloReduce(t_params_hiloReduce* nodo) {
 void terminar_job() {
 
 	log_info_interno("Esperando a que terminen los hilos pendientes");
-	sem_wait(&sem_sin_hilos);
+	//sem_wait(&sem_sin_hilos);
 	log_info_interno("Hilos finalizados. Terminando proceso Job");
 	exit(1);
 }

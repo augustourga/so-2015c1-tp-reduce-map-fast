@@ -129,13 +129,12 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 						case GET_FILE_CONTENT:
 
 							bloque = getFileContent(codigo->stream);
-							mensaje2 = id_message(GET_FILE_CONTENT);
-							mensaje2->stream = bloque;
-							res = enviar_mensaje(socket_fs, mensaje2);
+							t_msg* resppuesta = string_message(GET_FILE_CONTENT_OK, bloque, 0);
+							res = enviar_mensaje(socket_fs, resppuesta);
 							if (res == -1) {
 								log_error_consola("Fallo envio mensaje GET_FILE_CONTENT");
 							}
-							destroy_message(mensaje2);
+							destroy_message(resppuesta);
 							destroy_message(codigo);
 							free(bloque);
 							break;
@@ -400,12 +399,13 @@ char* getFileContent(char* filename) {
 	char* content = NULL;
 	//creo el espacio para almacenar el archivo
 	char* path = file_combine(DIR_TEMP, filename);
-	size_t size = file_get_size(path) + 1;
+	/*size_t size = file_get_size(path) + 1;
 	content = malloc(size);
 	char* mapped = NULL;
 	mapped = file_get_mapped(path);
 	memcpy(content, mapped, size);        //
-	file_mmap_free(mapped, path);
+	file_mmap_free(mapped, path);*/
+	content = read_whole_file(path);
 	log_info_consola("Fin getFileContent(%s)", path);
 	return content;
 

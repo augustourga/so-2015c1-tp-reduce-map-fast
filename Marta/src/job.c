@@ -79,3 +79,9 @@ void ejecuta_reduces_parciales(t_job* job) {
 	list_iterate(job->reduces, (void*) _ejecuta_reduce);
 	log_debug_interno("reduces threads creados. job: %d", job->socket);
 }
+
+void finalizar_job(t_job* job, t_msg_id mensaje) {
+	t_msg* respuesta = id_message(mensaje);
+	enviar_mensaje(job->socket, respuesta);
+	destroy_message(respuesta);
+}

@@ -171,6 +171,21 @@ void copiar_archivo_final(t_job* job) {
 	t_msg* message = string_message(GET_ARCHIVO_TMP, stream, 0);
 	enviar_mensaje(socket_mdfs, message);
 
+	message = recibir_mensaje(socket_mdfs);
+
+	switch (message->header.id) {
+	case GET_ARCHIVO_TMP_OK:
+		log_info_consola("El archivo se copió al mdfs con éxito"); //TODO: Mejorar el log para indicar donde buscar el archivo en el mdfs
+		finalizar_job(job, GET_ARCHIVO_TMP_OK);
+		break;
+	case GET_ARCHIVO_TMP_ERROR:
+		log_error_consola("No se pudo copiar el archivo final al mdfs");
+		finalizar_job(job, GET_ARCHIVO_TMP_ERROR);
+		break;
+	default:
+		log_error_consola("Mensaje incorrecto %s", id_string(message->header.id));
+	}
+
 }
 
 void crear_hilo_job(int nuevo_job, char* stream, bool combiner) {

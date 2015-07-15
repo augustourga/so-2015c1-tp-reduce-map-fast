@@ -284,14 +284,14 @@ t_msg* mensaje_copiar_archivo_temporal_a_mdfs(char* mensaje) {
 		log_error_consola("No se pudo obtener el archivo temporal del nodo");
 		respuesta = id_message(GET_ARCHIVO_TMP_ERROR);
 		break;
-	case GET_FILE_CONTENT:
+	case GET_FILE_CONTENT_OK:
 		valor = copiar_archivo_temporal_a_mdfs(nombre_archivo_final, msg_respuesta->stream);
 		if (valor) {
-			log_info_interno("Pudo copiarse el archivo tmp a la raiz del mdfs con exito");
-			respuesta = id_message(GET_ARCHIVO_TMP_OK);
-		} else {
 			log_error_consola("No se pudo copiar el archivo tmp al mdfs");
 			respuesta = id_message(GET_ARCHIVO_TMP_ERROR);
+		} else {
+			log_info_consola("Se copió el archivo %s al mdfs", nombre_archivo_final);
+			respuesta = id_message(GET_ARCHIVO_TMP_OK);
 		}
 		break;
 	default:
