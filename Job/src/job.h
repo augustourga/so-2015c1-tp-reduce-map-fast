@@ -37,7 +37,9 @@ typedef struct {
 	char* resultado;
 	int combiner; //1 indica SI, 0 indica NO
 	char* mapper;
+	size_t tamanio_mapper;
 	char* reduce;
+	size_t tamanio_reduce;
 } t_Datos_configuracion;
 
 typedef struct {

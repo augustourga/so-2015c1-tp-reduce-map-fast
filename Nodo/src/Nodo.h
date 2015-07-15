@@ -81,6 +81,7 @@ char* getFileContent(char* filename);
 char* generar_nombre_temporal(int mapreduce_id, char*map_o_reduce, int numeroBloque);
 char* crear_Espacio_Datos(int, char*, char*);
 void liberar_Espacio_datos(char* _data, char* ARCHIVO);
+char* guardar_rutina(char* ejecutable,char* map_o_reduce,size_t tamanio,int mapid,int numeroBloque);
 t_list* deserealizar_cola(t_queue* colaArchivos);
 t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal, int numeroBloque, int mapid);
 t_msg_id ejecutar_reduce(char*ejecutable, char*archivo_final, t_queue* colaArchivos, int id_reduce);

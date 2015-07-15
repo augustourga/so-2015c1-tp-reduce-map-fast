@@ -12,10 +12,10 @@ int main(int argc, char*argv[]) {
 	_data = levantar_espacio_datos();
 	archivos_temporales = list_create();
 
-	if (levantarHiloFile()) {
-		log_error_consola("Conexion con File System fallida.");
-		exit(1);
-	}
+//	if (levantarHiloFile()) {
+//		log_error_consola("Conexion con File System fallida.");
+//		exit(1);
+//	}
 
 	levantarNuevoServer();
 
@@ -205,7 +205,7 @@ void atenderConexiones(void *parametro) {
 	t_queue *cola_nodos = queue_create();
 	t_msg_id fin;
 	t_nodo_archivo* nodo_arch;
-	char*rutina_reduce;
+	char*path_rutina;
 	int band = 0;
 	int res = 0;
 
@@ -266,7 +266,8 @@ void atenderConexiones(void *parametro) {
 
 			mensaje2 = recibir_mensaje(sock_conexion);
 			if (mensaje2->header.id == RUTINA) {
-				fin = ejecutar_map(mensaje2->stream, codigo->stream, codigo->argv[0], mensaje2->argv[0]);
+				char* path_rutina = guardar_rutina(mensaje2->stream,"map",mensaje2->argv[1], mensaje2->argv[0],codigo->argv[0]);
+				fin = ejecutar_map(path_rutina, codigo->stream, codigo->argv[0], mensaje2->argv[0]);
 				switch (fin) {
 				case FIN_MAP_ERROR:
 					log_error_consola("Hubo errores en el map %d en el bloque %d.", mensaje2->argv[0], codigo->argv[0]);
@@ -300,10 +301,9 @@ void atenderConexiones(void *parametro) {
 			mensaje2 = recibir_mensaje(sock_conexion);
 
 			if (mensaje2->header.id == RUTINA) {
-				size_t tamanioEjecutable = strlen(mensaje2->stream);
+				path_rutina = guardar_rutina(mensaje2->stream,"reduce",mensaje2->argv[0], codigo->argv[0],667);
 
-				rutina_reduce = malloc(tamanioEjecutable);
-				memcpy(rutina_reduce, mensaje2->stream, tamanioEjecutable);
+
 
 				mensaje2 = recibir_mensaje(sock_conexion);
 
@@ -327,7 +327,7 @@ void atenderConexiones(void *parametro) {
 
 				}
 				if (band == 0) {
-					fin = ejecutar_reduce(rutina_reduce, codigo->stream, cola_nodos, codigo->argv[0]);
+					fin = ejecutar_reduce(path_rutina, codigo->stream, cola_nodos, codigo->argv[0]);
 					mensaje2 = id_message(fin);
 					res = enviar_mensaje(sock_conexion, mensaje2);
 					if (res == -1) {
@@ -337,10 +337,11 @@ void atenderConexiones(void *parametro) {
 					log_error_consola("No se puede ejecutar Reduce, ya que no se han recibido correctamente los archivos ");
 				}
 
-				free(rutina_reduce);
+
 			} else {
 				log_error_consola("Fallo en Recibir Rutina.Se esperaba el id RUTINA.");
 			}
+			remove(path_rutina);
 			destroy_message(mensaje2);
 			destroy_message(codigo);
 			break;
@@ -414,7 +415,20 @@ char* getFileContent(char* filename) {
 char* levantar_espacio_datos() {
 	CANT_BLOQUES = file_get_size(ARCHIVO_BIN) / tamanio_bloque;
 	log_info_consola("Levantado %s. Cantidad de bloque:%d ", ARCHIVO_BIN, CANT_BLOQUES);
+
+	if(!file_exists(DIR_TEMP)){
+    int res=mkdir(DIR_TEMP,0777);
+    if (!res){log_info_consola("Directorio %s creado correctamente ",DIR_TEMP);
+
+    }else{
+    	log_error_consola("Directorio %s no pudo ser creado ",DIR_TEMP);
+    exit(1);
+    }
+
+     }
+
 	return file_get_mapped(ARCHIVO_BIN);
+
 }
 
 void liberar_Espacio_datos(char* _data, char* path) {
@@ -422,16 +436,11 @@ void liberar_Espacio_datos(char* _data, char* path) {
 	file_mmap_free(_data, path);
 }
 
-t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivo, int numeroBloque, int mapid) {
+t_msg_id ejecutar_map(char*path_ejecutable, char* nombreArchivo, int numeroBloque, int mapid) {
 	log_info_consola("Inicio ejecutarMap ID:%d en el bloque %d", mapid, numeroBloque);
 	char*bloque = NULL;
 	bloque = getBloque(numeroBloque);
-	//char* temporal = generar_nombre_temporal(mapid, "map", numeroBloque);
-	//char*ruta_sort = "/usr/bin/sort";
-	char* nombre_rutina = generar_nombre_rutina(mapid, "map", numeroBloque);
-	char* path_ejecutable = file_combine(DIR_TEMP, nombre_rutina);
-	write_file(path_ejecutable, ejecutable, strlen(ejecutable));
-	chmod(path_ejecutable, S_IRWXU);
+
 	char*nombreArchivoFinal = file_combine(DIR_TEMP, nombreArchivo);
 	log_info_consola("Fin copia de ejecutable ID:%d en el bloque %d", mapid, numeroBloque);
 	if (ejecuta_map(bloque, path_ejecutable, nombreArchivoFinal)) {
@@ -439,33 +448,22 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivo, int numeroBloque, in
 	}
 
 	log_info_consola("Fin rutina de map ID:%d en el bloque %d", mapid, numeroBloque);
-	/*
-	 char* data = read_whole_file(temporal);
-	 if (ejecutar(data, ruta_sort, nombreArchivoFinal)) {
-	 return FIN_MAP_ERROR;
-	 }
-	 log_info_consola("Fin rutina de sort ID:%d en el bloque %d", mapid,
-	 numeroBloque);
-	 */
 
 	list_add_archivo_tmp(nombreArchivoFinal);
-	//remove(path_ejecutable);
-	//remove(temporal);
+	remove(path_ejecutable);
+
 	log_info_consola("Fin ejecutarMap ID:%d en el bloque %d", mapid, numeroBloque);
 	return FIN_MAP_OK;
 
 }
 
-t_msg_id ejecutar_reduce(char*ejecutable, char* nombreArchivoFinal, t_queue* colaArchivos, int id_reduce) {
+t_msg_id ejecutar_reduce(char*path_ejecutable, char* nombreArchivoFinal, t_queue* colaArchivos, int id_reduce) {
 
 	log_info_consola("Inicio ejecutar Reduce ID:%d ", id_reduce);
 	t_list* lista_nodos;
-
-	char* nombre_rutina = generar_nombre_rutina(id_reduce, "reduce", 667);
-	char* path_ejecutable = file_combine(DIR_TEMP, nombre_rutina);
+	list_add_archivo_tmp("archivo2.txt");
+	list_add_archivo_tmp("archivo3.txt");
 	char* path_final = file_combine(DIR_TEMP, nombreArchivoFinal);
-	write_file(path_ejecutable, ejecutable, strlen(ejecutable));
-	chmod(path_ejecutable, S_IRWXU);
 
 	char* nombretemporal = generar_nombre_temporal(id_reduce, "reduce", 667);
 	char* temporal = file_combine(DIR_TEMP, nombretemporal);
@@ -477,14 +475,8 @@ t_msg_id ejecutar_reduce(char*ejecutable, char* nombreArchivoFinal, t_queue* col
 		//remove(temporal);
 		return FIN_REDUCE_ERROR;
 	}
-	/*
-	 char* data = read_whole_file(temporal);
-	 if (ejecuta_reduce(data, path_ejecutable, nombreArchivoFinal)) {
-	 remove(temporal);
-	 return FIN_REDUCE_ERROR;
-	 }
-	 */
-	//remove(temporal);
+
+	remove(temporal);
 	list_add_archivo_tmp(nombreArchivoFinal);
 	log_info_consola("Fin ejecutar Reduce ID:%d ", id_reduce);
 	return FIN_REDUCE_OK;
@@ -514,6 +506,13 @@ t_list* deserealizar_cola(t_queue* colaArchivos) {
 	}
 	free(elem);
 	return lista_nodos;
+}
+char* guardar_rutina(char* ejecutable,char* map_o_reduce,size_t tamanio,int mapid,int numeroBloque){
+	char* nombre_rutina = generar_nombre_rutina(mapid, map_o_reduce, numeroBloque);
+		char* path_ejecutable = file_combine(DIR_TEMP, nombre_rutina);
+		write_file(path_ejecutable, ejecutable, tamanio);
+		chmod(path_ejecutable, S_IRWXU);
+return path_ejecutable;
 }
 
 int apareo(char* temporal, t_list* lista_nodos_archivos, char* path_ejecutable, char* path_salida) {

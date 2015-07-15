@@ -139,12 +139,16 @@ void obtenerConfiguracion(char* path) {
 	}
 	if (config_has_property(config, "REDUCE")) {
 		configuracion->reduce = read_whole_file(config_get_string_value(config, "REDUCE"));
+		configuracion->tamanio_reduce = file_get_size(config_get_string_value(config, "REDUCE"));
 	} else {
 		log_error_consola("El archivo de configuración %s debe tener un REDUCE", path);
 		exit(1);
 	}
+
 	if (config_has_property(config, "MAPPER")) {
 		configuracion->mapper = read_whole_file(config_get_string_value(config, "MAPPER"));
+		configuracion->tamanio_mapper = file_get_size(config_get_string_value(config, "MAPPER"));
+
 	} else {
 		log_error_consola("El archivo de configuración %s debe tener un MAPPER", path);
 		exit(1);
@@ -216,7 +220,8 @@ int hiloReduce(void* dato) {
 		if (res == -1) {
 			log_error_consola("Fallo envio mensaje EJECUTAR_REDUCE");
 		}
-		mensaje = string_message(RUTINA, configuracion->reduce, 0);
+
+		mensaje = string_message(RUTINA, configuracion->reduce, 1,configuracion->tamanio_reduce);
 
 		log_debug_interno("Enviando mensaje rutina. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id), mensaje->header.argc,
 				mensaje->header.length);
@@ -297,7 +302,7 @@ int hiloMap(void* dato) {
 
 		ret = enviar_mensaje(nodo_sock, mensaje);
 
-		mensaje = string_message(RUTINA, configuracion->mapper, 1, args->id_operacion);
+		mensaje = string_message(RUTINA, configuracion->mapper, 1, args->id_operacion,configuracion->tamanio_mapper);
 
 		log_debug_interno("Enviando mensaje de rutina. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id), mensaje->header.argc,
 				mensaje->header.length);
