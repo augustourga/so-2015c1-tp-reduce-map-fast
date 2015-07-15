@@ -118,41 +118,14 @@ pid_t ejecuta_reduce(int in[2], char* path_ejecutable, char* path_salida) {
 	}
 	return pid;
 }
-char* generar_nombre_rutina(int map_id, char*map_o_reduce, int numeroBloque) {
+char* generar_nombre_rutina(int tarea_id, char*map_o_reduce, int numeroBloque) {
 	char* file_map1 = string_new();
-	string_append(&file_map1, "rutina_");
-
-	char str[15];
-
-	sprintf(str, "%d", map_id);
-	string_append(&file_map1, str);
-	string_append(&file_map1, "_");
-
 	string_append(&file_map1, map_o_reduce);
-	string_append(&file_map1, "_");
-	sprintf(str, "%d", numeroBloque);
-	string_append(&file_map1, str);
+	string_append(&file_map1, "_id");
+	string_append(&file_map1, string_itoa(tarea_id));
+	string_append(&file_map1, "_bloque");
+	string_append(&file_map1, string_itoa(numeroBloque));
 
-	string_append(&file_map1, ".txt");
-	return file_map1;
-}
-
-char* generar_nombre_temporal(int map_id, char*map, int numeroBloque) {
-	char* file_map1 = string_new();
-	string_append(&file_map1, "tmp_");
-
-	char str[15];
-
-	sprintf(str, "%d", map_id);
-	string_append(&file_map1, str);
-	string_append(&file_map1, "_");
-
-	string_append(&file_map1, map);
-	string_append(&file_map1, "_");
-	sprintf(str, "%d", numeroBloque);
-	string_append(&file_map1, str);
-
-	string_append(&file_map1, ".txt");
 	return file_map1;
 }
 

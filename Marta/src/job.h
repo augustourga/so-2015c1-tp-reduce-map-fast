@@ -16,6 +16,7 @@
 #include "tarea.h"
 
 typedef struct {
+	int id;
 	int socket;
 	char* archivo_final;
 	bool combiner;
@@ -29,6 +30,7 @@ typedef struct {
 
 t_job* job_crear();
 t_archivo solicitar_informacion_archivo(char* ruta_mdfs);
+int id_job_next();
 void ejecuta_maps(t_job* job);
 void ejecuta_reduces_parciales(t_job* job);
 void ejecuta_reduce_final(t_job* job);

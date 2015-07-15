@@ -66,6 +66,7 @@ void esperarTareas() {
 						paramsR->nombre_nodo = string_duplicate(argumentos[1]);
 						paramsR->puerto = mensaje_actual->argv[0];
 						paramsR->id_operacion = mensaje_actual->argv[1];
+						paramsR->id_job = mensaje_actual->argv[2];
 						paramsR->archivo_final = argumentos[2];
 						mensaje_actual = recibir_mensaje(marta_sock);
 
@@ -96,7 +97,8 @@ void esperarTareas() {
 						params->archivo_final = string_duplicate(argumentos[2]);
 						params->puerto = mensaje_actual->argv[0];
 						params->id_operacion = mensaje_actual->argv[1];
-						params->bloque = mensaje_actual->argv[2];
+						params->id_job = mensaje_actual->argv[2];
+						params->bloque = mensaje_actual->argv[3];
 						levantarHiloMapper(params);
 						usleep(1);
 					} else if (mensaje_actual->header.id == GET_ARCHIVO_TMP_OK) {
@@ -256,9 +258,9 @@ int hiloReduce(void* dato) {
 		mensaje = recibir_mensaje(nodo_sock);
 
 		if (!mensaje) { //Significa que recibir_mensaje devolvió NULL o sea que hubo un error en el recv o el nodo se desconectó
-			mensaje_respuesta = argv_message(FIN_REDUCE_ERROR, 1, args->id_operacion);
+			mensaje_respuesta = argv_message(FIN_REDUCE_ERROR, 2, args->id_operacion, args->id_job);
 		} else {
-			mensaje_respuesta = argv_message(mensaje->header.id, 1, args->id_operacion);
+			mensaje_respuesta = argv_message(mensaje->header.id, 2, args->id_operacion, args->id_job);
 			log_debug_interno("Se recibió mensaje de %s. Header.Id: %s - Argc: %d - Largo Stream: %d", args->nombre_nodo, id_string(mensaje->header.id),
 					mensaje->header.argc, mensaje->header.length);
 		}
@@ -292,17 +294,17 @@ int hiloMap(void* dato) {
 
 	if (nodo_sock < 0) {
 		log_error_consola("No se pudo conectar al proceso %s - IP: %s - Puerto: %d", args->nombre_nodo, args->ip, args->puerto);
-		mensaje_respuesta = argv_message(FIN_MAP_ERROR, 1, args->id_operacion);
+		mensaje_respuesta = argv_message(FIN_MAP_ERROR, 2, args->id_operacion, args->id_job);
 	} else {
 
-		mensaje = string_message(EJECUTAR_MAP, args->archivo_final, 1, args->bloque);
+		mensaje = string_message(EJECUTAR_MAP, args->archivo_final, 2, args->id_operacion, args->bloque);
 
 		log_debug_interno("Enviando mensaje de solicitud de reduce. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id),
 				mensaje->header.argc, mensaje->header.length);
 
 		ret = enviar_mensaje(nodo_sock, mensaje);
 
-		mensaje = string_message(RUTINA, configuracion->mapper, 1, args->id_operacion, configuracion->tamanio_mapper);
+		mensaje = string_message(RUTINA, configuracion->mapper, 1, configuracion->tamanio_mapper);
 
 		log_debug_interno("Enviando mensaje de rutina. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id), mensaje->header.argc,
 				mensaje->header.length);
@@ -312,11 +314,12 @@ int hiloMap(void* dato) {
 		mensaje = recibir_mensaje(nodo_sock);
 
 		if (!mensaje) { //Significa que recibir_mensaje devolvió NULL o sea que hubo un error en el recv o el nodo se desconectó
-			mensaje_respuesta = argv_message(FIN_MAP_ERROR, 1, args->id_operacion);
+			mensaje_respuesta = argv_message(FIN_MAP_ERROR, 2, args->id_operacion, args->id_job);
 		} else {
-			mensaje_respuesta = argv_message(mensaje->header.id, 1, args->id_operacion);
+			mensaje_respuesta = argv_message(mensaje->header.id, 2, args->id_operacion, args->id_job);
 			log_debug_interno("Se recibió mensaje de %s. Header.Id: %s - Argc: %d - Largo Stream: %d", args->nombre_nodo, id_string(mensaje->header.id),
 					mensaje->header.argc, mensaje->header.length);
+			destroy_message(mensaje);
 		}
 	}
 //Se reenvía el resultado del map a marta
@@ -328,7 +331,6 @@ int hiloMap(void* dato) {
 		log_error_consola("Fallo envio de Mensaje");
 	}
 	destroy_message(mensaje_respuesta);
-	destroy_message(mensaje);
 
 //CERRAR CONEXIÓN CON EL NODO//
 	shutdown(nodo_sock, 2);

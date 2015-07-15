@@ -81,20 +81,20 @@ void decodificar_mensaje(t_msg* mensaje, int socket) {
 
 	switch (mensaje->header.id) {
 	case FIN_MAP_OK:
-		log_info_consola("FIN DE MAP OK. Socket: %d", socket);
-		actualiza_job_map_ok(mensaje->argv[0], socket);
+		log_info_consola("FIN DE MAP OK. Id Job: %d - Id Operacion: %d", mensaje->argv[1], mensaje->argv[0]);
+		actualiza_job_map_ok(mensaje->argv[0], mensaje->argv[1]);
 		break;
 	case FIN_MAP_ERROR:
-		log_info_consola("ERROR EN MAP. Socket: %d", socket);
-		actualiza_job_map_error(mensaje->argv[0], socket);
+		log_info_consola("ERROR EN MAP. Id Job: %d - Id Operacion: %d", mensaje->argv[1], mensaje->argv[0]);
+		actualiza_job_map_error(mensaje->argv[0], mensaje->argv[1]);
 		break;
 	case FIN_REDUCE_OK:
-		log_info_consola("FIN DE REDUCE OK. Socket: %d", socket);
-		actualiza_job_reduce_ok(mensaje->argv[0], socket);
+		log_info_consola("FIN DE REDUCE OK. Id Job: %d - Id Operacion: %d", mensaje->argv[1], mensaje->argv[0]);
+		actualiza_job_reduce_ok(mensaje->argv[0], mensaje->argv[1]);
 		break;
 	case FIN_REDUCE_ERROR:
-		log_info_consola("ERROR EN REDUCE. Socket: %d", socket);
-		actualizar_job_reduce_error(mensaje->argv[0], socket, mensaje->stream);
+		log_info_consola("ERROR EN REDUCE. Id Job: %d - Id Operacion: %d", mensaje->argv[1], mensaje->argv[0]);
+		actualizar_job_reduce_error(mensaje->argv[0], mensaje->argv[1], mensaje->stream);
 		break;
 	default:
 		log_error_interno("Mensaje Incorrecto");

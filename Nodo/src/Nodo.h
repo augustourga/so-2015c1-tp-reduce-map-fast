@@ -78,7 +78,6 @@ void atenderConexiones(void *parametro);
 void setBloque(int numeroBloque, char* bloque_datos);
 char* getBloque(int numeroBloque);
 char* getFileContent(char* filename);
-char* generar_nombre_temporal(int mapreduce_id, char*map_o_reduce, int numeroBloque);
 char* crear_Espacio_Datos(int, char*, char*);
 void liberar_Espacio_datos(char* _data, char* ARCHIVO);
 char* guardar_rutina(char* ejecutable,char* map_o_reduce,size_t tamanio,int mapid,int numeroBloque);
@@ -87,7 +86,7 @@ t_msg_id ejecutar_map(char*ejecutable, char* nombreArchivoFinal, int numeroBloqu
 t_msg_id ejecutar_reduce(char*ejecutable, char*archivo_final, t_queue* colaArchivos, int id_reduce);
 
 /******************APAREO***************************/
-int apareo(char* temporal, t_list* lista_nodos_archivos, char* path_ejecutable, char* path_salida);
+int apareo(t_list* lista_nodos_archivos, char* path_ejecutable, char* path_salida);
 char* obtener_proximo_registro(t_nodo_archivo* nodo_archivo);
 int obtener_posicion_menor_clave(char** registros, int cantidad_nodos_archivos);
 char* obtener_proximo_registro_de_archivo(char* archivo);

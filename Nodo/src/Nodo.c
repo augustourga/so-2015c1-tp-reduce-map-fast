@@ -266,14 +266,17 @@ void atenderConexiones(void *parametro) {
 
 			mensaje2 = recibir_mensaje(sock_conexion);
 			if (mensaje2->header.id == RUTINA) {
-				char* path_rutina = guardar_rutina(mensaje2->stream,"map",mensaje2->argv[1], mensaje2->argv[0],codigo->argv[0]);
-				fin = ejecutar_map(path_rutina, codigo->stream, codigo->argv[0], mensaje2->argv[0]);
+				int map_id = codigo->argv[0];
+				int numero_bloque = codigo->argv[1];
+				int tamanio_rutina = mensaje2->argv[0];
+				char* path_rutina = guardar_rutina(mensaje2->stream, "map", tamanio_rutina, map_id, numero_bloque);
+				fin = ejecutar_map(path_rutina, codigo->stream, numero_bloque, map_id);
 				switch (fin) {
 				case FIN_MAP_ERROR:
-					log_error_consola("Hubo errores en el map %d en el bloque %d.", mensaje2->argv[0], codigo->argv[0]);
+					log_error_consola("Hubo errores en el map %d en el bloque %d.", map_id, numero_bloque);
 					break;
 				case FIN_MAP_OK:
-					log_info_consola("Map %d en el bloque %d exitoso", mensaje2->argv[0], codigo->argv[0]);
+					log_info_consola("Map %d en el bloque %d exitoso", map_id, numero_bloque);
 					break;
 				default:
 					log_info_consola("Mensaje incorrecto se esperaba el id FIN_MAP_OK ó FIN_MAP_ERROR");
@@ -301,9 +304,9 @@ void atenderConexiones(void *parametro) {
 			mensaje2 = recibir_mensaje(sock_conexion);
 
 			if (mensaje2->header.id == RUTINA) {
-				path_rutina = guardar_rutina(mensaje2->stream,"reduce",mensaje2->argv[0], codigo->argv[0],667);
-
-
+				int reduce_id = codigo->argv[0];
+				int tamanio_rutina = mensaje2->argv[0];
+				path_rutina = guardar_rutina(mensaje2->stream, "reduce", tamanio_rutina, reduce_id, 000);
 
 				mensaje2 = recibir_mensaje(sock_conexion);
 
@@ -336,7 +339,6 @@ void atenderConexiones(void *parametro) {
 				} else {
 					log_error_consola("No se puede ejecutar Reduce, ya que no se han recibido correctamente los archivos ");
 				}
-
 
 			} else {
 				log_error_consola("Fallo en Recibir Rutina.Se esperaba el id RUTINA.");
@@ -401,11 +403,11 @@ char* getFileContent(char* filename) {
 	//creo el espacio para almacenar el archivo
 	char* path = file_combine(DIR_TEMP, filename);
 	/*size_t size = file_get_size(path) + 1;
-	content = malloc(size);
-	char* mapped = NULL;
-	mapped = file_get_mapped(path);
-	memcpy(content, mapped, size);        //
-	file_mmap_free(mapped, path);*/
+	 content = malloc(size);
+	 char* mapped = NULL;
+	 mapped = file_get_mapped(path);
+	 memcpy(content, mapped, size);        //
+	 file_mmap_free(mapped, path);*/
 	content = read_whole_file(path);
 	log_info_consola("Fin getFileContent(%s)", path);
 	return content;
@@ -416,16 +418,17 @@ char* levantar_espacio_datos() {
 	CANT_BLOQUES = file_get_size(ARCHIVO_BIN) / tamanio_bloque;
 	log_info_consola("Levantado %s. Cantidad de bloque:%d ", ARCHIVO_BIN, CANT_BLOQUES);
 
-	if(!file_exists(DIR_TEMP)){
-    int res=mkdir(DIR_TEMP,0777);
-    if (!res){log_info_consola("Directorio %s creado correctamente ",DIR_TEMP);
+	if (!file_exists(DIR_TEMP)) {
+		int res = mkdir(DIR_TEMP, 0777);
+		if (!res) {
+			log_info_consola("Directorio %s creado correctamente ", DIR_TEMP);
 
-    }else{
-    	log_error_consola("Directorio %s no pudo ser creado ",DIR_TEMP);
-    exit(1);
-    }
+		} else {
+			log_error_consola("Directorio %s no pudo ser creado ", DIR_TEMP);
+			exit(1);
+		}
 
-     }
+	}
 
 	return file_get_mapped(ARCHIVO_BIN);
 
@@ -461,22 +464,15 @@ t_msg_id ejecutar_reduce(char*path_ejecutable, char* nombreArchivoFinal, t_queue
 
 	log_info_consola("Inicio ejecutar Reduce ID:%d ", id_reduce);
 	t_list* lista_nodos;
-	list_add_archivo_tmp("archivo2.txt");
-	list_add_archivo_tmp("archivo3.txt");
 	char* path_final = file_combine(DIR_TEMP, nombreArchivoFinal);
-
-	char* nombretemporal = generar_nombre_temporal(id_reduce, "reduce", 667);
-	char* temporal = file_combine(DIR_TEMP, nombretemporal);
 
 	lista_nodos = deserealizar_cola(colaArchivos);
 	int res;
-	res = apareo(temporal, lista_nodos, path_ejecutable, path_final);
+	res = apareo(lista_nodos, path_ejecutable, path_final);
 	if (res == -1) {
-		//remove(temporal);
 		return FIN_REDUCE_ERROR;
 	}
 
-	remove(temporal);
 	list_add_archivo_tmp(nombreArchivoFinal);
 	log_info_consola("Fin ejecutar Reduce ID:%d ", id_reduce);
 	return FIN_REDUCE_OK;
@@ -507,15 +503,15 @@ t_list* deserealizar_cola(t_queue* colaArchivos) {
 	free(elem);
 	return lista_nodos;
 }
-char* guardar_rutina(char* ejecutable,char* map_o_reduce,size_t tamanio,int mapid,int numeroBloque){
-	char* nombre_rutina = generar_nombre_rutina(mapid, map_o_reduce, numeroBloque);
-		char* path_ejecutable = file_combine(DIR_TEMP, nombre_rutina);
-		write_file(path_ejecutable, ejecutable, tamanio);
-		chmod(path_ejecutable, S_IRWXU);
-return path_ejecutable;
+char* guardar_rutina(char* ejecutable, char* map_o_reduce, size_t tamanio, int tareaid, int numeroBloque) {
+	char* nombre_rutina = generar_nombre_rutina(tareaid, map_o_reduce, numeroBloque);
+	char* path_ejecutable = file_combine(DIR_TEMP, nombre_rutina);
+	write_file(path_ejecutable, ejecutable, tamanio);
+	chmod(path_ejecutable, S_IRWXU);
+	return path_ejecutable;
 }
 
-int apareo(char* temporal, t_list* lista_nodos_archivos, char* path_ejecutable, char* path_salida) {
+int apareo(t_list* lista_nodos_archivos, char* path_ejecutable, char* path_salida) {
 	char** registros = malloc(sizeof(int));
 	int i, pos;
 	int res = 0;
@@ -531,8 +527,6 @@ int apareo(char* temporal, t_list* lista_nodos_archivos, char* path_ejecutable, 
 	pid_t pid = ejecuta_reduce(in, path_ejecutable, path_salida);
 
 	close(in[0]);
-
-	FILE* archivo = fopen(temporal, "a+");
 
 	int cantidad_nodos_archivos = list_size(lista_nodos_archivos);
 	t_nodo_archivo* elem = (t_nodo_archivo*) malloc(sizeof(t_nodo_archivo));
@@ -575,25 +569,15 @@ int apareo(char* temporal, t_list* lista_nodos_archivos, char* path_ejecutable, 
 					registros[pos] = aux_string;
 				}
 			}
-			if (archivo != NULL) {
-				// TODO: Esto se cambiaria por un write para no usar el archivo temporal
-				//log_info_consola("Escribo registro: %s en archivo: %s", registro_actual, temporal);
-				//fputs(registro_actual, archivo);
-				write(in[1], registro_actual, strlen(registro_actual));
-			} else {
-				log_error_consola("No se pudo acceder al archivo temporal para guardar data de apareamiento");
-				res = -1;
-				return res;
-			}
+			write(in[1], registro_actual, strlen(registro_actual));
 			pos = obtener_posicion_menor_clave(registros, cantidad_nodos_archivos);
 		}
 	}
 
 	close(in[1]);
-//free_puntero_puntero(registros);
-//fclose(archivo);
 	int status;
 	waitpid(pid, &status, 0);
+	remove(path_ejecutable);
 	log_info_consola("Se aparearon correctamente los archivos.");
 	return status;
 	return res;

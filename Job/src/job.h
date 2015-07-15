@@ -48,6 +48,7 @@ typedef struct {
 	char* nombre_nodo;
 	char* archivo_final;
 	int id_operacion;
+	int id_job;
 	int bloque;
 } t_params_hiloMap;
 
@@ -57,6 +58,7 @@ typedef struct {
 	char* nombre_nodo;
 	char* archivo_final;
 	int id_operacion;
+	int id_job;
 	t_queue* archivos_tmp;
 } t_params_hiloReduce;
 
