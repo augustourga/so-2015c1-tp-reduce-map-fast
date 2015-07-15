@@ -129,12 +129,12 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 						case GET_FILE_CONTENT:
 
 							bloque = getFileContent(codigo->stream);
-							t_msg* resppuesta = string_message(GET_FILE_CONTENT_OK, bloque, 0);
-							res = enviar_mensaje(socket_fs, resppuesta);
+							t_msg* respuesta = string_message(GET_FILE_CONTENT_OK, bloque, 0);
+							res = enviar_mensaje(socket_fs, respuesta);
 							if (res == -1) {
 								log_error_consola("Fallo envio mensaje GET_FILE_CONTENT");
 							}
-							destroy_message(resppuesta);
+							destroy_message(respuesta);
 							destroy_message(codigo);
 							free(bloque);
 							break;
@@ -250,8 +250,7 @@ void atenderConexiones(void *parametro) {
 
 			bloque = getFileContent(codigo->stream);
 
-			mensaje2 = id_message(GET_FILE_CONTENT);
-			mensaje2->stream = bloque;
+			t_msg* mensaje2 = string_message(GET_FILE_CONTENT, bloque, 0);
 
 			res = enviar_mensaje(sock_conexion, mensaje2);
 			if (res == -1) {
@@ -283,7 +282,8 @@ void atenderConexiones(void *parametro) {
 					break;
 
 				}
-				mensaje2 = id_message(fin);
+				free(path_rutina);
+				t_msg* mensaje2 = id_message(fin);
 				res = enviar_mensaje(sock_conexion, mensaje2);
 				if (res == -1) {
 					log_error_consola("Fallo envio mensaje FIN_MAP");
@@ -319,6 +319,7 @@ void atenderConexiones(void *parametro) {
 						nodo_arch->archivo = string_n_split(mensaje2->stream, 3, "|")[2];
 						nodo_arch->puerto = mensaje2->argv[0];
 						queue_push(cola_nodos, (void*) nodo_arch);
+						destroy_message(mensaje2);
 
 						mensaje2 = recibir_mensaje(sock_conexion);
 
@@ -344,6 +345,7 @@ void atenderConexiones(void *parametro) {
 				log_error_consola("Fallo en Recibir Rutina.Se esperaba el id RUTINA.");
 			}
 			//remove(path_rutina);
+			free(path_rutina);
 			destroy_message(mensaje2);
 			destroy_message(codigo);
 			break;
@@ -362,6 +364,7 @@ void atenderConexiones(void *parametro) {
 			if (res == -1) {
 				log_error_consola("Fallo envio mensaje GET_BLOQUE_OK");
 			}
+			free(bloque);
 			destroy_message(mensaje2);
 			destroy_message(codigo);
 
@@ -410,6 +413,7 @@ char* getFileContent(char* filename) {
 	 file_mmap_free(mapped, path);*/
 	content = read_whole_file(path);
 	log_info_consola("Fin getFileContent(%s)", path);
+	free(path);
 	return content;
 
 }
@@ -472,7 +476,7 @@ t_msg_id ejecutar_reduce(char*path_ejecutable, char* nombreArchivoFinal, t_queue
 	if (res == -1) {
 		return FIN_REDUCE_ERROR;
 	}
-
+	free(path_final);
 	list_add_archivo_tmp(nombreArchivoFinal);
 	log_info_consola("Fin ejecutar Reduce ID:%d ", id_reduce);
 	return FIN_REDUCE_OK;
@@ -512,7 +516,6 @@ char* guardar_rutina(char* ejecutable, char* map_o_reduce, size_t tamanio, int t
 }
 
 int apareo(t_list* lista_nodos_archivos, char* path_ejecutable, char* path_salida) {
-	char** registros = malloc(sizeof(int));
 	int i, pos;
 	int res = 0;
 	char* registro_actual;
@@ -529,6 +532,7 @@ int apareo(t_list* lista_nodos_archivos, char* path_ejecutable, char* path_salid
 	close(in[0]);
 
 	int cantidad_nodos_archivos = list_size(lista_nodos_archivos);
+	char* registros[cantidad_nodos_archivos];
 	t_nodo_archivo* elem = (t_nodo_archivo*) malloc(sizeof(t_nodo_archivo));
 
 	// Aca se fija si es un solo archivo para aparear o si son varios
@@ -570,6 +574,7 @@ int apareo(t_list* lista_nodos_archivos, char* path_ejecutable, char* path_salid
 				}
 			}
 			write(in[1], registro_actual, strlen(registro_actual));
+			free(registro_actual);
 			pos = obtener_posicion_menor_clave(registros, cantidad_nodos_archivos);
 		}
 	}
@@ -593,7 +598,10 @@ char* obtener_proximo_registro(t_nodo_archivo* nodo_archivo) {
 		} else {
 			respuesta = enviar_mensaje_proximo_registro(nodo_archivo);
 		}
-		nodo_archivo->lineas = string_split(respuesta, "\n");
+
+		char** lineas = string_split(respuesta, "\n");
+
+		nodo_archivo->lineas = lineas;
 		free(respuesta);
 	}
 	char* linea = nodo_archivo->lineas[nodo_archivo->numero_linea];
@@ -610,9 +618,9 @@ char* obtener_proximo_registro(t_nodo_archivo* nodo_archivo) {
 	return resultado;
 }
 
-int obtener_posicion_menor_clave(char** registros, int cantidad_nodos_archivos) {
+int obtener_posicion_menor_clave(char* registros[], int cantidad_nodos_archivos) {
 	int pos, i;
-	char* registro_1 = NULL;
+	char* registro_1 = "";
 
 // obtiene primer campo != NULL
 	for (pos = 0; pos < cantidad_nodos_archivos; pos++) {
@@ -622,7 +630,7 @@ int obtener_posicion_menor_clave(char** registros, int cantidad_nodos_archivos) 
 		}
 // devuelve -1 una vez que en el array ya son todos campos nulos
 	}
-	if (registro_1 == NULL) {
+	if (!strcmp(registro_1, "")) {
 		pos = -1;
 	} else {
 		for (i = 0; i < cantidad_nodos_archivos; i++) {
@@ -665,17 +673,18 @@ char* obtener_proximo_registro_de_archivo(char* archivo) {
 	 linea = NULL;
 	 }
 	 return linea;*/
-	return read_whole_file(path);
+	char* stream = read_whole_file(path);
+	free(path);
+	return stream;
 }
 
 char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
-	char* resultado = string_new();
+	char* resultado;
 	int socket_tmp;
 	int res = 0;
 	socket_tmp = client_socket(nodo_archivo->ip, nodo_archivo->puerto);
 	if (socket_tmp < 0) {
 		log_error_consola("No se pudo establecer conexion con el otro nodo para aparear");
-		free(resultado);
 		resultado = string_duplicate("error.rmf.GrupoMilanesa.tp");
 		return resultado;
 	}
@@ -695,7 +704,6 @@ char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
 	} else {
 		log_error_consola("No se pudo establecer conexion con el otro nodo para aparear");
 		resultado = string_duplicate("error.rmf.GrupoMilanesa.tp");
-		return resultado;
 	}
 	destroy_message(msg);
 	return resultado;
