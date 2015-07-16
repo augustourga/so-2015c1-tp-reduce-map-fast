@@ -189,12 +189,12 @@ int socket_conectado(int socket) {
 //	pthread_mutex_lock(&mutex_recibir);
 	char buf[1];
 	int bytes;
-	fd_set_blocking(socket, false);
+	//fd_set_blocking(socket, false);
 	if ((bytes = recv(socket, buf, 1, MSG_PEEK)) == 0) {
 		shutdown(socket, 2);
 		close(socket);
 	} else {
-		fd_set_blocking(socket, true);
+		//fd_set_blocking(socket, true);
 	}
 //	pthread_mutex_unlock(&mutex_recibir);
 	return bytes;
