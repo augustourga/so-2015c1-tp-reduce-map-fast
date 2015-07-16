@@ -294,7 +294,7 @@ void atenderConexiones(void *parametro) {
 
 				}
 				free(path_rutina);
-				t_msg* mensaje2 = id_message(fin);
+				t_msg* mensaje2 = argv_message(fin,1,map_id);
 				res = enviar_mensaje(sock_conexion, mensaje2);
 				if (res == -1) {
 					log_error_consola("Fallo envio mensaje FIN_MAP");
@@ -360,7 +360,7 @@ void atenderConexiones(void *parametro) {
 				}
 				if (band == 0) {
 					fin = ejecutar_reduce(path_rutina, codigo->stream, cola_nodos, codigo->argv[0]);
-					mensaje2 = id_message(fin);
+					mensaje2 = argv_message(fin,1,reduce_id);
 					res = enviar_mensaje(sock_conexion, mensaje2);
 					if (res == -1) {
 						log_error_consola("Fallo envio mensaje FIN_REDUCE");
@@ -499,11 +499,12 @@ t_msg_id ejecutar_reduce(char*path_ejecutable, char* nombreArchivoFinal, t_queue
 	int res;
 	res = apareo(lista_nodos, path_ejecutable, path_final);
 	if (res == -1) {
+		log_error_consola("Fin ERROR ejecutar Reduce ID:%d ", id_reduce);
 		return FIN_REDUCE_ERROR;
 	}
 	free(path_final);
 	list_add_archivo_tmp(nombreArchivoFinal);
-	log_info_consola("Fin ejecutar Reduce ID:%d ", id_reduce);
+	log_info_consola("Fin OK ejecutar Reduce ID:%d ", id_reduce);
 	return FIN_REDUCE_OK;
 }
 

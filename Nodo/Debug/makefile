@@ -26,7 +26,7 @@ endif
 all: Nodo
 
 dependents:
-	-cd /home/utnso/workspace/tp-2015-1c-milanesa/MilanesaLibrary/Debug && $(MAKE) clean all
+	-cd /home/utnso/workspace/tp-2015-1c-milanesa/MilanesaLibrary/Debug && $(MAKE) all
 
 # Tool invocations
 Nodo: $(OBJS) $(USER_OBJS) /home/utnso/workspace/tp-2015-1c-milanesa/MilanesaLibrary/Debug/libMilanesaLibrary.so
