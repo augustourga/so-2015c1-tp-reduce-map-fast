@@ -1,5 +1,7 @@
 #include "Nodo.h"
 
+pthread_mutex_t mutex_conexiones = PTHREAD_MUTEX_INITIALIZER;
+
 int main(int argc, char*argv[]) {
 
 	log_crear("INFO", LOG_FILE, PROCESO);
@@ -190,6 +192,7 @@ void levantarNuevoServer() {
 						log_info_consola("Se ha conectado un proceso al socket %d", nuevaConexion);
 						int* parametro = malloc(sizeof(int));
 						(*parametro) = nuevaConexion;
+						pthread_mutex_lock(&mutex_conexiones);
 						pthread_create(&thread, NULL, (void*) atenderConexiones, (void*) parametro);
 					}
 				}
@@ -219,6 +222,7 @@ void atenderConexiones(void *parametro) {
 			log_info_consola("Inicio getBloque(%d)", codigo->argv[0]+1);
 			bloque = getBloque(codigo->argv[0]);
 			mensaje2 = string_message(GET_BLOQUE_OK, bloque, 1, codigo->argv[1]);
+			pthread_mutex_lock(&mutex_conexiones);
 			res = enviar_mensaje(sock_conexion, mensaje2);
 			if (res == -1) {
 				log_error_consola("Fallo envio mensaje GET_BLOQUE_OK");
@@ -242,6 +246,7 @@ void atenderConexiones(void *parametro) {
 			} else {
 				mensaje2 = id_message(SET_BLOQUE_ERROR);
 			}
+			pthread_mutex_lock(&mutex_conexiones);
 			res = enviar_mensaje(sock_conexion, mensaje2);
 			if (res == -1) {
 				log_error_consola("Fallo envio mensaje SET_BLOQUE");
@@ -255,7 +260,7 @@ void atenderConexiones(void *parametro) {
 			bloque = getFileContent(codigo->stream);
 
 			t_msg* mensaje2 = string_message(GET_FILE_CONTENT, bloque, 0);
-
+			pthread_mutex_lock(&mutex_conexiones);
 			res = enviar_mensaje(sock_conexion, mensaje2);
 			if (res == -1) {
 				log_error_consola("Fallo envio mensaje GET_FILE_CONTENT");
@@ -278,6 +283,7 @@ void atenderConexiones(void *parametro) {
 				int numero_bloque = codigo->argv[1];
 				int tamanio_rutina = mensaje2->argv[0];
 				char* path_rutina = guardar_rutina(mensaje2->stream, "map", tamanio_rutina, map_id, numero_bloque);
+				pthread_mutex_lock(&mutex_conexiones);
 				fin = ejecutar_map(path_rutina, codigo->stream, numero_bloque, map_id);
 				switch (fin) {
 				case FIN_MAP_ERROR:
@@ -299,6 +305,7 @@ void atenderConexiones(void *parametro) {
 				}
 			} else {
 				log_error_consola("Fallo en Recibir Rutina. Se esperaba el id RUTINA.");
+				pthread_mutex_lock(&mutex_conexiones);
 			}
 
 			destroy_message(mensaje2);
@@ -356,6 +363,7 @@ void atenderConexiones(void *parametro) {
 					}
 
 				}
+				pthread_mutex_lock(&mutex_conexiones);
 				if (band == 0) {
 					fin = ejecutar_reduce(path_rutina, codigo->stream, cola_nodos, codigo->argv[0]);
 					mensaje2 = id_message(fin);
@@ -386,6 +394,7 @@ void atenderConexiones(void *parametro) {
 				mensaje2 = id_message(GET_NEXT_ROW_ERROR);
 				log_info_consola("GET_NEXT_ROW_ERROR");
 			}
+			pthread_mutex_lock(&mutex_conexiones);
 			res = enviar_mensaje(sock_conexion, mensaje2);
 			if (res == -1) {
 				log_error_consola("Fallo envio mensaje GET_BLOQUE_OK");
@@ -397,6 +406,7 @@ void atenderConexiones(void *parametro) {
 			break;
 		default:
 			log_info_consola("Mensaje incorrecto.Se esperaba GET_BLOQUE|SET_BLOQUE|GET_FILE_CONTENT| EJECUTAR_MAP| EJECUTAR_REDUCE | GET_NEXT_ROW");
+			pthread_mutex_lock(&mutex_conexiones);
 			break;
 		}
 

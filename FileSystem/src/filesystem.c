@@ -379,7 +379,7 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 
 	int numero_bloque;
 	int numero_copia;
-	sem_init(&sem_get_bloque, 0, 4);
+	sem_init(&sem_get_bloque, 0, 1);
 
 	struct arg_get_bloque* args[archivo_mdfs->cantidad_bloques];
 	pthread_t th_bloque[archivo_mdfs->cantidad_bloques];
@@ -449,17 +449,16 @@ int md5(char* ruta_mdfs) {
 		i++;
 	}
 
-	char* ruta_temporal = malloc(260);
-	strcpy(ruta_temporal, "/tmp/");
-	strcat(ruta_temporal, nombres[i]);
-	puts(ruta_temporal);
+	char* ruta_temporal = string_duplicate("/tmp/");
+	string_append(&ruta_temporal, nombres[i]);
 	copiar_archivo_mdfs_a_local(ruta_mdfs, ruta_temporal);
 
-	char* comando = malloc(270);
-	strcpy(comando, "md5sum ");
-	strcat(comando, ruta_temporal);
+	char* comando = string_duplicate("md5sum ");
+	string_append(&comando, ruta_temporal);
 	system(comando);
 
+	free(comando);
+	free(ruta_temporal);
 	free_puntero_puntero(nombres);
 	return 0;
 }

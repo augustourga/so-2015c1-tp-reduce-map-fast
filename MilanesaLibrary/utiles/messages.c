@@ -1,7 +1,7 @@
 #include "messages.h"
 
-pthread_mutex_t mutex_enviar = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutex_recibir = PTHREAD_MUTEX_INITIALIZER;
+//pthread_mutex_t mutex_enviar = PTHREAD_MUTEX_INITIALIZER;
+//pthread_mutex_t mutex_recibir = PTHREAD_MUTEX_INITIALIZER;
 
 t_msg *id_message(t_msg_id id) {
 
@@ -137,7 +137,7 @@ t_msg *remake_message(t_msg_id new_id, t_msg *old_msg, uint16_t new_count, ...) 
 }
 
 t_msg *recibir_mensaje(int sock_fd) {
-	pthread_mutex_lock(&mutex_recibir);
+//	pthread_mutex_lock(&mutex_recibir);
 	t_msg *msg = malloc(sizeof(t_msg));
 	msg->argv = NULL;
 	msg->stream = NULL;
@@ -148,7 +148,7 @@ t_msg *recibir_mensaje(int sock_fd) {
 		/* An error has ocurred or remote connection has been closed. */
 		log_error_consola("error obteniendo Header. Socket: %d", sock_fd);
 		free(msg);
-		pthread_mutex_unlock(&mutex_recibir);
+//		pthread_mutex_unlock(&mutex_recibir);
 		return NULL;
 	}
 
@@ -161,7 +161,7 @@ t_msg *recibir_mensaje(int sock_fd) {
 			log_error_consola("error obteniendo args. Socket: %d", sock_fd);
 			free(msg->argv);
 			free(msg);
-			pthread_mutex_unlock(&mutex_recibir);
+//			pthread_mutex_unlock(&mutex_recibir);
 			return NULL;
 		}
 	}
@@ -174,19 +174,19 @@ t_msg *recibir_mensaje(int sock_fd) {
 			free(msg->stream);
 			free(msg->argv);
 			free(msg);
-			pthread_mutex_unlock(&mutex_recibir);
+//			pthread_mutex_unlock(&mutex_recibir);
 			return NULL;
 		}
 
 		msg->stream[msg->header.length] = '\0';
 	}
 	log_debug_interno("mensaje recibido con exito. Socket: %d", sock_fd);
-	pthread_mutex_unlock(&mutex_recibir);
+//	pthread_mutex_unlock(&mutex_recibir);
 	return msg;
 }
 
 int socket_conectado(int socket) {
-	pthread_mutex_lock(&mutex_recibir);
+//	pthread_mutex_lock(&mutex_recibir);
 	char buf[1];
 	int bytes;
 	fd_set_blocking(socket, false);
@@ -196,12 +196,12 @@ int socket_conectado(int socket) {
 	} else {
 		fd_set_blocking(socket, true);
 	}
-	pthread_mutex_unlock(&mutex_recibir);
+//	pthread_mutex_unlock(&mutex_recibir);
 	return bytes;
 }
 
 int enviar_mensaje(int sock_fd, t_msg *msg) {
-	pthread_mutex_lock(&mutex_enviar);
+//	pthread_mutex_lock(&mutex_enviar);
 	int total = 0;
 	int pending = msg->header.length + sizeof(t_header) + msg->header.argc * sizeof(uint32_t);
 	char *buffer = malloc(pending);
@@ -230,7 +230,7 @@ int enviar_mensaje(int sock_fd, t_msg *msg) {
 	free(buffer);
 	log_debug_interno("Mensaje %s enviado con exito", id_string(msg->header.id));
 //	log_msg(msg); TODO: Descomentar si se quiere para que loguee el contenido del mensaje en su totalidad
-	pthread_mutex_unlock(&mutex_enviar);
+//	pthread_mutex_unlock(&mutex_enviar);
 	return total;
 }
 
