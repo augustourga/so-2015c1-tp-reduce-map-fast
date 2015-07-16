@@ -76,8 +76,8 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 
 	while (true) {
 		if (select(fdmax + 1, &read_fds, NULL, NULL, NULL) == -1) {
-			log_error_consola("Falló el select");
-			perror("Falló el select. Error");
+			log_error_consola("Fallo el select");
+			perror("Fallo el select. Error");
 			exit(1);
 		}
 
@@ -175,8 +175,8 @@ void levantarNuevoServer() {
 
 	while (true) {
 		if (select(fdmax + 1, &read_fds, NULL, NULL, NULL) == -1) {
-			log_error_consola("Falló el select");
-			perror("Falló el select. Error");
+			log_error_consola("Fallo el select");
+			perror("Fallo el select. Error");
 			exit(1);
 		}
 
@@ -283,7 +283,7 @@ void atenderConexiones(void *parametro) {
 					log_info_consola("Map %d en el bloque %d exitoso", map_id, numero_bloque);
 					break;
 				default:
-					log_info_consola("Mensaje incorrecto se esperaba el id FIN_MAP_OK ó FIN_MAP_ERROR");
+					log_info_consola("Mensaje incorrecto se esperaba el id FIN_MAP_OK o FIN_MAP_ERROR");
 					break;
 
 				}

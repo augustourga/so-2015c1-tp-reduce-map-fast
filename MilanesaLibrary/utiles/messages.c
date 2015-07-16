@@ -254,7 +254,7 @@ void print_msg(t_msg *msg) {
 		printf("- ARGUMENTO %d: %d\n", i + 1, msg->argv[i]);
 	}
 
-	printf("- TAMAÑO: %d\n", msg->header.length);
+	printf("- TAMANIO: %d\n", msg->header.length);
 	printf("- CUERPO: ");
 
 	for (i = 0; i < msg->header.length; i++) {
@@ -273,7 +273,7 @@ void log_msg(t_msg *msg) {
 		log_debug_interno("- ARGUMENTO %d: %d", i + 1, msg->argv[i]);
 	}
 
-	log_debug_interno("- TAMAÑO: %d", msg->header.length);
+	log_debug_interno("- TAMANIO: %d", msg->header.length);
 	log_debug_interno("- CUERPO: ");
 
 	for (i = 0; i < msg->header.length; i++) {

@@ -30,8 +30,8 @@ void iniciar_server(uint16_t puerto_listen) {
 		read_fds = master; // copy it
 		log_debug_consola("Esperando nuevo mensaje");
 		if (select(fdmax + 1, &read_fds, NULL, NULL, NULL) == -1) {
-			log_error_consola("Falló el select");
-			perror("Falló el select. Error");
+			log_error_consola("Fallo el select");
+			perror("Fallo el select. Error");
 			exit(3);
 		}
 		log_debug_consola("Nuevo mensaje recibido. procesandolo..");
@@ -44,8 +44,8 @@ void iniciar_server(uint16_t puerto_listen) {
 					addrlen = sizeof addr_client;
 					newfd = accept(listen_socket, (struct sockaddr *) &addr_client, &addrlen);
 					if (newfd == -1) {
-						log_error_consola("Falló el accept");
-						perror("Falló el accept. Error");
+						log_error_consola("Fallo el accept");
+						perror("Fallo el accept. Error");
 					} else {
 						log_debug_consola("Conexion nueva aceptada.");
 						if (newfd > fdmax) {    // keep track of the max
@@ -175,7 +175,7 @@ void copiar_archivo_final(t_job* job) {
 
 	switch (message->header.id) {
 	case GET_ARCHIVO_TMP_OK:
-		log_info_consola("El archivo se copió al mdfs con éxito"); //TODO: Mejorar el log para indicar donde buscar el archivo en el mdfs
+		log_info_consola("El archivo se copio al mdfs con exito"); //TODO: Mejorar el log para indicar donde buscar el archivo en el mdfs
 		finalizar_job(job, GET_ARCHIVO_TMP_OK);
 		break;
 	case GET_ARCHIVO_TMP_ERROR:

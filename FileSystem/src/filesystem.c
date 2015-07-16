@@ -146,7 +146,7 @@ int eliminar_directorio(char* ruta_directorio) {
 	pthread_rwlock_wrlock(&directorio->lock);
 
 	if (directorio_tiene_directorios_hijos(directorio) || directorio_tiene_archivos_hijos(directorio)) {
-		log_error_consola("El directorio %s no está vacío", ruta_directorio);
+		log_error_consola("El directorio %s no esta vacio", ruta_directorio);
 		pthread_rwlock_unlock(&directorio->lock);
 		return 1;
 	}
@@ -236,7 +236,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 			chunks[num_block].tamanio = offset_actual - pos_actual;
 			pos_actual = offset_actual;
 		} else {
-			//Significa que o entró en un solo bloque, o es el último bloque
+			//Significa que o entro en un solo bloque, o es el ultimo bloque
 			chunks[num_block].inicio = map + offset_actual;
 			chunks[num_block].tamanio = archivo_size - offset_actual;
 			pos_actual = archivo_size;
@@ -358,7 +358,7 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 	pthread_rwlock_rdlock(&archivo_mdfs->lock);
 
 	if (!archivo_mdfs->disponible) {
-		log_error_consola("El archivo %s no está disponible", ruta_mdfs);
+		log_error_consola("El archivo %s no esta disponible", ruta_mdfs);
 		pthread_rwlock_unlock(&archivo_mdfs->lock);
 		return 1;
 	}
@@ -414,7 +414,7 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 		pthread_join(th_bloque[numero_bloque], (void*) &dato_bloque);
 
 		if (dato_bloque == NULL) {
-			log_error_consola("Ocurrió un error al generar el archivo");
+			log_error_consola("Ocurrio un error al generar el archivo");
 			return 1;
 		}
 
@@ -615,7 +615,7 @@ int inicializar_filesystem(bool formatea, int cantidad_nodos) {
 void crear_directorio_raiz() {
 	t_directorio* raiz = directorio_crear_raiz();
 	list_add_directorio(raiz);
-	log_debug_interno("Se creó el directorio raiz");
+	log_debug_interno("Se creo el directorio raiz");
 }
 
 t_directorio* directorio_raiz() {
@@ -780,7 +780,7 @@ int conexion_reconexion_nodo(t_nodo* nodo_existente, t_nodo* nodo) {
 	int ret;
 
 	if (nodo != NULL) {
-		//Como ya existía en la lista_nodos_agregados, se le pone el estado en true y se actualiza el socket
+		//Como ya existia en la lista_nodos_agregados, se le pone el estado en true y se actualiza el socket
 		pthread_rwlock_wrlock(&nodo_existente->lock);
 		nodo_set_socket(nodo_existente, nodo->socket);
 		strcpy(nodo_existente->ip, nodo->ip);
@@ -915,7 +915,7 @@ int ver_bloque_de_archivo(int numero_bloque_archivo, char* ruta_archivo) {
 	archivo = archivo_por_ruta(ruta_archivo);
 
 	if (numero_bloque_archivo <= 0) {
-		log_error_consola("El número de bloque no puede ser negativo o cero.");
+		log_error_consola("El numero de bloque no puede ser negativo o cero.");
 		return 1;
 	}
 
@@ -932,7 +932,7 @@ int ver_bloque_de_archivo(int numero_bloque_archivo, char* ruta_archivo) {
 	}
 
 	if (!archivo->disponible) {
-		log_error_consola("El archivo %s no está disponible", ruta_archivo);
+		log_error_consola("El archivo %s no esta disponible", ruta_archivo);
 		pthread_rwlock_unlock(&archivo->lock);
 		return 1;
 	}
@@ -966,7 +966,7 @@ int ver_bloque_de_archivo(int numero_bloque_archivo, char* ruta_archivo) {
 	pthread_join(th_bloque, (void*) &res);
 	pthread_rwlock_unlock(&nodo->lock);
 	if (res == NULL) {
-		log_error_consola("Ocurrió un error al obtener el bloque del archivo");
+		log_error_consola("Ocurrio un error al obtener el bloque del archivo");
 		free(res);
 		return 1;
 	}
@@ -980,14 +980,14 @@ int ver_bloque_de_nodo(int numero_bloque_nodo, char* nombre_nodo) {
 	t_nodo* nodo;
 
 	if (numero_bloque_nodo < 0) {
-		log_error_consola("El número de bloque no puede ser negativo");
+		log_error_consola("El numero de bloque no puede ser negativo");
 		return 1;
 	}
 
 	nodo = nodo_operativo_por_nombre(nombre_nodo);
 
 	if (nodo == NULL) {
-		log_error_consola("El nodo %s no está conectado", nombre_nodo);
+		log_error_consola("El nodo %s no esta conectado", nombre_nodo);
 		return 1;
 	}
 	pthread_rwlock_rdlock(&nodo->lock);
@@ -999,7 +999,7 @@ int ver_bloque_de_nodo(int numero_bloque_nodo, char* nombre_nodo) {
 	}
 
 	if (nodo->bloques[numero_bloque_nodo] == 0) {
-		log_error_consola("El bloque %d está vacío", numero_bloque_nodo);
+		log_error_consola("El bloque %d esta vacio", numero_bloque_nodo);
 		pthread_rwlock_unlock(&nodo->lock);
 		return 1;
 	}
@@ -1012,14 +1012,14 @@ int borrar_bloque_de_nodo(int numero_bloque_nodo, char* nombre_nodo) {
 	t_nodo* nodo;
 
 	if (numero_bloque_nodo <= 0) {
-		log_error_consola("El número de bloque no puede ser negativo o cero.");
+		log_error_consola("El numero de bloque no puede ser negativo o cero.");
 		return 1;
 	}
 
 	nodo = nodo_aceptado_por_nombre(nombre_nodo);
 
 	if (nodo == NULL) {
-		log_error_consola("El nodo %s no está aceptado", nombre_nodo);
+		log_error_consola("El nodo %s no esta aceptado", nombre_nodo);
 		return 1;
 	}
 	pthread_rwlock_wrlock(&nodo->lock);
@@ -1032,7 +1032,7 @@ int borrar_bloque_de_nodo(int numero_bloque_nodo, char* nombre_nodo) {
 	// Aca se le resta 1 al numero ingresado, xq los arrays que manejamos empiezan en 0 y las cantidades empiezan en 1
 	numero_bloque_nodo = numero_bloque_nodo - 1;
 	if (nodo->bloques[numero_bloque_nodo] == 0) {
-		log_error_consola("El bloque a borrar está vacío");
+		log_error_consola("El bloque a borrar esta vacio");
 		pthread_rwlock_unlock(&nodo->lock);
 		return 1;
 	}
@@ -1065,7 +1065,7 @@ int borrar_bloque_de_nodo(int numero_bloque_nodo, char* nombre_nodo) {
 	archivo = list_find_archivo((void*) _archivo_de_bloque);
 
 	if (archivo == NULL) {
-		log_error_consola("Ocurrió un error. No se encontró el archivo al que pertenece el bloque.");
+		log_error_consola("Ocurrio un error. No se encontro el archivo al que pertenece el bloque.");
 		return 1;
 	}
 
@@ -1107,14 +1107,14 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_orige
 	t_nodo* nodo_destino;
 
 	if (numero_bloque_nodo <= 0) {
-		log_error_consola("El número de bloque no puede ser negativo o cero.");
+		log_error_consola("El numero de bloque no puede ser negativo o cero.");
 		return 1;
 	}
 
 	nodo_origen = nodo_operativo_por_nombre(nombre_nodo_origen);
 
 	if (nodo_origen == NULL) {
-		log_error_consola("El nodo origen: %s no está operativo", nombre_nodo_origen);
+		log_error_consola("El nodo origen: %s no esta operativo", nombre_nodo_origen);
 		return 1;
 	}
 	pthread_rwlock_rdlock(&nodo_origen->lock);
@@ -1129,7 +1129,7 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_orige
 	numero_bloque_nodo = numero_bloque_nodo - 1;
 
 	if (nodo_origen->bloques[numero_bloque_nodo] == 0) {
-		log_error_consola("El bloque a copiar está vacío");
+		log_error_consola("El bloque a copiar esta vacio");
 		pthread_rwlock_unlock(&nodo_origen->lock);
 		return 1;
 	}
@@ -1137,13 +1137,13 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_orige
 	nodo_destino = nodo_operativo_por_nombre(nombre_nodo_destino);
 
 	if (nodo_destino == NULL) {
-		log_error_consola("El nodo destino %s no está operativo", nombre_nodo_destino);
+		log_error_consola("El nodo destino %s no esta operativo", nombre_nodo_destino);
 		pthread_rwlock_unlock(&nodo_origen->lock);
 		return 1;
 	}
 
 	if (nodo_lleno(nodo_destino)) {
-		log_error_consola("El nodo destino %s está lleno", nombre_nodo_destino);
+		log_error_consola("El nodo destino %s esta lleno", nombre_nodo_destino);
 		pthread_rwlock_unlock(&nodo_origen->lock);
 		return 1;
 	}
@@ -1164,7 +1164,7 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_orige
 
 	pthread_rwlock_unlock(&nodo_origen->lock);
 	if (res == NULL) {
-		log_error_consola("Ocurrió un error al obtener el bloque del nodo origen: %s", nombre_nodo_origen);
+		log_error_consola("Ocurrio un error al obtener el bloque del nodo origen: %s", nombre_nodo_origen);
 		return 1;
 	}
 
@@ -1184,7 +1184,7 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_orige
 	pthread_join(th_bloque_2, (void*) &resultado);
 	pthread_mutex_unlock(&mutex_args);
 	if (resultado != 0) {
-		log_error_consola("Ocurrió un error al setear el bloque del archivo en el nodo destino");
+		log_error_consola("Ocurrio un error al setear el bloque del archivo en el nodo destino");
 		return 1;
 	}
 	insertar_nodo(nodo_destino);
@@ -1215,7 +1215,7 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_orige
 	archivo = list_find_archivo((void*) _archivo_de_bloque);
 
 	if (archivo == NULL) {
-		log_error_consola("No se encontró el archivo al que pertenece el bloque");
+		log_error_consola("No se encontro el archivo al que pertenece el bloque");
 		return 1;
 	}
 
@@ -1321,7 +1321,7 @@ t_archivo* list_find_archivo(bool (*closure)(void*)) {
 	return archivo;
 }
 
-//No me acuerdo para qué cree esta función pero por las dudas la dejo
+//No me acuerdo para que cree esta funcion pero por las dudas la dejo
 t_archivo* list_find_archivo_disponible(bool (*closure)(void*)) {
 	t_archivo* archivo;
 
@@ -1434,7 +1434,7 @@ void desconectar_nodo(int socket) {
 }
 
 void desconectar_marta(int socket) {
-	log_info_interno("Marta se desconectó. Su socket era: %d", socket);
+	log_info_interno("Marta se desconecto. Su socket era: %d", socket);
 }
 
 void actualizar_disponibilidad_archivos_por_desconexion(t_nodo* nodo) {
@@ -1633,7 +1633,7 @@ void rollback_nodos_operativos(t_list* lista_nodos_operativos_aux) {
 			nodo->bloques[i] = nodo_aux->bloques[i];
 		}
 	}
-// esto se hace en ambas listas, ya que si un nodo se desconectó y se esta haciendo rollback
+// esto se hace en ambas listas, ya que si un nodo se desconecto y se esta haciendo rollback
 // no va a estar entre los nodos operativos su data, y en la lista de aceptados no va a ser correcta la info
 	list_iterate(lista_nodos_operativos, (void*) _recuperar_datos_nodos);
 	list_iterate(lista_nodos_aceptados, (void*) _recuperar_datos_nodos);

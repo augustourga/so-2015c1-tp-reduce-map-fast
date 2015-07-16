@@ -39,8 +39,8 @@ void esperarTareas() {
 	while (true) {
 
 		if (select(fdmax + 1, &read_fds, NULL, NULL, NULL) == -1) {
-			log_error_consola("Falló el select");
-			perror("Falló el select. Error");
+			log_error_consola("Fallo el select");
+			perror("Fallo el select. Error");
 		}
 
 		for (socket_actual = 0; socket_actual <= fdmax; socket_actual++) {
@@ -50,11 +50,11 @@ void esperarTareas() {
 					t_msg* mensaje_actual = recibir_mensaje(marta_sock);
 
 					if (!mensaje_actual) {
-						log_error_consola("Se perdió la conexión con MaRTA IP: %s - Puerto: %d", configuracion->ip_marta, configuracion->puerto_marta);
+						log_error_consola("Se perdio la conexion con MaRTA IP: %s - Puerto: %d", configuracion->ip_marta, configuracion->puerto_marta);
 						exit(1);
 					}
 
-					log_debug_interno("Se recibió mensaje de MaRTA. Header.Id: %s - Argc: %d - Largo Stream: %d", id_string(mensaje_actual->header.id),
+					log_debug_interno("Se recibio mensaje de MaRTA. Header.Id: %s - Argc: %d - Largo Stream: %d", id_string(mensaje_actual->header.id),
 							mensaje_actual->header.argc, mensaje_actual->header.length);
 
 					if (mensaje_actual->header.id == EJECUTAR_REDUCE) {
@@ -71,20 +71,20 @@ void esperarTareas() {
 						mensaje_actual = recibir_mensaje(marta_sock);
 
 						if (!mensaje_actual) {
-							log_error_consola("Se perdió la conexión con MaRTA IP: %s - Puerto: %d", configuracion->ip_marta, configuracion->puerto_marta);
+							log_error_consola("Se perdio la conexion con MaRTA IP: %s - Puerto: %d", configuracion->ip_marta, configuracion->puerto_marta);
 							exit(1);
 						}
 
 						while (mensaje_actual->header.id != FIN_ENVIO_MENSAJE) {
 
-							log_debug_interno("Se recibió mensaje de MaRTA. Header.Id: %s - Argc: %d - Largo Stream: %d", id_string(mensaje_actual->header.id),
+							log_debug_interno("Se recibio mensaje de MaRTA. Header.Id: %s - Argc: %d - Largo Stream: %d", id_string(mensaje_actual->header.id),
 									mensaje_actual->header.argc, mensaje_actual->header.length);
 
 							queue_push(paramsR->archivos_tmp, (void*) mensaje_actual);
 							mensaje_actual = recibir_mensaje(marta_sock);
 
 							if (!mensaje_actual) {
-								log_error_consola("Se perdió la conexión con MaRTA IP: %s - Puerto: %d", configuracion->ip_marta, configuracion->puerto_marta);
+								log_error_consola("Se perdio la conexion con MaRTA IP: %s - Puerto: %d", configuracion->ip_marta, configuracion->puerto_marta);
 								exit(1);
 							}
 						}
@@ -102,7 +102,7 @@ void esperarTareas() {
 						levantarHiloMapper(params);
 						usleep(1);
 					} else if (mensaje_actual->header.id == GET_ARCHIVO_TMP_OK) {
-						log_info_consola("El Job finalizó con éxito"); //TODO: Mejorar el log para indicar donde buscar el archivo en el mdfs
+						log_info_consola("El Job finalizo con exito"); //TODO: Mejorar el log para indicar donde buscar el archivo en el mdfs
 						exit(EXIT_SUCCESS);
 					} else if (mensaje_actual->header.id == MDFS_NO_OPERATIVO) {
 						log_info_consola("ERROR - El MDFS no esta operativo. Reintente mas tarde.");
@@ -136,14 +136,14 @@ void obtenerConfiguracion(char* path) {
 	if (config_has_property(config, "IP_MARTA")) {
 		configuracion->ip_marta = strdup(config_get_string_value(config, "IP_MARTA"));
 	} else {
-		log_error_consola("El archivo de configuración %s debe tener un IP_MARTA", path);
+		log_error_consola("El archivo de configuracion %s debe tener un IP_MARTA", path);
 		exit(1);
 	}
 	if (config_has_property(config, "REDUCE")) {
 		configuracion->reduce = read_whole_file(config_get_string_value(config, "REDUCE"));
 		configuracion->tamanio_reduce = file_get_size(config_get_string_value(config, "REDUCE"));
 	} else {
-		log_error_consola("El archivo de configuración %s debe tener un REDUCE", path);
+		log_error_consola("El archivo de configuracion %s debe tener un REDUCE", path);
 		exit(1);
 	}
 
@@ -152,35 +152,35 @@ void obtenerConfiguracion(char* path) {
 		configuracion->tamanio_mapper = file_get_size(config_get_string_value(config, "MAPPER"));
 
 	} else {
-		log_error_consola("El archivo de configuración %s debe tener un MAPPER", path);
+		log_error_consola("El archivo de configuracion %s debe tener un MAPPER", path);
 		exit(1);
 	}
 	if (config_has_property(config, "PUERTO_MARTA")) {
 		configuracion->puerto_marta = config_get_int_value(config, "PUERTO_MARTA");
 	} else {
-		log_error_consola("El archivo de configuración %s debe tener un PUERTO_MARTA", path);
+		log_error_consola("El archivo de configuracion %s debe tener un PUERTO_MARTA", path);
 		exit(1);
 	}
 	if (config_has_property(config, "COMBINER")) {
 		configuracion->combiner = !strcmp(config_get_string_value(config, "COMBINER"), "SI") ? 1 : 0;
 	} else {
-		log_error_consola("El archivo de configuración %s debe tener un COMBINER", path);
+		log_error_consola("El archivo de configuracion %s debe tener un COMBINER", path);
 		exit(1);
 	}
 	if (config_has_property(config, "RESULTADO")) {
 		configuracion->resultado = strdup(config_get_string_value(config, "RESULTADO"));
 	} else {
-		log_error_consola("El archivo de configuración %s debe tener un RESULTADO", path);
+		log_error_consola("El archivo de configuracion %s debe tener un RESULTADO", path);
 		exit(1);
 	}
 	if (config_has_property(config, "ARCHIVOS")) {
 		configuracion->archivos = strdup(config_get_string_value(config, "ARCHIVOS"));
 	} else {
-		log_error_consola("El archivo de configuración %s debe tener un ARCHIVOS", path);
+		log_error_consola("El archivo de configuracion %s debe tener un ARCHIVOS", path);
 		exit(1);
 	}
 
-	log_info_consola("El archivo de configuración %s fue cargado con éxito", path);
+	log_info_consola("El archivo de configuracion %s fue cargado con exito", path);
 
 	config_destroy(config);
 }
@@ -193,7 +193,7 @@ void conectarseAMarta() {
 		exit(1);
 	}
 
-	log_debug_consola("Se conectó al proceso MaRTA IP: %s - Puerto: %d", configuracion->ip_marta, configuracion->puerto_marta);
+	log_debug_consola("Se conecto al proceso MaRTA IP: %s - Puerto: %d", configuracion->ip_marta, configuracion->puerto_marta);
 
 	handshakeMarta();
 }
@@ -212,7 +212,7 @@ int hiloReduce(void* dato) {
 		mensaje_respuesta = argv_message(FIN_REDUCE_ERROR, 1, args->id_operacion);
 	} else {
 
-		log_debug_consola("Se conectó al proceso %s - IP: %s - Puerto: %d", args->nombre_nodo, args->ip, args->puerto);
+		log_debug_consola("Se conecto al proceso %s - IP: %s - Puerto: %d", args->nombre_nodo, args->ip, args->puerto);
 
 		mensaje = string_message(EJECUTAR_REDUCE, args->archivo_final, 1, args->id_operacion);
 		log_debug_interno("Enviando mensaje de solicitud de reduce. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id),
@@ -257,16 +257,16 @@ int hiloReduce(void* dato) {
 
 		mensaje = recibir_mensaje(nodo_sock);
 
-		if (!mensaje) { //Significa que recibir_mensaje devolvió NULL o sea que hubo un error en el recv o el nodo se desconectó
+		if (!mensaje) { //Significa que recibir_mensaje devolvio NULL o sea que hubo un error en el recv o el nodo se desconecto
 			mensaje_respuesta = argv_message(FIN_REDUCE_ERROR, 2, args->id_operacion, args->id_job);
 		} else {
 			mensaje_respuesta = argv_message(mensaje->header.id, 2, args->id_operacion, args->id_job);
-			log_debug_interno("Se recibió mensaje de %s. Header.Id: %s - Argc: %d - Largo Stream: %d", args->nombre_nodo, id_string(mensaje->header.id),
+			log_debug_interno("Se recibio mensaje de %s. Header.Id: %s - Argc: %d - Largo Stream: %d", args->nombre_nodo, id_string(mensaje->header.id),
 					mensaje->header.argc, mensaje->header.length);
 		}
 	}
 
-//Se reenvía el resultado del reduce a marta
+//Se reenvia el resultado del reduce a marta
 	log_debug_interno("Enviando mensaje respuesta a MaRTA. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje_respuesta->header.id),
 			mensaje_respuesta->header.argc, mensaje_respuesta->header.length);
 
@@ -277,7 +277,7 @@ int hiloReduce(void* dato) {
 	destroy_message(mensaje_respuesta);
 	destroy_message(mensaje);
 
-//TODO: No habría que cerrar la conexión con el nodo como en el HiloMap?
+//TODO: No habria que cerrar la conexion con el nodo como en el HiloMap?
 //Lo agregue, no entiendo por que no deberia no hacerse
 	shutdown(nodo_sock, 2);
 	//restar_hilo();
@@ -313,16 +313,16 @@ int hiloMap(void* dato) {
 
 		mensaje = recibir_mensaje(nodo_sock);
 
-		if (!mensaje) { //Significa que recibir_mensaje devolvió NULL o sea que hubo un error en el recv o el nodo se desconectó
+		if (!mensaje) { //Significa que recibir_mensaje devolvio NULL o sea que hubo un error en el recv o el nodo se desconecto
 			mensaje_respuesta = argv_message(FIN_MAP_ERROR, 2, args->id_operacion, args->id_job);
 		} else {
 			mensaje_respuesta = argv_message(mensaje->header.id, 2, args->id_operacion, args->id_job);
-			log_debug_interno("Se recibió mensaje de %s. Header.Id: %s - Argc: %d - Largo Stream: %d", args->nombre_nodo, id_string(mensaje->header.id),
+			log_debug_interno("Se recibio mensaje de %s. Header.Id: %s - Argc: %d - Largo Stream: %d", args->nombre_nodo, id_string(mensaje->header.id),
 					mensaje->header.argc, mensaje->header.length);
 			destroy_message(mensaje);
 		}
 	}
-//Se reenvía el resultado del map a marta
+//Se reenvia el resultado del map a marta
 	log_debug_interno("Enviando mensaje respuesta a MaRTA. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje_respuesta->header.id),
 			mensaje_respuesta->header.argc, mensaje_respuesta->header.length);
 
@@ -332,7 +332,7 @@ int hiloMap(void* dato) {
 	}
 	destroy_message(mensaje_respuesta);
 
-//CERRAR CONEXIÓN CON EL NODO//
+//CERRAR CONEXIoN CON EL NODO//
 	shutdown(nodo_sock, 2);
 	//restar_hilo();
 	return 0;
@@ -352,7 +352,7 @@ void handshakeMarta() {
 	ret = enviar_mensaje(marta_sock, mensaje);
 
 	if (ret < 0) {
-		log_error_consola("Falló el envío de mensaje de solicitud de inicio de Job");
+		log_error_consola("Fallo el envio de mensaje de solicitud de inicio de Job");
 		exit(1);
 	}
 

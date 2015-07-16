@@ -26,7 +26,7 @@ void iniciar_consola() {
 		}
 		if (ejecutar_comando(comando) == 0) {
 			char* comando_listo = comando_preparado(comando);
-			log_debug_interno("El comando %s fue ejecutado con éxito", comando_listo);
+			log_debug_interno("El comando %s fue ejecutado con exito", comando_listo);
 		}
 	}
 	free(comando);
@@ -194,7 +194,7 @@ int ejecutar_comando(char* comando) {
 		ret = espacio_total();
 		return ret;
 	} else {
-		log_error_consola("Comando incorrecto ingrese ayuda para una lista de comandos válidos o salir para cerrar el sistema");
+		log_error_consola("Comando incorrecto ingrese ayuda para una lista de comandos validos o salir para cerrar el sistema");
 		return 1;
 	}
 	return 0;
@@ -227,7 +227,7 @@ int listar_nodos(char* lista_nodos) {
 		printf("BL: %d - ", nodo->cantidad_bloques_libres);
 		printf("BO: %d\n", nodo->cantidad_bloques_totales - nodo->cantidad_bloques_libres);
 		if (nodo->puerto != 0) {
-			printf("  Conexión: %s:%d\n", nodo->ip, nodo->puerto);
+			printf("  Conexion: %s:%d\n", nodo->ip, nodo->puerto);
 		}
 	}
 
@@ -238,7 +238,7 @@ int listar_nodos(char* lista_nodos) {
 	} else if (string_equals_ignore_case(lista_nodos, "aceptados")) {
 		list_iterate_nodos_aceptados((void *) _escribe_nombres_nodos);
 	} else {
-		log_error_consola("Parámetro incorrecto");
+		log_error_consola("Parametro incorrecto");
 		return 1;
 	}
 
@@ -259,8 +259,8 @@ int listar_archivo(char* nombre_archivo) {
 		return 1;
 	}
 
-	printf(ANSI_COLOR_BLUE"Archivo:"ANSI_COLOR_RESET"%s\n", nombre_archivo);
-	printf("Tamaño: %ld bytes\n", archivo->tamanio);
+	printf("Archivo:%s\n", nombre_archivo);
+	printf("Tamanio: %ld bytes\n", archivo->tamanio);
 	printf("Estado: ");
 	if (archivo->disponible) {
 		printf(ANSI_COLOR_GREEN"Disponible"ANSI_COLOR_RESET"\n");
@@ -275,9 +275,9 @@ int listar_archivo(char* nombre_archivo) {
 			printf("%s ", archivo->bloques[numero_bloque].copias[numero_copia].nombre_nodo);
 			printf("%d ", archivo->bloques[numero_bloque].copias[numero_copia].bloque_nodo+1);
 			if (archivo->bloques[numero_bloque].copias[numero_copia].conectado) {
-				printf("ON  |");
+				printf(ANSI_COLOR_GREEN"ON  |"ANSI_COLOR_RESET);
 			} else {
-				printf("OFF |");
+				printf(ANSI_COLOR_RED"OFF |"ANSI_COLOR_RESET);
 			}
 		}
 		printf("\n");
@@ -428,5 +428,5 @@ int espacio_libre() {
 }
 
 void log_error_parametros_faltantes() {
-	log_error_consola("Falta ingresar parámetros");
+	log_error_consola("Falta ingresar parametros");
 }

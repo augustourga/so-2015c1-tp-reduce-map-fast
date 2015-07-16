@@ -18,23 +18,23 @@ void levantar_configuracion() {
 	config = config_create(ARCHIVO_CONFIG);
 
 	if (config == NULL) {
-		log_error_consola("No se pudo abrir el archivo de configuración");
+		log_error_consola("No se pudo abrir el archivo de configuracion");
 		exit(1);
 	}
-	log_debug_interno("Leyendo archivo de configuración");
+	log_debug_interno("Leyendo archivo de configuracion");
 	if (config_has_property(config, "PUERTO_LISTEN")) {
 		PUERTO_LISTEN = config_get_string_value(config, "PUERTO_LISTEN");
 	} else {
-		log_error_consola("El archivo de configuración debe tener un PUERTO_LISTEN");
+		log_error_consola("El archivo de configuracion debe tener un PUERTO_LISTEN");
 		exit(1);
 	}
 	if (config_has_property(config, "CANTIDAD_NODOS")) {
 		CANTIDAD_NODOS = config_get_int_value(config, "CANTIDAD_NODOS");
 	} else {
-		log_error_consola("El archivo de configuración debe tener una CANTIDAD_NODOS");
+		log_error_consola("El archivo de configuracion debe tener una CANTIDAD_NODOS");
 		exit(1);
 	}
-	log_info_interno("Archivo de configuración cargado correctamente");
+	log_info_interno("Archivo de configuracion cargado correctamente");
 }
 
 int main(void) {

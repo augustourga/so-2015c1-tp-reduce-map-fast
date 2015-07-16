@@ -235,7 +235,7 @@ void planificar_reduces_sin_combiner(t_job* job) {
 	t_nodo_global* nodo_global = list_find(lista_nodos, (void*) _nodo_por_nombre);
 
 	reduce->arch_tmp.nodo = nodo_global->nodo;
-	reduce->arch_tmp.nombre = getRandName("rd_final", string_itoa(job->id)); //TODO: No se qué va acá, generar un nombre para las salidas de los reduces
+	reduce->arch_tmp.nombre = getRandName("rd_final", string_itoa(job->id)); //TODO: No se que va aca, generar un nombre para las salidas de los reduces
 
 	bool _ordena_por_nombre(t_map* map1, t_map* map2) {
 		return strcmp(map1->arch_tmp.nodo.nombre, map2->arch_tmp.nodo.nombre) > 0;
@@ -405,7 +405,7 @@ char* getRandName(char* ruta, char* indicador) {
 	string_append(&strFinal, indicador);
 	string_append(&strFinal, "_");
 	string_append(&strFinal, s);
-	log_debug_consola("Se generó nombre aleatório: %s", strFinal);
+	log_debug_consola("Se genero nombre aleatorio: %s", strFinal);
 	return strFinal;
 }
 

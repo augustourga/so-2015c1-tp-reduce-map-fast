@@ -35,8 +35,8 @@ void iniciar_server(void* argumentos) {
 	while (1) {
 		read_fds = master; // copy it
 		if (select(fdmax + 1, &read_fds, NULL, NULL, NULL) == -1) {
-			log_error_consola("Falló el select");
-			perror("Falló el select. Error");
+			log_error_consola("Fallo el select");
+			perror("Fallo el select. Error");
 		}
 
 		// run through the existing connections looking for data to read
@@ -47,7 +47,7 @@ void iniciar_server(void* argumentos) {
 					addrlen = sizeof addr_client;
 					newfd = accept(listen_socket, (struct sockaddr *) &addr_client, &addrlen);
 					if (newfd == -1) {
-						log_error_consola("Falló el accept");
+						log_error_consola("Fallo el accept");
 					} else {
 						FD_SET(newfd, &master); // add to master set
 						if (newfd > fdmax) {    // keep track of the max
@@ -95,7 +95,7 @@ void decodificar_mensaje(t_msg* mensaje, int socket) {
 		registrar_nodo(nodo_deserealizar_socket(mensaje, socket));
 		break;
 	case CONEXION_MARTA:
-		log_debug_interno("Marta se conectó correctamente. Su socket es %d", socket);
+		log_debug_interno("Marta se conecto correctamente. Su socket es %d", socket);
 		break;
 	case INFO_ARCHIVO:
 		if (filesystem_operativo) {
@@ -171,7 +171,7 @@ void* mensaje_get_bloque(void* argumentos) {
 	sem_post(&sem_get_bloque);
 	t_msg* respuesta = recibir_mensaje(socket);
 	if (respuesta == NULL) {
-		log_error_consola("Mensaje get_bloque fallo porque el nodo no respondió, se asume desconexion del nodo, socket: %d", socket);
+		log_error_consola("Mensaje get_bloque fallo porque el nodo no respondio, se asume desconexion del nodo, socket: %d", socket);
 		desconexion_nodo(socket);
 		return NULL;
 	}
@@ -219,13 +219,13 @@ int mensaje_set_bloque(void* argumentos) {
 	sem_post(&sem_set_bloque);
 	t_msg* respuesta = recibir_mensaje(socket);
 	if (respuesta == NULL) {
-		log_error_consola("Mensaje set_bloque fallo porque el nodo no respondió OK, se asume desconexion del nodo, socket: %d", socket);
+		log_error_consola("Mensaje set_bloque fallo porque el nodo no respondio OK, se asume desconexion del nodo, socket: %d", socket);
 		return 1;
 	}
 
 	switch (respuesta->header.id) {
 	case SET_BLOQUE_OK:
-		log_info_interno("Terminó set_bloque OK del bloque: %d", args->bloque_nodo);
+		log_info_interno("Termino set_bloque OK del bloque: %d", args->bloque_nodo);
 		return 0;
 		break;
 	default:
@@ -294,7 +294,7 @@ t_msg* mensaje_copiar_archivo_temporal_a_mdfs(char* mensaje) {
 			log_error_consola("No se pudo copiar el archivo tmp al mdfs");
 			respuesta = id_message(GET_ARCHIVO_TMP_ERROR);
 		} else {
-			log_info_consola("Se copió el archivo %s al mdfs", nombre_archivo_final);
+			log_info_consola("Se copio el archivo %s al mdfs", nombre_archivo_final);
 			respuesta = id_message(GET_ARCHIVO_TMP_OK);
 		}
 		break;

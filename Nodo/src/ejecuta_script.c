@@ -24,7 +24,7 @@ int ejecuta_map(char* data, char* path_ejecutable, char* path_salida) {
 	pid_t pid_sort = fork();
 
 	if (!pid_sort) {
-		//Fork devuelve 0 en el hijo y el pid del hijo en el padre, así que acá estoy en el hijo.
+		//Fork devuelve 0 en el hijo y el pid del hijo en el padre, asi que aca estoy en el hijo.
 
 		//Duplica stdin al lado de lectura in y stdout y stdeer al lado de escritura out
 		int fd = open(path_salida, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
@@ -41,7 +41,7 @@ int ejecuta_map(char* data, char* path_ejecutable, char* path_salida) {
 
 		//La imagen del proceso hijo se reemplaza con la del path_ejecutable
 		execlp("/usr/bin/sort", "/usr/bin/sort", NULL);
-		//On success acá nunca llega porque la imágen (incluido el código) se reemplazó en la lina anterior
+		//On success aca nunca llega porque la imagen (incluido el codigo) se reemplazo en la lina anterior
 		error("No se pudo ejecutar el proceso");
 		return -1;
 	}
@@ -49,7 +49,7 @@ int ejecuta_map(char* data, char* path_ejecutable, char* path_salida) {
 	pid_t pid_map = fork();
 
 	if (!pid_map) {
-		//Fork devuelve 0 en el hijo y el pid del hijo en el padre, así que acá estoy en el hijo.
+		//Fork devuelve 0 en el hijo y el pid del hijo en el padre, asi que aca estoy en el hijo.
 
 		//Duplica stdin al lado de lectura in y stdout y stdeer al lado de escritura out
 		dup2(out[0], 0);
@@ -63,7 +63,7 @@ int ejecuta_map(char* data, char* path_ejecutable, char* path_salida) {
 
 		//La imagen del proceso hijo se reemplaza con la del path_ejecutable
 		execlp(path_ejecutable, path_ejecutable, NULL);
-		//On success acá nunca llega porque la imágen (incluido el código) se reemplazó en la lina anterior
+		//On success aca nunca llega porque la imagen (incluido el codigo) se reemplazo en la lina anterior
 		error("No se pudo ejecutar el proceso");
 		return -1;
 	}
@@ -97,7 +97,7 @@ pid_t ejecuta_reduce(int in[2], char* path_ejecutable, char* path_salida) {
 	pid_t pid = fork();
 
 	if (!pid) {
-		//Fork devuelve 0 en el hijo y el pid del hijo en el padre, así que acá estoy en el hijo.
+		//Fork devuelve 0 en el hijo y el pid del hijo en el padre, asi que aca estoy en el hijo.
 
 		//Duplica stdin al lado de lectura in y stdout y stdeer al lado de escritura out
 		int fd = open(path_salida, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
@@ -112,7 +112,7 @@ pid_t ejecuta_reduce(int in[2], char* path_ejecutable, char* path_salida) {
 
 		//La imagen del proceso hijo se reemplaza con la del path_ejecutable
 		execlp(path_ejecutable, path_ejecutable, NULL);
-		//On success acá nunca llega porque la imágen (incluido el código) se reemplazó en la lina anterior
+		//On success aca nunca llega porque la imagen (incluido el codigo) se reemplazo en la lina anterior
 		error("No se pudo ejecutar el proceso");
 		return -1;
 	}

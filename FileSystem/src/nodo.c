@@ -131,18 +131,18 @@ t_nodo* nodo_deserealizar_socket(t_msg* mensaje, int socket) {
 
 void log_info_nodo_conectado_aceptado(t_nodo* nodo) {
 	int bloques_ocupados = nodo->cantidad_bloques_totales - nodo->cantidad_bloques_libres;
-	log_info_interno("Se reconectó el nodo %s: BT: %d - BL: %d - BO: %d - Conexión: %s:%d", nodo->nombre, nodo->cantidad_bloques_totales,
+	log_info_interno("Se reconecto el nodo %s: BT: %d - BL: %d - BO: %d - Conexion: %s:%d", nodo->nombre, nodo->cantidad_bloques_totales,
 			nodo->cantidad_bloques_libres, bloques_ocupados, nodo->ip, nodo->puerto);
 }
 
 void log_info_nodo_conectado_nuevo(t_nodo* nodo) {
 	int bloques_ocupados = nodo->cantidad_bloques_totales - nodo->cantidad_bloques_libres;
-	log_info_interno("Se conectó el nodo nuevo %s: BT: %d - BL: %d - BO: %d - Conexión: %s:%d", nodo->nombre, nodo->cantidad_bloques_totales,
+	log_info_interno("Se conecto el nodo nuevo %s: BT: %d - BL: %d - BO: %d - Conexion: %s:%d", nodo->nombre, nodo->cantidad_bloques_totales,
 			nodo->cantidad_bloques_libres, bloques_ocupados, nodo->ip, nodo->puerto);
 }
 
 void log_info_nodo_desconectado(t_nodo* nodo) {
 	int bloques_ocupados = nodo->cantidad_bloques_totales - nodo->cantidad_bloques_libres;
-	log_info_interno("Se desconectó el nodo %s: BT: %d - BL: %d - BO: %d - Conexión: %s:%d", nodo->nombre, nodo->cantidad_bloques_totales,
+	log_info_interno("Se desconecto el nodo %s: BT: %d - BL: %d - BO: %d - Conexion: %s:%d", nodo->nombre, nodo->cantidad_bloques_totales,
 			nodo->cantidad_bloques_libres, bloques_ocupados, nodo->ip, nodo->puerto);
 }

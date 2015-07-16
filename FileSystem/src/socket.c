@@ -4,8 +4,8 @@
 
 void socket_bind(int listen_socket, struct addrinfo* server_info) {
 	if (bind(listen_socket, server_info->ai_addr, server_info->ai_addrlen) < 0) {
-		log_error_consola("Falló el bind");
-		perror("Falló el bind. Error");
+		log_error_consola("Fallo el bind");
+		perror("Fallo el bind. Error");
 		exit(1);
 	}
 }
@@ -16,7 +16,7 @@ int socket_listen(char* puerto_listen) {
 
 //	pthread_mutex_init(&mutex_recv, NULL);
 
-	int yes = 1; //Ver si se puede reemplazar por algo más copado
+	int yes = 1; //Ver si se puede reemplazar por algo mas copado
 
 	struct addrinfo hints, *server_info;
 
@@ -35,8 +35,8 @@ int socket_listen(char* puerto_listen) {
 	freeaddrinfo(server_info); // all done with this
 
 	if (listen(listen_socket, BACKLOG) == -1) {
-		log_error_consola("Falló el listen");
-		perror("Falló el listen. Error");
+		log_error_consola("Fallo el listen");
+		perror("Fallo el listen. Error");
 		exit(2);
 	}
 	return listen_socket;
