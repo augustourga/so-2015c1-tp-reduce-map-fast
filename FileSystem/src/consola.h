@@ -11,6 +11,7 @@
 #include "directorio.h"
 #include "archivo.h"
 #include "filesystem.h"
+#include "database.h"
 #include <commons/string.h>
 #include <stdio.h>
 #include <utiles/log.h>
@@ -19,6 +20,7 @@
 #define COMANDO_SALIR "salir"
 
 #define COMANDO_FORMATEAR "formatear"
+#define COMANDO_FORMATEAR_NODOS "formatear_nodos"
 
 #define COMANDO_ELIMINAR_ARCHIVO "rm_archivo"
 #define COMANDO_RENOMBRAR_ARCHIVO "cn_archivo"

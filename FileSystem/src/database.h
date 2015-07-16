@@ -17,7 +17,9 @@
 #define	NODOS_DB "files/nodos.db"
 
 int formatear_filesystem();
+int formatear_nodos();
 int crear_database();
+int crear_database_nodos();
 int recuperar_directorios();
 int recuperar_archivos();
 int recuperar_nodos();

@@ -132,7 +132,7 @@ int mover_directorio(char* ruta_directorio, char* ruta_padre_nuevo) {
 	return ret;
 }
 
-int eliminar_directorio(char* ruta_directorio) { //TODO: Ver de agregar un bool recursivo para hacer un rmr
+int eliminar_directorio(char* ruta_directorio) {
 	int ret;
 
 	t_directorio* directorio;
@@ -307,7 +307,11 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 			pthread_join(th_set[numero_bloque][redundancia], (void**) &int_aux);
 			if (int_aux == 1) {
 				res = 1;
+				break;
 			}
+		}
+		if (res == 1) {
+			break;
 		}
 	}
 
@@ -562,15 +566,26 @@ int eliminar_archivo(char* ruta_archivo) {
 	return ret;
 }
 
+void formatear_listas_nodos() {
+	lista_nodos_aceptados = list_create();
+	lista_nodos_pendientes = list_create();
+	list_iterate(lista_nodos_operativos, (void*) list_add_nodos_pendientes);
+	lista_nodos_operativos = list_create();
+}
+
 int inicializar_filesystem(bool formatea, int cantidad_nodos) {
 	log_debug_interno("Inicializando Filesystem");
 	lista_directorios = list_create();
 	lista_archivos = list_create();
-	lista_nodos_aceptados = list_create();
-	lista_nodos_pendientes = list_create();
-	lista_nodos_operativos = list_create();
+	if (!formatea) {
+		lista_nodos_aceptados = list_create();
+		lista_nodos_pendientes = list_create();
+		lista_nodos_operativos = list_create();
+		crear_database_nodos();
+	}
 	crear_directorio_raiz();
 	crear_database();
+
 	if (formatea) {
 		recno_directorios(formatea);
 		recno_archivos(formatea);
@@ -989,7 +1004,6 @@ int ver_bloque_de_nodo(int numero_bloque_nodo, char* nombre_nodo) {
 		return 1;
 	}
 
-//TODO: pedirle al nodo que me el contenido del bloque numero_bloque_nodo
 	pthread_rwlock_unlock(&nodo->lock);
 	return 0;
 }
@@ -1137,7 +1151,6 @@ int copiar_bloque_de_nodo_a_nodo(int numero_bloque_nodo, char* nombre_nodo_orige
 	pthread_rwlock_wrlock(&nodo_destino->lock);
 	int numero_bloque_nodo_destino = nodo_asignar_bloque_disponible(nodo_destino);
 
-	//TODO: Testear que esto funcione
 	pthread_t th_bloque;
 
 	struct arg_get_bloque* args;
@@ -1662,4 +1675,18 @@ void nodo_liberar_bloque(char* nombre_nodo, int bloque_nodo) {
 		nodo->cantidad_bloques_libres++;
 		pthread_rwlock_unlock(&nodo->lock);
 	}
+}
+
+void vaciar_bloques_nodos() {
+	int i;
+
+	void _vaciar_bloques(t_nodo* nodo) {
+		nodo->cantidad_bloques_libres = nodo->cantidad_bloques_totales;
+		for (i = 0; i < nodo->cantidad_bloques_totales; i++) {
+			nodo->bloques[i] = 0;
+		}
+	}
+
+	list_iterate(lista_nodos_operativos, (void*) _vaciar_bloques);
+	list_iterate(lista_nodos_aceptados, (void*) _vaciar_bloques);
 }

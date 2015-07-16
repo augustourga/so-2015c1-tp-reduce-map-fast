@@ -48,6 +48,9 @@ int ejecutar_comando(char* comando) {
 	} else if (string_equals_ignore_case(parametros[0], COMANDO_FORMATEAR)) {
 		ret = formatear_filesystem();
 		return ret;
+	} else if (string_equals_ignore_case(parametros[0], COMANDO_FORMATEAR_NODOS)) {
+		ret = formatear_nodos();
+		return ret;
 	} else if (string_equals_ignore_case(parametros[0], COMANDO_ELIMINAR_ARCHIVO)) {
 		if (parametros[1] == NULL) {
 			log_error_parametros_faltantes();
@@ -258,7 +261,7 @@ int listar_archivo(char* nombre_archivo) {
 
 	printf(ANSI_COLOR_BLUE"Archivo:"ANSI_COLOR_RESET"%s\n", nombre_archivo);
 	printf("Tamaño: %ld bytes\n", archivo->tamanio);
-	printf("Directorio padre: %d\nEstado: ", archivo->padreId);
+	printf("Estado: ");
 	if (archivo->disponible) {
 		printf(ANSI_COLOR_GREEN"Disponible"ANSI_COLOR_RESET"\n");
 	} else {
