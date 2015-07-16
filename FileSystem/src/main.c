@@ -8,7 +8,7 @@
 #include <utiles/log.h>
 
 #define ARCHIVO_CONFIG "./files/config_file_system.cfg"
-#define RUTA_LOG "/home/utnso/workspace/tp-2015-1c-milanesa/FileSystem/files/log"
+#define RUTA_LOG "/home/utnso/workspace/tp-2015-1c-milanesa/FileSystem/files/filesystem.log"
 
 char* PUERTO_LISTEN;
 int CANTIDAD_NODOS;
