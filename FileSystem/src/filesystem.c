@@ -248,6 +248,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 	int cantidad_bloques = num_block + 1;
 	archivo_nuevo->cantidad_bloques = cantidad_bloques;
 	archivo_nuevo->bloques = malloc(cantidad_bloques * sizeof(t_bloque));
+	archivo_nuevo->cantidad_copias_totales = 0;
 
 	if (cantidad_bloques * 3 > cantidad_bloques_libres()) {
 		log_error_consola("No hay espacio suficiente para el archivo %s\n", archivo_nuevo->nombre);
@@ -1631,14 +1632,20 @@ void actualizar_nodos_operativos_en_db(void) {
 void archivo_eliminar(t_archivo* archivo) {
 	int i, numero_copia;
 	pthread_rwlock_wrlock(&archivo->lock);
-	for (i = 0; i < archivo->cantidad_bloques; i++) {
-		t_bloque bloque_actual = archivo->bloques[i];
-		for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias; numero_copia++) {
-			t_copia copia_actual = bloque_actual.copias[numero_copia];
-			nodo_liberar_bloque(copia_actual.nombre_nodo, copia_actual.bloque_nodo);
-		}
-		if (bloque_actual.cantidad_copias > 0) {
-			free(bloque_actual.copias);
+	if (archivo->cantidad_copias_totales > 0) {
+		for (i = 0; i < archivo->cantidad_bloques; i++) {
+			if (archivo->bloques[i].copias == NULL) {
+				break;
+			} else {
+				t_bloque bloque_actual = archivo->bloques[i];
+				for (numero_copia = 0; numero_copia < bloque_actual.cantidad_copias; numero_copia++) {
+					t_copia copia_actual = bloque_actual.copias[numero_copia];
+					nodo_liberar_bloque(copia_actual.nombre_nodo, copia_actual.bloque_nodo);
+				}
+				if (bloque_actual.cantidad_copias > 0) {
+					free(bloque_actual.copias);
+				}
+			}
 		}
 	}
 	free(archivo->bloques);
