@@ -1,6 +1,7 @@
 #include "server.h"
 
 extern sem_t sem_set_bloque;
+extern sem_t sem_get_bloque;
 
 void iniciar_server(void* argumentos) {
 
@@ -163,9 +164,11 @@ void* mensaje_get_bloque(void* argumentos) {
 	if (ret < 0) {
 		log_error_consola("Mensaje get_bloque fallo por desconexion del nodo, socket: %d", socket);
 		desconexion_nodo(socket);
+		sem_post(&sem_get_bloque);
 		return NULL;
 	}
 	destroy_message(msg_solicitud);
+	sem_post(&sem_get_bloque);
 	t_msg* respuesta = recibir_mensaje(socket);
 	if (respuesta == NULL) {
 		log_error_consola("Mensaje get_bloque fallo porque el nodo no respondió, se asume desconexion del nodo, socket: %d", socket);
