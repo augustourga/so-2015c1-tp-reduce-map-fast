@@ -7,17 +7,23 @@ DB *db_nodos;
 pthread_mutex_t mutex_recno_directorios = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_recno_archivos = PTHREAD_MUTEX_INITIALIZER;
 
-int formatear_filesystem() { //TODO: Ver de cambiar por alguna forma más elegante
+int formatear_filesystem() {
 	remove(DIRECTORIOS_DB);
 	remove(ARCHIVOS_DB);
-	remove(NODOS_DB);
+	vaciar_bloques_nodos();
 
 	inicializar_filesystem(true, 0);
 	return 0;
 }
 
-int crear_database() {
+int formatear_nodos() {
+	remove(NODOS_DB);
+	formatear_listas_nodos();
+	crear_database_nodos();
+	return 0;
+}
 
+int crear_database() {
 	int ret;
 
 	if ((ret = db_create(&db_directorios, NULL, 0)) != 0) {
@@ -39,6 +45,12 @@ int crear_database() {
 	NULL, ARCHIVOS_DB, NULL, DB_RECNO, DB_CREATE, 0664)) != 0) {
 		db_archivos->err(db_archivos, ret, "%s", ARCHIVOS_DB);
 	}
+
+	return 0;
+}
+
+int crear_database_nodos() {
+	int ret;
 
 	if ((ret = db_create(&db_nodos, NULL, 0)) != 0) {
 		log_error_consola("db_create: %s", db_strerror(ret));

@@ -95,5 +95,7 @@ void rollback_nodos_operativos(t_list* lista_nodos_operativos_aux);
 void actualizar_nodos_operativos_en_db(void);
 void archivo_eliminar(t_archivo* archivo);
 void nodo_liberar_bloque(char* nombre_nodo, int bloque_nodo);
+void formatear_listas_nodos();
+void vaciar_bloques_nodos();
 
 #endif /* SRC_FILESYSTEM_H_ */
