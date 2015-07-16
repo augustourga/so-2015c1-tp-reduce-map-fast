@@ -169,7 +169,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 	int offset_actual = 0;
 	int pos_actual = 0;
 	int ret = 0;
-	sem_init(&sem_set_bloque, 0, 4);
+	sem_init(&sem_set_bloque, 0, 1);
 
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 

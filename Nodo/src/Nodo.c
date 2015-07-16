@@ -264,6 +264,11 @@ void atenderConexiones(void *parametro) {
 		case EJECUTAR_MAP:
 
 			mensaje2 = recibir_mensaje(sock_conexion);
+			if (!mensaje2) {
+				shutdown(sock_conexion, 2);
+				close(sock_conexion);
+				pthread_exit(NULL);
+			}
 			if (mensaje2->header.id == RUTINA) {
 				int map_id = codigo->argv[0];
 				int numero_bloque = codigo->argv[1];
@@ -302,6 +307,11 @@ void atenderConexiones(void *parametro) {
 			//Se recibe la rutina
 
 			mensaje2 = recibir_mensaje(sock_conexion);
+			if (!mensaje2) {
+				shutdown(sock_conexion, 2);
+				close(sock_conexion);
+				pthread_exit(NULL);
+			}
 
 			if (mensaje2->header.id == RUTINA) {
 				int reduce_id = codigo->argv[0];
@@ -309,6 +319,12 @@ void atenderConexiones(void *parametro) {
 				path_rutina = guardar_rutina(mensaje2->stream, "reduce", tamanio_rutina, reduce_id, 000);
 
 				mensaje2 = recibir_mensaje(sock_conexion);
+
+				if (!mensaje2) {
+					shutdown(sock_conexion, 2);
+					close(sock_conexion);
+					pthread_exit(NULL);
+				}
 
 				while (mensaje2->header.id != FIN_ENVIO_MENSAJE) {
 
@@ -322,6 +338,12 @@ void atenderConexiones(void *parametro) {
 						destroy_message(mensaje2);
 
 						mensaje2 = recibir_mensaje(sock_conexion);
+
+						if (!mensaje2) {
+							shutdown(sock_conexion, 2);
+							close(sock_conexion);
+							pthread_exit(NULL);
+						}
 
 					} else {
 						log_error_consola("Fallo en Recibir Nodos_archivos.");

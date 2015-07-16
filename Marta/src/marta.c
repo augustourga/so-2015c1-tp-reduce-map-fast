@@ -43,7 +43,7 @@ void finalizar_job_a_si_mismo(t_job* job) {
 	pthread_mutex_lock(&mutex_jobs);
 
 	bool _job(t_job* jobLista) {
-		return jobLista == job;
+		return jobLista->id == job->id;
 	}
 	list_remove_by_condition(lista_jobs, (void*) _job);
 	pthread_mutex_unlock(&mutex_jobs);
@@ -105,7 +105,7 @@ void planifica_maps(t_job* job) {
 
 			if (arch_tmp.nodo.nombre == NULL) {
 				log_error_consola("Error encontrando Nodo Disponible. Job %d Cancelado.", job->id);
-				t_msg* messageJob = string_message(FIN_MAP_ERROR, NULL, 0);
+				t_msg* messageJob = id_message(FIN_MAP_ERROR);
 				enviar_mensaje(job->socket, messageJob);
 				destroy_message(messageJob);
 				finalizar_job_a_si_mismo(job);
@@ -509,7 +509,7 @@ void elimina_nodo_desconectado(char* nombre_nodo) {
 		return !strcmp(nodo_global_actual->nodo.nombre, nombre_nodo);
 	}
 
-	list_remove_and_destroy_by_condition(lista_nodos, (void*) _nodo_por_nombre, (void*) destroy_nodo);
+	list_remove_by_condition(lista_nodos, (void*) _nodo_por_nombre);
 
 	log_debug_interno(" nodo inactivo eliminado. nodo: %s", nombre_nodo);
 	pthread_mutex_unlock(&mutex_nodos);
@@ -537,25 +537,9 @@ void actualiza_job_map_error(int id_map, int id_job) {
 	log_debug_interno("job actualizado, map error. job: %d, map: %d -> replanificando", id_job, id_map);
 
 	elimina_nodo_desconectado(map_actual->arch_tmp.nodo.nombre);
-	eliminar_carga_nodo(map_actual->arch_tmp.nodo, carga_map);
+	//eliminar_carga_nodo(map_actual->arch_tmp.nodo, carga_map); //TODO: Si ya está eliminado para que sacarle la carga?
 
-	void _planifica_map(t_map* map) {
-		if (map->estado == PENDIENTE || map->estado == FIN_ERROR) {
-			t_temp arch_tmp;
-			arch_tmp.nombre = getRandName(map->archivo.nombre, string_itoa(map->archivo.bloque));
-			arch_tmp.nodo = get_nodo_menos_cargado(map->archivo.copias);
-
-			if (arch_tmp.nodo.nombre == NULL) {
-				log_error_consola("Error encontrando Nodo Disponible. Job %d Cancelado.", job_actual->socket);
-				t_msg* messageJob = string_message(INFO_ARCHIVO_ERROR, NULL, 0);
-				enviar_mensaje(job_actual->socket, messageJob);
-				destroy_message(messageJob);
-				finalizar_job_a_si_mismo(job_actual);
-			}
-
-			map->arch_tmp = arch_tmp;
-		}
-	}
+	planifica_maps(job_actual);
 
 	ejecuta_maps(job_actual);
 
@@ -621,7 +605,7 @@ void actualizar_job_reduce_error(int id_reduce, int id_job, char* nombre_nodo) {
 		exit(1);
 	}
 
-	t_msg* messageJob = string_message(FIN_REDUCE_ERROR, NULL, 0);
+	t_msg* messageJob = id_message(FIN_REDUCE_ERROR);
 	enviar_mensaje(job->socket, messageJob);
 	destroy_message(messageJob);
 	finalizar_job_hijo(job);

@@ -21,7 +21,7 @@
 #include "job.h"
 
 #define RUTA_LOG "log/marta.log"
-#define PUERTO_LISTEN 3333
+#define PUERTO_LISTEN 3331 //TODO: SAcarlo al archivo de configuración
 
 typedef struct {
 	t_nodo nodo;
