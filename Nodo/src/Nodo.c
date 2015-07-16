@@ -718,7 +718,7 @@ char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
 	if (res == -1) {
 		log_error_consola("Fallo envio mensaje GET_NEXT_ROW");
 	}
-	msg = recibir_mensaje(socket_tmp);
+	msg = recibir_mensaje_sin_mutex(socket_tmp);
 	if (msg) {
 		if (msg->header.id == GET_NEXT_ROW_OK) {
 			resultado = string_duplicate(msg->stream);
