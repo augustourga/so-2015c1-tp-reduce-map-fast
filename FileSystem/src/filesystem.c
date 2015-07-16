@@ -441,14 +441,17 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 }
 
 int md5(char* ruta_mdfs) {
-	char** nombres = string_split(ruta_mdfs, "/");
-	int i = 0;
-	while (nombres[i + 1] != NULL) {
-		i++;
+
+	t_archivo* archivo;
+	archivo = archivo_por_ruta(ruta_mdfs);
+
+	if (archivo == NULL) {
+		log_error_archivo_no_existe(ruta_mdfs);
+		return 1;
 	}
 
 	char* ruta_temporal = string_duplicate("/tmp/");
-	string_append(&ruta_temporal, nombres[i]);
+	string_append(&ruta_temporal, archivo->nombre);
 	copiar_archivo_mdfs_a_local(ruta_mdfs, ruta_temporal);
 
 	char* comando = string_duplicate("md5sum ");
@@ -457,7 +460,6 @@ int md5(char* ruta_mdfs) {
 
 	free(comando);
 	free(ruta_temporal);
-	free_puntero_puntero(nombres);
 	return 0;
 }
 
@@ -667,9 +669,13 @@ t_archivo* archivo_por_ruta(char* ruta) {
 
 	char** nombres = string_split(ruta, "/");
 	int i = 0;
-	while (nombres[i + 1] != NULL) {
+	while (nombres[i] != NULL) {
 		directorio_padre = hijo_de_con_nombre(directorio_padre, nombres[i]);
-		i++;
+		if (directorio_padre == NULL) {
+			break;
+		} else {
+			i++;
+		}
 	}
 
 	archivo = archivo_hijo_de_con_nombre(directorio_padre, nombres[i]);
