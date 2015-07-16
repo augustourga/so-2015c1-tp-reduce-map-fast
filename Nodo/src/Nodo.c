@@ -214,7 +214,7 @@ void atenderConexiones(void *parametro) {
 	int band = 0;
 	int res = 0;
 
-	if ((codigo = recibir_mensaje(sock_conexion)) != NULL) {
+	if ((codigo = recibir_mensaje_sin_mutex(sock_conexion)) != NULL) {
 
 		switch (codigo->header.id) {
 
@@ -269,7 +269,7 @@ void atenderConexiones(void *parametro) {
 
 		case EJECUTAR_MAP:
 
-			mensaje2 = recibir_mensaje(sock_conexion);
+			mensaje2 = recibir_mensaje_sin_mutex(sock_conexion);
 			if (!mensaje2) {
 				shutdown(sock_conexion, 2);
 				close(sock_conexion);
@@ -312,7 +312,7 @@ void atenderConexiones(void *parametro) {
 
 			//Se recibe la rutina
 
-			mensaje2 = recibir_mensaje(sock_conexion);
+			mensaje2 = recibir_mensaje_sin_mutex(sock_conexion);
 			if (!mensaje2) {
 				shutdown(sock_conexion, 2);
 				close(sock_conexion);
@@ -324,7 +324,7 @@ void atenderConexiones(void *parametro) {
 				int tamanio_rutina = mensaje2->argv[0];
 				path_rutina = guardar_rutina(mensaje2->stream, "reduce", tamanio_rutina, reduce_id, 000);
 
-				mensaje2 = recibir_mensaje(sock_conexion);
+				mensaje2 = recibir_mensaje_sin_mutex(sock_conexion);
 
 				if (!mensaje2) {
 					shutdown(sock_conexion, 2);
@@ -343,7 +343,7 @@ void atenderConexiones(void *parametro) {
 						queue_push(cola_nodos, (void*) nodo_arch);
 						destroy_message(mensaje2);
 
-						mensaje2 = recibir_mensaje(sock_conexion);
+						mensaje2 = recibir_mensaje_sin_mutex(sock_conexion);
 
 						if (!mensaje2) {
 							shutdown(sock_conexion, 2);
@@ -719,7 +719,7 @@ char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
 	if (res == -1) {
 		log_error_consola("Fallo envio mensaje GET_NEXT_ROW");
 	}
-	msg = recibir_mensaje(socket_tmp);
+	msg = recibir_mensaje_sin_mutex(socket_tmp);
 	if (msg) {
 		if (msg->header.id == GET_NEXT_ROW_OK) {
 			resultado = string_duplicate(msg->stream);

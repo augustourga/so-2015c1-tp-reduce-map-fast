@@ -7,16 +7,20 @@
 #include "job.h"
 
 int cantidad_hilos = 0;
-sem_t sem_sin_hilos;
+//sem_t sem_sin_hilos;
 
 pthread_mutex_t mutex_cantidad_hilos = PTHREAD_MUTEX_INITIALIZER;
 
+t_list* lista_tareas;
+
 int main(int argc, char* argv[]) {
+
+	lista_tareas = list_create();
 
 	log_crear("DEBUG", LOG_FILE, PROCESO);
 
 	obtenerConfiguracion(argv[1]);
-	sem_init(&sem_sin_hilos, 0, 1);
+	//sem_init(&sem_sin_hilos, 0, 1);
 	conectarseAMarta();
 
 	esperarTareas();
@@ -100,7 +104,7 @@ void esperarTareas() {
 						params->id_job = mensaje_actual->argv[2];
 						params->bloque = mensaje_actual->argv[3];
 						levantarHiloMapper(params);
-						usleep(1);
+						sleep(1);
 					} else if (mensaje_actual->header.id == GET_ARCHIVO_TMP_OK) {
 						log_info_consola("El Job finalizo con exito"); //TODO: Mejorar el log para indicar donde buscar el archivo en el mdfs
 						exit(EXIT_SUCCESS);
@@ -255,7 +259,7 @@ int hiloReduce(void* dato) {
 			log_error_consola("Fallo envio mensaje FIN_ENVIO_MENSAJE");
 		}
 
-		mensaje = recibir_mensaje(nodo_sock);
+		mensaje = recibir_mensaje_sin_mutex(nodo_sock);
 
 		if (!mensaje) { //Significa que recibir_mensaje devolvio NULL o sea que hubo un error en el recv o el nodo se desconecto
 			mensaje_respuesta = argv_message(FIN_REDUCE_ERROR, 2, args->id_operacion, args->id_job);
@@ -311,7 +315,7 @@ int hiloMap(void* dato) {
 
 		ret = enviar_mensaje(nodo_sock, mensaje);
 
-		mensaje = recibir_mensaje(nodo_sock);
+		mensaje = recibir_mensaje_sin_mutex(nodo_sock);
 
 		if (!mensaje) { //Significa que recibir_mensaje devolvio NULL o sea que hubo un error en el recv o el nodo se desconecto
 			mensaje_respuesta = argv_message(FIN_MAP_ERROR, 2, args->id_operacion, args->id_job);

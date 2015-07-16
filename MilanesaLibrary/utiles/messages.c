@@ -185,6 +185,50 @@ t_msg *recibir_mensaje(int sock_fd) {
 	return msg;
 }
 
+t_msg *recibir_mensaje_sin_mutex(int sock_fd) {
+	t_msg *msg = malloc(sizeof(t_msg));
+	msg->argv = NULL;
+	msg->stream = NULL;
+	log_debug_interno("recibiendo mensaje . Socket: %d", sock_fd);
+	/* Get message info. */
+	int status = recv(sock_fd, &(msg->header), sizeof(t_header), MSG_WAITALL);
+	if (status <= 0) {
+		/* An error has ocurred or remote connection has been closed. */
+		log_error_consola("error obteniendo Header. Socket: %d", sock_fd);
+		free(msg);
+		return NULL;
+	}
+
+	/* Get message data. */
+	if (msg->header.argc > 0) {
+		msg->argv = malloc(msg->header.argc * sizeof(uint32_t));
+
+		if (recv(sock_fd, msg->argv, msg->header.argc * sizeof(uint32_t),
+		MSG_WAITALL) <= 0) {
+			log_error_consola("error obteniendo args. Socket: %d", sock_fd);
+			free(msg->argv);
+			free(msg);
+			return NULL;
+		}
+	}
+
+	if (msg->header.length > 0) {
+		msg->stream = malloc(msg->header.length + 1);
+
+		if (recv(sock_fd, msg->stream, msg->header.length, MSG_WAITALL) <= 0) {
+			log_error_consola("error obteniendo stream. Socket: %d", sock_fd);
+			free(msg->stream);
+			free(msg->argv);
+			free(msg);
+			return NULL;
+		}
+
+		msg->stream[msg->header.length] = '\0';
+	}
+	log_debug_interno("mensaje recibido con exito. Socket: %d", sock_fd);
+	return msg;
+}
+
 int socket_conectado(int socket) {
 	pthread_mutex_lock(&mutex_recibir);
 	char buf[1];

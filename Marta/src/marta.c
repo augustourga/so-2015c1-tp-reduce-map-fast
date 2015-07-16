@@ -473,6 +473,7 @@ void actualiza_job_map_ok(int id_map, int id_job) {
 
 	if (!job_actual) {
 		log_error_consola("El job no existe. job: %d, map: %d", id_job, id_map);
+		pthread_mutex_unlock(&mutex_jobs);
 		exit(1);
 	}
 
@@ -480,6 +481,7 @@ void actualiza_job_map_ok(int id_map, int id_job) {
 
 	if (!map_actual) {
 		log_error_consola("El map no existe. job: %d, map: %d", id_job, id_map);
+		pthread_mutex_unlock(&mutex_jobs);
 		exit(1);
 	}
 

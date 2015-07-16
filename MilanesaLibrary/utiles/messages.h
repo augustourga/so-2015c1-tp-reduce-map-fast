@@ -120,6 +120,11 @@ void destroy_message(t_msg *mgs);
 t_msg *recibir_mensaje(int sock_fd);
 
 /*
+ * Recibe un t_msg a partir de un socket determinado.
+ */
+t_msg *recibir_mensaje_sin_mutex(int sock_fd);
+
+/*
  * Envia los contenidos de un t_msg a un socket determinado.
  */
 int enviar_mensaje(int sock_fd, t_msg *msg);
