@@ -43,3 +43,4 @@ Debug/
 
 # Archivo data.bin de Nodo
 *.bin
+core

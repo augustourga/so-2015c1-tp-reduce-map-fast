@@ -26,7 +26,7 @@ endif
 all: Job
 
 dependents:
-	-cd /home/utnso/workspace/tp-2015-1c-milanesa/MilanesaLibrary/Debug && $(MAKE) all
+	-cd /home/utnso/workspace/tp-2015-1c-milanesa/MilanesaLibrary/Debug && $(MAKE) clean all
 
 # Tool invocations
 Job: $(OBJS) $(USER_OBJS) /home/utnso/workspace/tp-2015-1c-milanesa/MilanesaLibrary/Debug/libMilanesaLibrary.so
