@@ -1,7 +1,7 @@
 #include "server.h"
 
-extern sem_t sem_set_bloque;
-extern sem_t sem_get_bloque;
+extern pthread_mutex_t mutex_set_bloque;
+extern pthread_mutex_t mutex_get_bloque;
 
 void iniciar_server(void* argumentos) {
 
@@ -164,11 +164,11 @@ void* mensaje_get_bloque(void* argumentos) {
 	if (ret < 0) {
 		log_error_consola("Mensaje get_bloque fallo por desconexion del nodo, socket: %d", socket);
 		desconexion_nodo(socket);
-		sem_post(&sem_get_bloque);
+		pthread_mutex_unlock(&mutex_get_bloque);
 		return NULL;
 	}
 	destroy_message(msg_solicitud);
-	sem_post(&sem_get_bloque);
+	pthread_mutex_unlock(&mutex_get_bloque);
 	t_msg* respuesta = recibir_mensaje(socket);
 	if (respuesta == NULL) {
 		log_error_consola("Mensaje get_bloque fallo porque el nodo no respondio, se asume desconexion del nodo, socket: %d", socket);
@@ -212,11 +212,11 @@ int mensaje_set_bloque(void* argumentos) {
 	if (res < 0) {
 		log_error_consola("Mensaje set_bloque fallo por desconexion del nodo, socket: %d", socket);
 		destroy_message(msg_solicitud);
-		sem_post(&sem_set_bloque);
+		pthread_mutex_unlock(&mutex_set_bloque);
 		return 1;
 	}
 	destroy_message(msg_solicitud);
-	sem_post(&sem_set_bloque);
+	pthread_mutex_unlock(&mutex_set_bloque);
 	t_msg* respuesta = recibir_mensaje(socket);
 	if (respuesta == NULL) {
 		log_error_consola("Mensaje set_bloque fallo porque el nodo no respondio OK, se asume desconexion del nodo, socket: %d", socket);

@@ -22,8 +22,8 @@ pthread_mutex_t mutex_nodos_pendientes = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_filesysem_operativo = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_args = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_res = PTHREAD_MUTEX_INITIALIZER;
-sem_t sem_set_bloque;
-sem_t sem_get_bloque;
+pthread_mutex_t mutex_set_bloque = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex_get_bloque = PTHREAD_MUTEX_INITIALIZER;
 
 bool filesystem_operativo = false;
 int cantidad_nodos_minima = 0;
@@ -169,7 +169,6 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 	int offset_actual = 0;
 	int pos_actual = 0;
 	int ret = 0;
-	sem_init(&sem_set_bloque, 0, 1);
 
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
@@ -289,7 +288,7 @@ int copiar_archivo_local_a_mdfs(char* ruta_local, char* ruta_mdfs) {
 			archivo_nuevo->bloques[numero_bloque].copias[redundancia].tamanio_bloque = chunks[numero_bloque].tamanio;
 			pthread_rwlock_unlock(&(nodo_actual->lock));
 
-			sem_wait(&sem_set_bloque);
+			pthread_mutex_lock(&mutex_set_bloque);
 			args[numero_bloque][redundancia] = malloc(sizeof(struct arg_set_bloque));
 			args[numero_bloque][redundancia]->bloque_nodo = bloque_nodo;
 			args[numero_bloque][redundancia]->socket = nodo_actual->socket;
@@ -379,7 +378,6 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 
 	int numero_bloque;
 	int numero_copia;
-	sem_init(&sem_get_bloque, 0, 1);
 
 	struct arg_get_bloque* args[archivo_mdfs->cantidad_bloques];
 	pthread_t th_bloque[archivo_mdfs->cantidad_bloques];
@@ -391,7 +389,7 @@ int copiar_archivo_mdfs_a_local(char* ruta_mdfs, char* ruta_local) {
 			if (copia_actual.conectado) {
 				nodo = nodo_operativo_por_nombre(copia_actual.nombre_nodo);
 				if (nodo != NULL) {
-					sem_wait(&sem_get_bloque);
+					pthread_mutex_lock(&mutex_get_bloque);
 					pthread_rwlock_rdlock(&nodo->lock);
 					args[numero_bloque] = malloc(sizeof(struct arg_get_bloque));
 					args[numero_bloque]->bloque_nodo = copia_actual.bloque_nodo;
