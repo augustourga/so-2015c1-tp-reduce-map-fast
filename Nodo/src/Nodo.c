@@ -26,8 +26,9 @@ int main(int argc, char*argv[]) {
 	return 0;
 }
 
-int levantarConfiguracionNodo(char* path) {
+int levantarConfiguracionNodo(char* nombre_archivo) {
 
+	char* path = file_combine(PATH_CONFIG, nombre_archivo);
 	t_config* archivo_config = config_create(path);
 
 	PUERTO_FS = config_get_int_value(archivo_config, "PUERTO_FS");

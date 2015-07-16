@@ -29,12 +29,9 @@
 #include <semaphore.h>
 
 /******************Constantes********************/
-#define PATH_CONFIG "files/NODO_CONFIG.config"
 #define LOG_FILE "files/nodo.log"
 #define PROCESO "Nodo"
-#define BUFF_SIZE 1024
-#define DISCO "files/miarchivo.bin"
-#define RUTA "/home/utnso/git/tp-2015-1c-milanesa/Nodo"
+#define PATH_CONFIG "/home/utnso/workspace/tp-2015-1c-milanesa/Nodo/files"
 /****************Registros***********************/
 typedef struct {
 	int sock_fs;
