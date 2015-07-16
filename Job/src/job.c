@@ -104,7 +104,7 @@ void esperarTareas() {
 						params->id_job = mensaje_actual->argv[2];
 						params->bloque = mensaje_actual->argv[3];
 						levantarHiloMapper(params);
-						usleep(1);
+						sleep(1);
 					} else if (mensaje_actual->header.id == GET_ARCHIVO_TMP_OK) {
 						log_info_consola("El Job finalizo con exito"); //TODO: Mejorar el log para indicar donde buscar el archivo en el mdfs
 						exit(EXIT_SUCCESS);
