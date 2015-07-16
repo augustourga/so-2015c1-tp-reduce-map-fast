@@ -1,7 +1,7 @@
 #include "messages.h"
 
 //pthread_mutex_t mutex_enviar = PTHREAD_MUTEX_INITIALIZER;
-//pthread_mutex_t mutex_recibir = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex_recibir = PTHREAD_MUTEX_INITIALIZER;
 
 t_msg *id_message(t_msg_id id) {
 
@@ -137,7 +137,7 @@ t_msg *remake_message(t_msg_id new_id, t_msg *old_msg, uint16_t new_count, ...) 
 }
 
 t_msg *recibir_mensaje(int sock_fd) {
-//	pthread_mutex_lock(&mutex_recibir);
+	pthread_mutex_lock(&mutex_recibir);
 	t_msg *msg = malloc(sizeof(t_msg));
 	msg->argv = NULL;
 	msg->stream = NULL;
@@ -148,7 +148,7 @@ t_msg *recibir_mensaje(int sock_fd) {
 		/* An error has ocurred or remote connection has been closed. */
 		log_error_consola("error obteniendo Header. Socket: %d", sock_fd);
 		free(msg);
-//		pthread_mutex_unlock(&mutex_recibir);
+		pthread_mutex_unlock(&mutex_recibir);
 		return NULL;
 	}
 
@@ -161,7 +161,7 @@ t_msg *recibir_mensaje(int sock_fd) {
 			log_error_consola("error obteniendo args. Socket: %d", sock_fd);
 			free(msg->argv);
 			free(msg);
-//			pthread_mutex_unlock(&mutex_recibir);
+			pthread_mutex_unlock(&mutex_recibir);
 			return NULL;
 		}
 	}
@@ -174,14 +174,14 @@ t_msg *recibir_mensaje(int sock_fd) {
 			free(msg->stream);
 			free(msg->argv);
 			free(msg);
-//			pthread_mutex_unlock(&mutex_recibir);
+			pthread_mutex_unlock(&mutex_recibir);
 			return NULL;
 		}
 
 		msg->stream[msg->header.length] = '\0';
 	}
 	log_debug_interno("mensaje recibido con exito. Socket: %d", sock_fd);
-//	pthread_mutex_unlock(&mutex_recibir);
+	pthread_mutex_unlock(&mutex_recibir);
 	return msg;
 }
 
