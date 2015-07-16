@@ -119,6 +119,16 @@ void planifica_maps(t_job* job) {
 	log_debug_consola("FIN planificacion maps Job: %d", job->id);
 }
 
+void agregar_carga_reduce_nodo_global(t_reduce* reduce_actual) {
+	bool _nodo_del_reduce(t_nodo_global* nodo) {
+				return !strcmp(nodo->nodo.nombre, reduce_actual->arch_tmp.nodo.nombre);
+			}
+	t_nodo_global* nodo_global_del_reduce = list_find(lista_nodos, (void*) _nodo_del_reduce);
+	pthread_mutex_lock(&mutex_nodos);
+	nodo_global_del_reduce->carga_trabajo += carga_reduce;
+	pthread_mutex_unlock(&mutex_nodos);
+}
+
 void planificar_reduces_con_combiner(t_job* job) {
 	bool _ordena_por_nombre(t_map* map1, t_map* map2) {
 		return strcmp(map1->arch_tmp.nodo.nombre, map2->arch_tmp.nodo.nombre) > 0;
@@ -134,6 +144,7 @@ void planificar_reduces_con_combiner(t_job* job) {
 	reduce_actual->arch_tmp.nombre = getRandName("rd_parcial", string_itoa(reduce_actual->id)); //TODO: Generar nombre de archivo
 	temp_actual->nombre = string_new();
 
+
 	void _genera_reduces(t_map* map) {
 		if (!strcmp(nombre_actual, map->arch_tmp.nodo.nombre)) {
 			string_append(&temp_actual->nombre, map->arch_tmp.nombre);
@@ -141,6 +152,9 @@ void planificar_reduces_con_combiner(t_job* job) {
 		} else {
 			list_add(reduce_actual->temporales, temp_actual);
 			list_add(job->reduces, reduce_actual);
+
+			agregar_carga_reduce_nodo_global(reduce_actual);
+
 			reduce_actual = reduce_crear();
 			reduce_actual->arch_tmp.nodo = map->arch_tmp.nodo;
 			reduce_actual->arch_tmp.nombre = getRandName("rd_parcial", string_itoa(reduce_actual->id)); //TODO: Generar nombre de archivo
@@ -155,11 +169,14 @@ void planificar_reduces_con_combiner(t_job* job) {
 	list_iterate(job->maps, (void*) _genera_reduces);
 	list_add(reduce_actual->temporales, temp_actual);
 	list_add(job->reduces, reduce_actual);
+	agregar_carga_reduce_nodo_global(reduce_actual);
 
 	t_reduce* primer_reduce = list_get(job->reduces, 0);
 
 	t_reduce* reduce_final = reduce_crear();
-	reduce_final->arch_tmp.nodo = primer_reduce->arch_tmp.nodo; //TODO: Obtener el nodo con menor carga
+	reduce_final->arch_tmp.nodo = primer_reduce->arch_tmp.nodo; //TODO: Obtener el nodo con menor carga, Nota: Obtener el de menor carga
+	//en este momento, no nos sirve ya que puede cambiar dps de los reduce parciales. o lo dejamos asi, o podriamos dividir y hacer la
+	//planificacion del final dps de que terminan los combiner si existen
 	reduce_final->arch_tmp.nombre = getRandName("rd_final", string_itoa(job->id)); //TODO: Generar nombre
 
 	void _temporales_reduce_final(t_reduce* reduce) {
@@ -169,6 +186,7 @@ void planificar_reduces_con_combiner(t_job* job) {
 	list_iterate(job->reduces, (void*) _temporales_reduce_final);
 
 	job->reduce_final = reduce_final;
+	agregar_carga_reduce_nodo_global(reduce_final);
 
 }
 
@@ -537,7 +555,6 @@ void actualiza_job_map_error(int id_map, int id_job) {
 	log_debug_interno("job actualizado, map error. job: %d, map: %d -> replanificando", id_job, id_map);
 
 	elimina_nodo_desconectado(map_actual->arch_tmp.nodo.nombre);
-	//eliminar_carga_nodo(map_actual->arch_tmp.nodo, carga_map); //TODO: Si ya está eliminado para que sacarle la carga?
 
 	planifica_maps(job_actual);
 
