@@ -31,6 +31,11 @@
 #define PROCESO "Job"
 
 typedef struct {
+	int id;
+	sem_t sem_fin_operacion;
+}t_tarea;
+
+typedef struct {
 	char* ip_marta;
 	uint16_t puerto_marta;
 	char* archivos;
