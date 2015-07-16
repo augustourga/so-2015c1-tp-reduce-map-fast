@@ -669,7 +669,7 @@ t_archivo* archivo_por_ruta(char* ruta) {
 
 	char** nombres = string_split(ruta, "/");
 	int i = 0;
-	while (nombres[i] != NULL) {
+	while (nombres[i + 1] != NULL) {
 		directorio_padre = hijo_de_con_nombre(directorio_padre, nombres[i]);
 		if (directorio_padre == NULL) {
 			break;
