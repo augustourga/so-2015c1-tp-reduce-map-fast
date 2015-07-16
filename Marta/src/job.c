@@ -67,7 +67,6 @@ void ejecuta_reduce(t_job* job, t_reduce* reduce) {
 	list_iterate(reduce->temporales, (void*) _genera_mensaje);
 	message = id_message(FIN_ENVIO_MENSAJE);
 	enviar_mensaje(job->socket, message);
-
 	destroy_message(message);
 }
 
