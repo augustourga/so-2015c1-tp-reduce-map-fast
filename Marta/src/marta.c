@@ -124,8 +124,8 @@ void agregar_carga_reduce_nodo_global(t_reduce* reduce_actual) {
 	bool _nodo_del_reduce(t_nodo_global* nodo) {
 				return !strcmp(nodo->nodo.nombre, reduce_actual->arch_tmp.nodo.nombre);
 			}
-	t_nodo_global* nodo_global_del_reduce = list_find(lista_nodos, (void*) _nodo_del_reduce);
 	pthread_mutex_lock(&mutex_nodos);
+	t_nodo_global* nodo_global_del_reduce = list_find(lista_nodos, (void*) _nodo_del_reduce);
 	nodo_global_del_reduce->carga_trabajo += carga_reduce;
 	pthread_mutex_unlock(&mutex_nodos);
 }
@@ -582,6 +582,22 @@ void elimina_nodo_desconectado(char* nombre_nodo) {
 	pthread_mutex_unlock(&mutex_nodos);
 }
 
+void cambia_estado_a_fin_error(t_job* job, char* nombre_nodo_caido) {
+
+	bool _map_a_cambiar(t_map* map) {
+		return !strcmp(map->arch_tmp.nodo.nombre, nombre_nodo_caido) && map->estado == FIN_OK;
+	}
+
+	t_list* lista_maps_a_cambiar = list_filter(job->maps,(void*) _map_a_cambiar);
+
+	void _cambia_estado(t_map* map) {
+		map->estado = FIN_ERROR;
+	}
+
+	list_iterate(lista_maps_a_cambiar, (void*)_cambia_estado);
+
+}
+
 void actualiza_job_map_error(int id_map, int id_job) {
 	pthread_mutex_lock(&mutex_jobs);
 	log_debug_interno("actualizando job, map error. job: %d, map: %d", id_job, id_map);
@@ -604,6 +620,8 @@ void actualiza_job_map_error(int id_map, int id_job) {
 	log_debug_interno("job actualizado, map error. job: %d, map: %d -> replanificando", id_job, id_map);
 
 	elimina_nodo_desconectado(map_actual->arch_tmp.nodo.nombre);
+
+	cambia_estado_a_fin_error(job_actual, map_actual->arch_tmp.nodo.nombre);
 
 	planifica_maps(job_actual);
 
