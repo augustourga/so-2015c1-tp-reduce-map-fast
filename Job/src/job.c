@@ -230,7 +230,7 @@ int hiloReduce(void* dato) {
 
 		}
 
-		mensaje = string_message(RUTINA, configuracion->reduce, 1, configuracion->tamanio_reduce);
+		mensaje = rutina_message(RUTINA, configuracion->reduce, configuracion->tamanio_reduce);
 
 		log_debug_interno("Enviando mensaje rutina. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id), mensaje->header.argc,
 				mensaje->header.length);
@@ -329,7 +329,7 @@ int hiloMap(void* dato) {
 				return res;
 
 			}
-		mensaje = string_message(RUTINA, configuracion->mapper, 1, configuracion->tamanio_mapper);
+		mensaje = rutina_message(RUTINA, configuracion->mapper, configuracion->tamanio_mapper);
 
 		log_debug_interno("Enviando mensaje de rutina. Header.ID: %s - Argc: %d - Largo Stream: %d Al nodo: &s", id_string(mensaje->header.id), mensaje->header.argc,
 				mensaje->header.length, args->nombre_nodo);

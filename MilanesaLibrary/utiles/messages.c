@@ -65,6 +65,19 @@ t_msg *string_message(t_msg_id id, char *message, uint16_t count, ...) {
 	return new;
 }
 
+t_msg *rutina_message(t_msg_id id, char *rutina, int length) {
+
+	t_msg *new = malloc(sizeof(t_msg));
+	new->header.id = id;
+	new->header.argc = 0;
+	new->argv = NULL;
+	new->header.length = length;
+	new->stream = malloc(length);
+	memcpy(new->stream, rutina, length);
+
+	return new;
+}
+
 //TODO: Borrar si no se usa
 t_msg *modify_message(t_msg_id new_id, t_msg *old_msg, uint16_t new_count, ...) {
 	va_list arguments;
@@ -199,22 +212,7 @@ t_msg *recibir_mensaje_sin_mutex(int sock_fd) {
 		return NULL;
 	}
 
-	/* Get message data. */
-	if (msg->header.argc > 0) {
-		msg->argv = malloc(msg->header.argc * sizeof(uint32_t));
-
-		if (recv(sock_fd, msg->argv, msg->header.argc * sizeof(uint32_t),
-		MSG_WAITALL) <= 0) {
-			log_error_consola("error obteniendo args. Socket: %d", sock_fd);
-			free(msg->argv);
-			free(msg);
-			return NULL;
-		}
-	}
-
-	if (msg->header.length > 0) {
-		msg->stream = malloc(msg->header.length + 1);
-
+	if (msg->header.id == RUTINA) {
 		if (recv(sock_fd, msg->stream, msg->header.length, MSG_WAITALL) <= 0) {
 			log_error_consola("error obteniendo stream. Socket: %d", sock_fd);
 			free(msg->stream);
@@ -223,7 +221,33 @@ t_msg *recibir_mensaje_sin_mutex(int sock_fd) {
 			return NULL;
 		}
 
-		msg->stream[msg->header.length] = '\0';
+	} else {
+		/* Get message data. */
+		if (msg->header.argc > 0) {
+			msg->argv = malloc(msg->header.argc * sizeof(uint32_t));
+
+			if (recv(sock_fd, msg->argv, msg->header.argc * sizeof(uint32_t),
+			MSG_WAITALL) <= 0) {
+				log_error_consola("error obteniendo args. Socket: %d", sock_fd);
+				free(msg->argv);
+				free(msg);
+				return NULL;
+			}
+		}
+
+		if (msg->header.length > 0) {
+			msg->stream = malloc(msg->header.length + 1);
+
+			if (recv(sock_fd, msg->stream, msg->header.length, MSG_WAITALL) <= 0) {
+				log_error_consola("error obteniendo stream. Socket: %d", sock_fd);
+				free(msg->stream);
+				free(msg->argv);
+				free(msg);
+				return NULL;
+			}
+
+			msg->stream[msg->header.length] = '\0';
+		}
 	}
 	log_debug_interno("mensaje recibido con exito. Socket: %d", sock_fd);
 	return msg;

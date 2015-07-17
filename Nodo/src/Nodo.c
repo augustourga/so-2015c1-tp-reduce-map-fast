@@ -277,7 +277,7 @@ void atenderConexiones(void *parametro) {
 			if (mensaje2->header.id == RUTINA) {
 				int map_id = codigo->argv[0];
 				int numero_bloque = codigo->argv[1];
-				int tamanio_rutina = mensaje2->argv[0];
+				int tamanio_rutina = mensaje2->header.length;
 				char* path_rutina = guardar_rutina(mensaje2->stream, "map", tamanio_rutina, map_id, numero_bloque);
 				log_info_consola("Ejecutando MAP en bloque: %d", numero_bloque);
 				sem_wait(&sem_maps);
@@ -328,7 +328,7 @@ void atenderConexiones(void *parametro) {
 
 			if (mensaje2->header.id == RUTINA) {
 				int reduce_id = codigo->argv[0];
-				int tamanio_rutina = mensaje2->argv[0];
+				int tamanio_rutina = mensaje2->header.length;
 				path_rutina = guardar_rutina(mensaje2->stream, "reduce", tamanio_rutina, reduce_id, 000);
 
 				mensaje2 = recibir_mensaje_sin_mutex(sock_conexion);
