@@ -383,7 +383,7 @@ void atenderConexiones(void *parametro) {
 			} else {
 				log_error_consola("Fallo en Recibir Rutina.Se esperaba el id RUTINA.");
 			}
-			//remove(path_rutina);
+			remove(path_rutina);
 			free(path_rutina);
 			destroy_message(mensaje2);
 			destroy_message(codigo);
@@ -480,12 +480,13 @@ t_msg_id ejecutar_map(char*path_ejecutable, char* nombreArchivo, int numeroBloqu
 	char*nombreArchivoFinal = file_combine(DIR_TEMP, nombreArchivo);
 	log_info_consola("Fin copia de ejecutable ID:%d en el bloque %d", mapid, numeroBloque);
 	if (ejecuta_rutina(bloque, path_ejecutable, nombreArchivoFinal, "Map")) {
+		remove(path_ejecutable);
 		return FIN_MAP_ERROR;
 	}
 
 	log_info_consola("Fin rutina de map ID:%d en el bloque %d", mapid, numeroBloque);
 
-	//remove(path_ejecutable);
+	remove(path_ejecutable);
 
 	log_info_consola("Fin ejecutarMap ID:%d en el bloque %d", mapid, numeroBloque);
 	return FIN_MAP_OK;
