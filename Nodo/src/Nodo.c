@@ -12,7 +12,6 @@ int main(int argc, char*argv[]) {
 	}
 
 	_data = levantar_espacio_datos();
-	archivos_temporales = list_create();
 
 	if (levantarHiloFile()) {
 		log_error_consola("Conexion con File System fallida.");
@@ -369,7 +368,7 @@ void atenderConexiones(void *parametro) {
 				}
 				if (band == 0) {
 					log_info_consola("Mensaje REDUCE recibido OK. comenzando ejecucion.");
-					fin = ejecutar_reduce(path_rutina, codigo->stream, cola_nodos, codigo->argv[0]);
+					fin = ejecutar_reduce(path_rutina, codigo->stream, cola_nodos, reduce_id);
 					mensaje2 = argv_message(fin, 1, reduce_id);
 					res = enviar_mensaje(sock_conexion, mensaje2);
 					if (res == -1) {
@@ -439,14 +438,7 @@ char* getFileContent(char* filename) {
 
 	log_info_consola("Inicio getFileContent(%s)", filename);
 	char* content = NULL;
-	//creo el espacio para almacenar el archivo
 	char* path = file_combine(DIR_TEMP, filename);
-	/*size_t size = file_get_size(path) + 1;
-	 content = malloc(size);
-	 char* mapped = NULL;
-	 mapped = file_get_mapped(path);
-	 memcpy(content, mapped, size);        //
-	 file_mmap_free(mapped, path);*/
 	content = read_whole_file(path);
 	log_info_consola("Fin getFileContent(%s)", path);
 	free(path);
@@ -487,13 +479,12 @@ t_msg_id ejecutar_map(char*path_ejecutable, char* nombreArchivo, int numeroBloqu
 	log_info_consola("Fin getBloque(%d)", numeroBloque + 1);
 	char*nombreArchivoFinal = file_combine(DIR_TEMP, nombreArchivo);
 	log_info_consola("Fin copia de ejecutable ID:%d en el bloque %d", mapid, numeroBloque);
-	if (ejecuta_map(bloque, path_ejecutable, nombreArchivoFinal)) {
+	if (ejecuta_rutina(bloque, path_ejecutable, nombreArchivoFinal, "Map")) {
 		return FIN_MAP_ERROR;
 	}
 
 	log_info_consola("Fin rutina de map ID:%d en el bloque %d", mapid, numeroBloque);
 
-	list_add_archivo_tmp(nombreArchivoFinal);
 	//remove(path_ejecutable);
 
 	log_info_consola("Fin ejecutarMap ID:%d en el bloque %d", mapid, numeroBloque);
@@ -508,14 +499,15 @@ t_msg_id ejecutar_reduce(char*path_ejecutable, char* nombreArchivoFinal, t_queue
 	char* path_final = file_combine(DIR_TEMP, nombreArchivoFinal);
 
 	lista_nodos = deserealizar_cola(colaArchivos);
-	int res;
-	res = apareo(lista_nodos, path_ejecutable, path_final);
-	if (res == -1) {
+
+	char* temporales = obtener_reduces_temporales(lista_nodos);
+
+	if (ejecuta_rutina_primero_sort(temporales, path_ejecutable, path_final, "Reduce")) {
 		log_error_consola("Fin ERROR ejecutar Reduce ID:%d ", id_reduce);
 		return FIN_REDUCE_ERROR;
 	}
+
 	free(path_final);
-	list_add_archivo_tmp(nombreArchivoFinal);
 	log_info_consola("Fin OK ejecutar Reduce ID:%d ", id_reduce);
 	return FIN_REDUCE_OK;
 }
@@ -545,6 +537,7 @@ t_list* deserealizar_cola(t_queue* colaArchivos) {
 	free(elem);
 	return lista_nodos;
 }
+
 char* guardar_rutina(char* ejecutable, char* map_o_reduce, size_t tamanio, int tareaid, int numeroBloque) {
 	char* nombre_rutina = generar_nombre_rutina(tareaid, map_o_reduce, numeroBloque);
 	char* path_ejecutable = file_combine(DIR_TEMP, nombre_rutina);
@@ -553,164 +546,35 @@ char* guardar_rutina(char* ejecutable, char* map_o_reduce, size_t tamanio, int t
 	return path_ejecutable;
 }
 
-int apareo(t_list* lista_nodos_archivos, char* path_ejecutable, char* path_salida) {
-	int i, pos;
-	int res = 0;
-	char* registro_actual;
-	char* aux_string;
+char* obtener_reduces_temporales(t_list* lista_nodos_archivos) {
 
-	int in[2];
-	if (pipe(in) < 0) {
-		error("pipe in");
-		return -1;
+	char* stream = string_new();
+
+	void _obtener_reduces_temporales(t_nodo_archivo* nodo_archivo) {
+
+		string_append(&stream, obtener_reduce_parcial(nodo_archivo));
 	}
 
-	pid_t pid = ejecuta_reduce(in, path_ejecutable, path_salida);
+	list_iterate(lista_nodos_archivos, (void*) _obtener_reduces_temporales);
 
-	close(in[0]);
+	return stream;
 
-	int cantidad_nodos_archivos = list_size(lista_nodos_archivos);
-	char* registros[cantidad_nodos_archivos];
-	t_nodo_archivo* elem = (t_nodo_archivo*) malloc(sizeof(t_nodo_archivo));
-
-	// Aca se fija si es un solo archivo para aparear o si son varios
-	if (cantidad_nodos_archivos == 1) {
-		elem = (t_nodo_archivo *) list_get(lista_nodos_archivos, 0);
-		char* path = file_combine(DIR_TEMP, elem->archivo);
-		char* archivo = read_whole_file(path);
-
-		write(in[1], archivo, strlen(archivo));
-		free(path);
-		free(archivo);
-	} else {
-// Obtengo el primer registro de cada archivo
-		for (i = 0; i < cantidad_nodos_archivos; i++) {
-			elem = (t_nodo_archivo *) list_get(lista_nodos_archivos, i);
-			aux_string = obtener_proximo_registro(elem);
-			if (string_equals_ignore_case(aux_string, "error.rmf.GrupoMilanesa.tp")) {
-				res = -1;
-				return res;
-			} else {
-				registros[i] = aux_string;
-			}
-		}
-
-		pos = obtener_posicion_menor_clave(registros, cantidad_nodos_archivos);
-// obtener_posicion_menor_clave devuelve -1 una vez que en el array ya son todos campos nulos u EOF
-		while (pos != -1) {
-			registro_actual = registros[pos];
-			elem = (t_nodo_archivo *) list_get(lista_nodos_archivos, pos);
-			aux_string = obtener_proximo_registro(elem);
-			if (aux_string == NULL) {
-				registros[pos] = NULL;
-			} else {
-				if (string_equals_ignore_case(aux_string, "error.rmf.GrupoMilanesa.tp")) {
-					res = -1;
-					return res;
-				} else {
-					registros[pos] = aux_string;
-				}
-			}
-			write(in[1], registro_actual, strlen(registro_actual));
-			free(registro_actual);
-			pos = obtener_posicion_menor_clave(registros, cantidad_nodos_archivos);
-		}
-	}
-
-	close(in[1]);
-	int status;
-	waitpid(pid, &status, 0);
-	//remove(path_ejecutable);
-	log_info_consola("Se aparearon correctamente los archivos.");
-	return status;
-	return res;
 }
 
-char* obtener_proximo_registro(t_nodo_archivo* nodo_archivo) {
+char* obtener_reduce_parcial(t_nodo_archivo* nodo_archivo) {
 	char* respuesta;
-	char* resultado;
 
-	if (nodo_archivo->numero_linea == 0) {
-		if (string_equals_ignore_case(nodo_archivo->nombre, NOMBRE_NODO)) {
-			respuesta = obtener_proximo_registro_de_archivo(nodo_archivo->archivo);
-		} else {
-			respuesta = enviar_mensaje_proximo_registro(nodo_archivo);
-		}
-
-		char** lineas = string_split(respuesta, "\n");
-
-		nodo_archivo->lineas = lineas;
-		free(respuesta);
-	}
-	char* linea = nodo_archivo->lineas[nodo_archivo->numero_linea];
-	if (linea != NULL) {
-		resultado = string_duplicate(linea);
-		string_append(&resultado, "\n");
-		nodo_archivo->numero_linea++;
-		free(linea);
+	if (string_equals_ignore_case(nodo_archivo->nombre, NOMBRE_NODO)) {
+		respuesta = obtener_proximo_registro_de_archivo(nodo_archivo->archivo);
 	} else {
-		resultado = NULL;
-		free(nodo_archivo->lineas);
+		respuesta = enviar_mensaje_proximo_registro(nodo_archivo);
 	}
 
-	return resultado;
-}
-
-int obtener_posicion_menor_clave(char* registros[], int cantidad_nodos_archivos) {
-	int pos, i;
-	char* registro_1 = "";
-
-// obtiene primer campo != NULL
-	for (pos = 0; pos < cantidad_nodos_archivos; pos++) {
-		if (registros[pos] != NULL) {
-			registro_1 = registros[pos];
-			break;
-		}
-// devuelve -1 una vez que en el array ya son todos campos nulos
-	}
-	if (!strcmp(registro_1, "")) {
-		pos = -1;
-	} else {
-		for (i = 0; i < cantidad_nodos_archivos; i++) {
-			if (!registros[i]) {
-				continue;
-			}
-			if (strcmp(registro_1, registros[i]) > 0) {
-				pos = i;
-				registro_1 = registros[i];
-			}
-		}
-	}
-	return pos;
+	return respuesta;
 }
 
 char* obtener_proximo_registro_de_archivo(char* archivo) {
 	char* path = file_combine(DIR_TEMP, archivo);
-	/*fpos_t* posicion_puntero = obtener_posicion_puntero_arch_tmp(path);
-	 int bytes_read;
-	 size_t buffer_size = 100;
-	 char* linea = (char *) calloc(1, buffer_size);
-
-	 FILE* file = fopen(path, "r");
-	 if (file != NULL) {
-	 if (posicion_puntero != NULL) {
-	 fsetpos(file, posicion_puntero);
-	 }
-	 bytes_read = getline(&linea, &buffer_size, file);
-	 if (bytes_read == -1) {
-	 linea = NULL;
-	 } else {
-	 posicion_puntero = malloc(sizeof(fpos_t));
-	 fgetpos(file, posicion_puntero);
-	 actualizar_posicion_puntero_arch_tmp(path, posicion_puntero);
-	 log_debug_consola("Obtuve registro: %s del archivo: %s", linea, path);
-	 }
-	 fclose(file);
-	 } else {
-	 log_error_consola("No pudo abrirse el archivo temporal");
-	 linea = NULL;
-	 }
-	 return linea;*/
 	char* stream = read_whole_file(path);
 	free(path);
 	return stream;
@@ -746,33 +610,3 @@ char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
 	destroy_message(msg);
 	return resultado;
 }
-
-void list_add_archivo_tmp(char* nombre_archivo) {
-	t_archivo_tmp* archivo = malloc(sizeof(t_archivo_tmp));
-	archivo->nombre_archivo = nombre_archivo;
-	archivo->posicion_puntero = NULL;
-	list_add(archivos_temporales, archivo);
-}
-
-fpos_t* obtener_posicion_puntero_arch_tmp(char* nombre_archivo) {
-	t_archivo_tmp* archivo;
-
-	bool _archivo_con_nombre(t_archivo_tmp* archivo_tmp) {
-		return (strcmp(archivo_tmp->nombre_archivo, nombre_archivo) == 0);
-	}
-	archivo = list_find(archivos_temporales, (void*) _archivo_con_nombre);
-
-	return archivo->posicion_puntero;
-}
-
-void actualizar_posicion_puntero_arch_tmp(char* nombre_archivo, fpos_t* posicion_puntero) {
-	t_archivo_tmp* archivo;
-
-	bool _archivo_con_nombre(t_archivo_tmp* archivo_tmp) {
-		return (strcmp(archivo_tmp->nombre_archivo, nombre_archivo) == 0);
-	}
-
-	archivo = list_find(archivos_temporales, (void*) _archivo_con_nombre);
-	archivo->posicion_puntero = posicion_puntero;
-}
-
