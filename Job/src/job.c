@@ -225,6 +225,9 @@ int hiloReduce(void* dato) {
 		res = enviar_mensaje(nodo_sock, mensaje);
 		if (res == -1) {
 			log_error_consola("Fallo envio mensaje EJECUTAR_REDUCE");
+			shutdown(nodo_sock, 2);
+			return res;
+
 		}
 
 		mensaje = string_message(RUTINA, configuracion->reduce, 1, configuracion->tamanio_reduce);
@@ -235,6 +238,8 @@ int hiloReduce(void* dato) {
 		res = enviar_mensaje(nodo_sock, mensaje);
 		if (res == -1) {
 			log_error_consola("Fallo envio mensaje RUTINA");
+			shutdown(nodo_sock, 2);
+			return res;
 		}
 
 		int cant_elementos = queue_size(args->archivos_tmp);
@@ -246,6 +251,8 @@ int hiloReduce(void* dato) {
 			res = enviar_mensaje(nodo_sock, mensaje);
 			if (res == -1) {
 				log_error_consola("Fallo envio mensaje ARCHIVOS_NODOS_REDUCE");
+				shutdown(nodo_sock, 2);
+				return res;
 			}
 		}
 
@@ -257,6 +264,8 @@ int hiloReduce(void* dato) {
 		res = enviar_mensaje(nodo_sock, mensaje);
 		if (res == -1) {
 			log_error_consola("Fallo envio mensaje FIN_ENVIO_MENSAJE");
+			shutdown(nodo_sock, 2);
+			return res;
 		}
 
 		mensaje = recibir_mensaje_sin_mutex(nodo_sock);
@@ -277,6 +286,8 @@ int hiloReduce(void* dato) {
 	res = enviar_mensaje(marta_sock, mensaje_respuesta);
 	if (res == -1) {
 		log_error_consola("fallo mensaje respuesta a MaRTA");
+		shutdown(nodo_sock, 2);
+		return res;
 	}
 	destroy_message(mensaje_respuesta);
 	destroy_message(mensaje);
@@ -285,7 +296,7 @@ int hiloReduce(void* dato) {
 //Lo agregue, no entiendo por que no deberia no hacerse
 	shutdown(nodo_sock, 2);
 	//restar_hilo();
-	return 0;
+	return res;
 }
 
 int hiloMap(void* dato) {
@@ -294,7 +305,7 @@ int hiloMap(void* dato) {
 	t_msg* mensaje_respuesta;
 	t_params_hiloMap* args = (t_params_hiloMap*) dato;
 	int nodo_sock = client_socket(args->ip, args->puerto);
-	int ret;
+	int res=0;
 
 	if (nodo_sock < 0) {
 		log_error_consola("No se pudo conectar al proceso %s - IP: %s - Puerto: %d", args->nombre_nodo, args->ip, args->puerto);
@@ -306,15 +317,24 @@ int hiloMap(void* dato) {
 		log_debug_interno("Enviando mensaje de solicitud de reduce. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id),
 				mensaje->header.argc, mensaje->header.length);
 
-		ret = enviar_mensaje(nodo_sock, mensaje);
+		res = enviar_mensaje(nodo_sock, mensaje);
+		if (res == -1) {
+				log_error_consola("Fallo envio mensaje EJECUTAR_MAP");
+				shutdown(nodo_sock, 2);
+				return res;
 
+			}
 		mensaje = string_message(RUTINA, configuracion->mapper, 1, configuracion->tamanio_mapper);
 
 		log_debug_interno("Enviando mensaje de rutina. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id), mensaje->header.argc,
 				mensaje->header.length);
 
-		ret = enviar_mensaje(nodo_sock, mensaje);
-
+		res = enviar_mensaje(nodo_sock, mensaje);
+		if (res == -1) {
+				log_error_consola("Fallo envio mensaje RUTINA");
+				shutdown(nodo_sock, 2);
+				return res;
+			}
 		mensaje = recibir_mensaje_sin_mutex(nodo_sock);
 
 		if (!mensaje) { //Significa que recibir_mensaje devolvio NULL o sea que hubo un error en el recv o el nodo se desconecto
@@ -330,16 +350,18 @@ int hiloMap(void* dato) {
 	log_debug_interno("Enviando mensaje respuesta a MaRTA. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje_respuesta->header.id),
 			mensaje_respuesta->header.argc, mensaje_respuesta->header.length);
 
-	ret = enviar_mensaje(marta_sock, mensaje_respuesta);
-	if (ret == -1) {
+	res = enviar_mensaje(marta_sock, mensaje_respuesta);
+	if (res == -1) {
 		log_error_consola("Fallo envio de Mensaje");
+		shutdown(nodo_sock, 2);
+		return res;
 	}
 	destroy_message(mensaje_respuesta);
 
 //CERRAR CONEXIoN CON EL NODO//
 	shutdown(nodo_sock, 2);
 	//restar_hilo();
-	return 0;
+	return res;
 }
 
 void handshakeMarta() {
