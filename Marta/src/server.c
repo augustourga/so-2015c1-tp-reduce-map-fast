@@ -133,7 +133,7 @@ char* get_info_archivo(t_job* job, char* ruta_mdfs) {
 		mensaje_job = true;
 	} else if (respuesta->header.id == INFO_ARCHIVO_OK) {
 		ret = string_duplicate(respuesta->stream);
-		log_info_interno("Info obtenida: %s. arhivo: %s", &ret, ruta_mdfs);
+		log_info_interno("Info obtenida: %s. arhivo: %s", ret, ruta_mdfs);
 	} else if (respuesta->header.id == INFO_ARCHIVO_ERROR) {
 		log_error_consola("Error al obtener la informacion del archivo: %s. cancelando job.", ruta_mdfs);
 		msg_id_job = INFO_ARCHIVO_ERROR;

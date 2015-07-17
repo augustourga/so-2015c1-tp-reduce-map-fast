@@ -271,6 +271,7 @@ void atenderConexiones(void *parametro) {
 
 			mensaje2 = recibir_mensaje_sin_mutex(sock_conexion);
 			if (!mensaje2) {
+				log_info_consola("error al recibir mensaje MAP. matando hilo.");
 				shutdown(sock_conexion, 2);
 				close(sock_conexion);
 				pthread_exit(NULL);
@@ -280,6 +281,7 @@ void atenderConexiones(void *parametro) {
 				int numero_bloque = codigo->argv[1];
 				int tamanio_rutina = mensaje2->argv[0];
 				char* path_rutina = guardar_rutina(mensaje2->stream, "map", tamanio_rutina, map_id, numero_bloque);
+				log_info_consola("Ejecutando MAP en bloque: %d", numero_bloque);
 				fin = ejecutar_map(path_rutina, codigo->stream, numero_bloque, map_id);
 				switch (fin) {
 				case FIN_MAP_ERROR:
@@ -295,9 +297,13 @@ void atenderConexiones(void *parametro) {
 				}
 				free(path_rutina);
 				t_msg* mensaje2 = argv_message(fin,1,map_id);
+				log_info_consola("Enviando respuesta MAP en bloque: %d", numero_bloque);
 				res = enviar_mensaje(sock_conexion, mensaje2);
+
 				if (res == -1) {
 					log_error_consola("Fallo envio mensaje FIN_MAP");
+				} else {
+					log_info_consola("Respuesta MAP en bloque: %d. OK", numero_bloque);
 				}
 			} else {
 				log_error_consola("Fallo en Recibir Rutina. Se esperaba el id RUTINA.");
@@ -314,6 +320,7 @@ void atenderConexiones(void *parametro) {
 
 			mensaje2 = recibir_mensaje_sin_mutex(sock_conexion);
 			if (!mensaje2) {
+				log_info_consola("error al recibir mensaje EJEUTAR_REDUCE. matando hilo.");
 				shutdown(sock_conexion, 2);
 				close(sock_conexion);
 				pthread_exit(NULL);
@@ -346,6 +353,7 @@ void atenderConexiones(void *parametro) {
 						mensaje2 = recibir_mensaje_sin_mutex(sock_conexion);
 
 						if (!mensaje2) {
+							log_info_consola("error al recibir mensaje archivos. matando hilo.");
 							shutdown(sock_conexion, 2);
 							close(sock_conexion);
 							pthread_exit(NULL);
@@ -359,11 +367,14 @@ void atenderConexiones(void *parametro) {
 
 				}
 				if (band == 0) {
+					log_info_consola("Mensaje REDUCE recibido OK. comenzando ejecucion.");
 					fin = ejecutar_reduce(path_rutina, codigo->stream, cola_nodos, codigo->argv[0]);
 					mensaje2 = argv_message(fin,1,reduce_id);
 					res = enviar_mensaje(sock_conexion, mensaje2);
 					if (res == -1) {
 						log_error_consola("Fallo envio mensaje FIN_REDUCE");
+					} else {
+						log_info_consola("Mensaje REDUCE recibido OK. comenzando ejecucion.");
 					}
 				} else {
 					log_error_consola("No se puede ejecutar Reduce, ya que no se han recibido correctamente los archivos ");
