@@ -100,6 +100,11 @@ t_msg *argv_message(t_msg_id id, uint16_t count, ...);
 t_msg *string_message(t_msg_id id, char *message, uint16_t count, ...);
 
 /*
+ * Crea un t_msg para una rutina.
+ */
+t_msg *rutina_message(t_msg_id id, char *rutina, int length);
+
+/*
  * Agrega nuevos argumentos a un mensaje (estilo FIFO).
  */
 t_msg *modify_message(t_msg_id new_id, t_msg *old_msg, uint16_t new_count, ...);
