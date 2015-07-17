@@ -347,6 +347,7 @@ t_nodo get_nodo_menos_cargado(t_nodo nodos[3]) {
 		if (nodos[i].nombre != NULL) {
 			t_nodo_global* nodo_global_activo = list_find(lista_nodos, (void*) _nodo_valido);
 			if (nodo_global_activo != NULL) {
+				log_info_consola("Nodo activo con copia: %s, carga:%d", nodo_global_activo->nodo.nombre, nodo_global_activo->carga_trabajo);
 				list_add(lista_nodos_globales_bloque, nodo_global_activo);
 			}
 		}
