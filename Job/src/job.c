@@ -331,8 +331,8 @@ int hiloMap(void* dato) {
 			}
 		mensaje = string_message(RUTINA, configuracion->mapper, 1, configuracion->tamanio_mapper);
 
-		log_debug_interno("Enviando mensaje de rutina. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje->header.id), mensaje->header.argc,
-				mensaje->header.length);
+		log_debug_interno("Enviando mensaje de rutina. Header.ID: %s - Argc: %d - Largo Stream: %d Al nodo: &s", id_string(mensaje->header.id), mensaje->header.argc,
+				mensaje->header.length, args->nombre_nodo);
 
 		res = enviar_mensaje(nodo_sock, mensaje);
 		if (res == -1) {
@@ -341,20 +341,20 @@ int hiloMap(void* dato) {
 				shutdown(nodo_sock, 2);
 				return res;
 			}
-		log_info_consola("Se envio MAP OK. id_op: %d, nodo: %s",args->id_operacion, args->nombre_nodo);
+		log_info_consola("Se envio SOLICITUD DE MAP correctamente. id_op: %d, nodo: %s",args->id_operacion, args->nombre_nodo);
 		mensaje = recibir_mensaje_sin_mutex(nodo_sock);
 		if (!mensaje) { //Significa que recibir_mensaje devolvio NULL o sea que hubo un error en el recv o el nodo se desconecto
-			log_info_consola("Respuesta Job ERROR. MAP id_op: %d, nodo: %s, enviando a MaRTA",args->id_operacion, args->nombre_nodo);
+			log_info_consola("El MAP id_op: %d en el nodo: %s fallo, enviando a MaRTA",args->id_operacion, args->nombre_nodo);
 			mensaje_respuesta = argv_message(FIN_MAP_ERROR, 2, args->id_operacion, args->id_job);
 		} else {
-			log_info_consola("Respuesta Job OK. MAP id_op: %d, nodo: %s enviando a MaRTA",args->id_operacion, args->nombre_nodo);
+			log_info_consola("El MAP id_op: %d, en el nodo: %s finalizo bien. enviando a MaRTA",args->id_operacion, args->nombre_nodo);
 			mensaje_respuesta = argv_message(mensaje->header.id, 2, args->id_operacion, args->id_job);
 			log_debug_interno("Se recibio mensaje de %s. Header.Id: %s - Argc: %d - Largo Stream: %d", args->nombre_nodo, id_string(mensaje->header.id),
 					mensaje->header.argc, mensaje->header.length);
 			destroy_message(mensaje);
 		}
 	}
-//Se reenvia el resultado del map a marta
+//Se envia el resultado del map a marta
 	log_debug_interno("Enviando mensaje respuesta a MaRTA. Header.ID: %s - Argc: %d - Largo Stream: %d", id_string(mensaje_respuesta->header.id),
 			mensaje_respuesta->header.argc, mensaje_respuesta->header.length);
 
