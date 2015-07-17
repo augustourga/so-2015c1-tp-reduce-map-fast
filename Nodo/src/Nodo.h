@@ -63,7 +63,6 @@ char* _data;
 int CANT_BLOQUES;
 char* NOMBRE_NODO;
 int rcx;
-t_list* archivos_temporales;
 /******************Definiciones*******************/
 char* levantar_espacio_datos();
 int levantarConfiguracionNodo(char* path);
