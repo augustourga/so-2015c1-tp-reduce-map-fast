@@ -3,7 +3,7 @@
 sem_t sem_maps;
 
 int main(int argc, char*argv[]) {
-	sem_init(&sem_maps, 0, 5);
+	sem_init(&sem_maps, 0, 1);
 	log_crear("INFO", LOG_FILE, PROCESO);
 
 	if (levantarConfiguracionNodo(argv[1])) {

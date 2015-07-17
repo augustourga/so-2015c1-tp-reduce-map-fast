@@ -84,6 +84,7 @@ int ejecuta_map(char* data, char* path_ejecutable, char* path_salida) {
 	//Se cierra para generar un EOF y que el proceso hijo termine de leer de stdin
 	close(out[1]);
 	int status;
+	waitpid(pid_map, &status, 0);
 	waitpid(pid_sort, &status, 0);
 	FILE* temp_file = fopen(path_salida, "r");
 	free(data);
