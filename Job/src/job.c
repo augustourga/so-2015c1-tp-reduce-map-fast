@@ -131,10 +131,11 @@ void esperarTareas() {
 	}
 }
 
-void obtenerConfiguracion(char* path) {
+void obtenerConfiguracion(char* nombre_archivo) {
 	t_config* config;
 
 	configuracion = (t_Datos_configuracion*) malloc(sizeof(t_Datos_configuracion));
+	char* path = file_combine(PATH_CONFIG, nombre_archivo);
 	config = config_create(path);
 
 	if (config_has_property(config, "IP_MARTA")) {

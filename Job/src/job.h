@@ -29,6 +29,7 @@
 /*********Constantes*****/
 #define LOG_FILE "log/job.log"
 #define PROCESO "Job"
+#define PATH_CONFIG "config"
 
 typedef struct {
 	int id;
