@@ -6,90 +6,113 @@ void error(char *s) {
 }
 
 int ejecuta_map(char* data, char* path_ejecutable, char* path_salida) {
-	log_info_consola("Entrando a Ejecutar...");
+	FILE *entradaARedirigir = NULL;
+	log_info_consola("Entrando a ejecutar MAP");
+	char *comandoEntero = string_from_format("%s | sort > %s", path_ejecutable, path_salida);
 
-	int size = strlen(data);
-	int in[2], out[2];
-	//Crea 2 pipes, uno para stdin y otro para stdout. in[0] y out[0] se usan para leer e in[1] y out[1] para escribir
-	if (pipe(in) < 0) {
-		error("pipe in");
+	entradaARedirigir = popen(comandoEntero, "w");
+
+	if (entradaARedirigir != NULL) {
+		int total = 0;
+		int size = strlen(data);
+		int pendiente = size;
+
+		while (total < size) {
+			int enviado = fwrite(data, pendiente, 1, entradaARedirigir);
+			total += enviado;
+			pendiente -= enviado;
+		}
+		pclose(entradaARedirigir);
+		log_info_consola("Fin Ejecucción MAP OK");
+		return 0;
+	} else {
+		log_error_consola("Fin Ejecucción MAP ERROR");
 		return -1;
 	}
-
-	if (pipe(out) < 0) {
-		error("pipe in");
-		return -1;
-	}
-
-	pid_t pid_sort = fork();
-
-	if (!pid_sort) {
-		//Fork devuelve 0 en el hijo y el pid del hijo en el padre, asi que aca estoy en el hijo.
-
-		//Duplica stdin al lado de lectura in y stdout y stdeer al lado de escritura out
-		int fd = open(path_salida, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-		dup2(in[0], 0);
-		dup2(fd, 1);
-
-		close(fd);
-
-		//Cierra los pipes que se usan en el padre
-		close(in[1]);
-		close(in[0]);
-		close(out[1]);
-		close(out[0]);
-
-		//La imagen del proceso hijo se reemplaza con la del path_ejecutable
-		execlp("/usr/bin/sort", "/usr/bin/sort", NULL);
-		//On success aca nunca llega porque la imagen (incluido el codigo) se reemplazo en la lina anterior
-		error("No se pudo ejecutar el proceso");
-		return -1;
-	}
-
-	pid_t pid_map = fork();
-
-	if (!pid_map) {
-		//Fork devuelve 0 en el hijo y el pid del hijo en el padre, asi que aca estoy en el hijo.
-
-		//Duplica stdin al lado de lectura in y stdout y stdeer al lado de escritura out
-		dup2(out[0], 0);
-		dup2(in[1], 1);
-
-		//Cierra los pipes que se usan en el padre
-		close(in[1]);
-		close(in[0]);
-		close(out[1]);
-		close(out[0]);
-
-		//La imagen del proceso hijo se reemplaza con la del path_ejecutable
-		execlp(path_ejecutable, path_ejecutable, NULL);
-		//On success aca nunca llega porque la imagen (incluido el codigo) se reemplazo en la lina anterior
-		error("No se pudo ejecutar el proceso");
-		return -1;
-	}
-
-	//Cierra los lados de los pipes que se usan en el hijo
-	close(out[0]);
-	close(in[1]);
-	close(in[0]);
-	int total = 0;
-	int pendiente = size;
-
-	//Escribe en el lado de escritura del pipe que el proceso hijo va a ver como stdin
-	while (total < size) {
-		int enviado = write(out[1], data, pendiente);
-		total += enviado;
-		pendiente -= enviado;
-	}
-	//Se cierra para generar un EOF y que el proceso hijo termine de leer de stdin
-	close(out[1]);
-	int status;
-	waitpid(pid_sort, &status, 0);
-	FILE* temp_file = fopen(path_salida, "r");
-	free(data);
-	fclose(temp_file);
-	return status;
 }
+//	log_info_consola("Entrando a Ejecutar...");
+//
+//	int size = strlen(data);
+//	int in[2], out[2];
+//	//Crea 2 pipes, uno para stdin y otro para stdout. in[0] y out[0] se usan para leer e in[1] y out[1] para escribir
+//	if (pipe(in) < 0) {
+//		error("pipe in");
+//		return -1;
+//	}
+//
+//	if (pipe(out) < 0) {
+//		error("pipe in");
+//		return -1;
+//	}
+//
+//	pid_t pid_sort = fork();
+//
+//	if (!pid_sort) {
+//		//Fork devuelve 0 en el hijo y el pid del hijo en el padre, asi que aca estoy en el hijo.
+//
+//		//Duplica stdin al lado de lectura in y stdout y stdeer al lado de escritura out
+//		int fd = open(path_salida, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+//		dup2(in[0], 0);
+//		dup2(fd, 1);
+//
+//		close(fd);
+//
+//		//Cierra los pipes que se usan en el padre
+//		close(in[1]);
+//		close(in[0]);
+//		close(out[1]);
+//		close(out[0]);
+//
+//		//La imagen del proceso hijo se reemplaza con la del path_ejecutable
+//		execlp("/usr/bin/sort", "/usr/bin/sort", NULL);
+//		//On success aca nunca llega porque la imagen (incluido el codigo) se reemplazo en la lina anterior
+//		error("No se pudo ejecutar el proceso");
+//		return -1;
+//	}
+//
+//	pid_t pid_map = fork();
+//
+//	if (!pid_map) {
+//		//Fork devuelve 0 en el hijo y el pid del hijo en el padre, asi que aca estoy en el hijo.
+//
+//		//Duplica stdin al lado de lectura in y stdout y stdeer al lado de escritura out
+//		dup2(out[0], 0);
+//		dup2(in[1], 1);
+//
+//		//Cierra los pipes que se usan en el padre
+//		close(in[1]);
+//		close(in[0]);
+//		close(out[1]);
+//		close(out[0]);
+//
+//		//La imagen del proceso hijo se reemplaza con la del path_ejecutable
+//		execlp(path_ejecutable, path_ejecutable, NULL);
+//		//On success aca nunca llega porque la imagen (incluido el codigo) se reemplazo en la lina anterior
+//		error("No se pudo ejecutar el proceso");
+//		return -1;
+//	}
+//
+//	//Cierra los lados de los pipes que se usan en el hijo
+//	close(out[0]);
+//	close(in[1]);
+//	close(in[0]);
+//	int total = 0;
+//	int pendiente = size;
+//
+//	//Escribe en el lado de escritura del pipe que el proceso hijo va a ver como stdin
+//	while (total < size) {
+//		int enviado = write(out[1], data, pendiente);
+//		total += enviado;
+//		pendiente -= enviado;
+//	}
+//	//Se cierra para generar un EOF y que el proceso hijo termine de leer de stdin
+//	close(out[1]);
+//	int status;
+//	waitpid(pid_sort, &status, 0);
+//	FILE* temp_file = fopen(path_salida, "r");
+//	free(data);
+//	fclose(temp_file);
+//	return status;
 
 pid_t ejecuta_reduce(int in[2], char* path_ejecutable, char* path_salida) {
 	log_info_consola("Entrando a Ejecutar...");
@@ -97,22 +120,22 @@ pid_t ejecuta_reduce(int in[2], char* path_ejecutable, char* path_salida) {
 	pid_t pid = fork();
 
 	if (!pid) {
-		//Fork devuelve 0 en el hijo y el pid del hijo en el padre, asi que aca estoy en el hijo.
+//Fork devuelve 0 en el hijo y el pid del hijo en el padre, asi que aca estoy en el hijo.
 
-		//Duplica stdin al lado de lectura in y stdout y stdeer al lado de escritura out
+//Duplica stdin al lado de lectura in y stdout y stdeer al lado de escritura out
 		int fd = open(path_salida, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 		dup2(in[0], 0);
 		dup2(fd, 1);
 
 		close(fd);
 
-		//Cierra los pipes que se usan en el padre
+//Cierra los pipes que se usan en el padre
 		close(in[1]);
 		close(in[0]);
 
-		//La imagen del proceso hijo se reemplaza con la del path_ejecutable
+//La imagen del proceso hijo se reemplaza con la del path_ejecutable
 		execlp(path_ejecutable, path_ejecutable, NULL);
-		//On success aca nunca llega porque la imagen (incluido el codigo) se reemplazo en la lina anterior
+//On success aca nunca llega porque la imagen (incluido el codigo) se reemplazo en la lina anterior
 		error("No se pudo ejecutar el proceso");
 		return -1;
 	}
