@@ -3,7 +3,6 @@
 sem_t sem_maps;
 
 int main(int argc, char*argv[]) {
-	sem_init(&sem_maps, 0, 1);
 	log_crear("INFO", LOG_FILE, PROCESO);
 
 	if (levantarConfiguracionNodo(argv[1])) {
@@ -11,6 +10,7 @@ int main(int argc, char*argv[]) {
 		exit(1);
 	}
 
+	sem_init(&sem_maps, 0, MAPS_SIMULTANEOS);
 	_data = levantar_espacio_datos();
 
 	if (levantarHiloFile()) {
@@ -36,6 +36,7 @@ int levantarConfiguracionNodo(char* nombre_archivo) {
 	DIR_TEMP = strdup(config_get_string_value(archivo_config, "DIR_TEMP"));
 	PUERTO_NODO = config_get_int_value(archivo_config, "PUERTO_NODO");
 	NOMBRE_NODO = strdup(config_get_string_value(archivo_config, "NOMBRE_NODO"));
+	MAPS_SIMULTANEOS = config_get_int_value(archivo_config, "MAPS_SIMULTANEOS");
 	config_destroy(archivo_config);
 
 	return 0;

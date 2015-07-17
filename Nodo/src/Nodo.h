@@ -62,6 +62,7 @@ t_log* Log_Nodo;
 char* _data;
 int CANT_BLOQUES;
 char* NOMBRE_NODO;
+int MAPS_SIMULTANEOS;
 int rcx;
 /******************Definiciones*******************/
 char* levantar_espacio_datos();
