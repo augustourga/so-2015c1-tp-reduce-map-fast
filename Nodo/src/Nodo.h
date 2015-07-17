@@ -31,7 +31,7 @@
 /******************Constantes********************/
 #define LOG_FILE "files/nodo.log"
 #define PROCESO "Nodo"
-#define PATH_CONFIG "/home/utnso/workspace/tp-2015-1c-milanesa/Nodo/files"
+#define PATH_CONFIG "files"
 /****************Registros***********************/
 typedef struct {
 	int sock_fs;
