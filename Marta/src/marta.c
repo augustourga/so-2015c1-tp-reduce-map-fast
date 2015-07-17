@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
 	lista_nodos = list_create();
 	lista_jobs = list_create();
 
-	log_crear(argv[1], RUTA_LOG, "MaRTA");
+	log_crear("DEBUG", RUTA_LOG, "MaRTA");
 
 	leer_archivo_configuracion(&ip_mdfs, &puerto_mdfs, &carga_map, &carga_reduce, &puerto_listen);
 

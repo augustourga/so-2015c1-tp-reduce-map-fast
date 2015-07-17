@@ -29,9 +29,9 @@
 #include <semaphore.h>
 
 /******************Constantes********************/
-#define LOG_FILE "files/nodo.log"
+#define LOG_FILE "log/nodo.log"
 #define PROCESO "Nodo"
-#define PATH_CONFIG "files"
+#define PATH_CONFIG "config"
 /****************Registros***********************/
 typedef struct {
 	int sock_fs;
