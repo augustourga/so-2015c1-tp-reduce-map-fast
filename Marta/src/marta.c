@@ -52,11 +52,11 @@ void finalizar_job_a_si_mismo(t_job* job) {
 }
 
 void genera_maps(t_job* job, char* ruta_mdfs) {
-	log_debug_interno("Armando Maps para el archivo %s", &ruta_mdfs);
+	log_debug_consola("Armando Maps para el archivo %s", &ruta_mdfs);
 	char* info_archivo = get_info_archivo(job, ruta_mdfs);
 
 	if (info_archivo == NULL) {
-		log_info_consola("Error al obtener informacion del FS. Terminando ejecucion Job: %d", job->id);
+		log_error_consola("Error al obtener informacion del FS. Terminando ejecucion Job: %d", job->id);
 		finalizar_job_a_si_mismo(job);
 	}
 
@@ -153,9 +153,9 @@ void planificar_reduces_con_combiner(t_job* job) {
 		} else {
 			list_add(reduce_actual->temporales, temp_actual);
 			list_add(job->reduces, reduce_actual);
-			log_debug_consola("sumando carga al nodo global");
+			log_debug_interno("sumando carga al nodo global");
 			agregar_carga_reduce_nodo_global(reduce_actual);
-			log_debug_consola("creando reduce");
+			log_debug_interno("creando reduce");
 			reduce_actual = reduce_crear();
 			reduce_actual->arch_tmp.nodo = map->arch_tmp.nodo;
 			reduce_actual->arch_tmp.nombre = getRandName("rd_parcial", string_itoa(reduce_actual->id)); //TODO: Generar nombre de archivo
@@ -165,7 +165,7 @@ void planificar_reduces_con_combiner(t_job* job) {
 			temp_actual->nodo = map->arch_tmp.nodo;
 			temp_actual->nombre = string_duplicate(map->arch_tmp.nombre);
 			string_append(&temp_actual->nombre, ";");
-			log_debug_consola("REDUCE creado.");
+			log_debug_interno("REDUCE creado.");
 		}
 	}
 	log_debug_consola("Generando REDUCE parciales. Job:%d", job->id);
@@ -375,7 +375,7 @@ t_nodo get_nodo_menos_cargado(t_nodo nodos[3]) {
 		if (nodos[i].nombre != NULL) {
 			t_nodo_global* nodo_global_activo = list_find(lista_nodos, (void*) _nodo_valido);
 			if (nodo_global_activo != NULL) {
-				log_info_consola("Nodo activo con copia: %s, carga:%d", nodo_global_activo->nodo.nombre, nodo_global_activo->carga_trabajo);
+				log_info_interno("Nodo activo con copia: %s, carga:%d", nodo_global_activo->nodo.nombre, nodo_global_activo->carga_trabajo);
 				list_add(lista_nodos_globales_bloque, nodo_global_activo);
 			}
 		}
@@ -515,7 +515,7 @@ t_reduce* reduce_por_id(int id, t_job* job) {
 
 void actualiza_job_map_ok(int id_map, int id_job) {
 	pthread_mutex_lock(&mutex_jobs);
-	log_debug_interno("actualizando job, map ok. job: %d, map: %d", id_job, id_map);
+	log_debug_consola("actualizando job, map ok. job: %d, map: %d", id_job, id_map);
 	t_job* job_actual = job_por_id(id_job);
 
 	if (!job_actual) {
@@ -544,7 +544,7 @@ void actualiza_job_map_ok(int id_map, int id_job) {
 	pthread_mutex_unlock(&mutex_jobs);
 
 	eliminar_carga_nodo(map_actual->arch_tmp.nodo, carga_map);
-	log_debug_interno("job actualizado, map ok. job: %d, map: %d", id_job, id_map);
+	log_debug_consola("job actualizado, map ok. job: %d, map: %d", id_job, id_map);
 }
 
 void eliminar_carga_nodo(t_nodo nodo, int carga_operacion) {
@@ -578,7 +578,7 @@ void elimina_nodo_desconectado(char* nombre_nodo) {
 
 	list_remove_by_condition(lista_nodos, (void*) _nodo_por_nombre);
 
-	log_debug_interno(" nodo inactivo eliminado. nodo: %s", nombre_nodo);
+	log_debug_consola(" nodo inactivo eliminado. nodo: %s", nombre_nodo);
 	pthread_mutex_unlock(&mutex_nodos);
 }
 
@@ -617,7 +617,7 @@ void actualiza_job_map_error(int id_map, int id_job) {
 
 	map_actual->estado = FIN_ERROR;
 
-	log_debug_interno("job actualizado, map error. job: %d, map: %d -> replanificando", id_job, id_map);
+	log_debug_consola("job actualizado, map error. job: %d, map: %d -> replanificando", id_job, id_map);
 
 	elimina_nodo_desconectado(map_actual->arch_tmp.nodo.nombre);
 
@@ -669,12 +669,12 @@ void actualiza_job_reduce_ok(int id_reduce, int id_job) {
 		}
 	}
 	pthread_mutex_unlock(&mutex_jobs);
-	log_debug_interno("job actualizado, REDUCE ok. job: %d, reduce: %d", id_job, id_reduce);
+	log_debug_consola("job actualizado, REDUCE ok. job: %d, reduce: %d", id_job, id_reduce);
 
 }
 
 void actualizar_job_reduce_error(int id_reduce, int id_job, char* nombre_nodo) {
-	log_error_interno("fin reduce error. job: %d, reduce: %d. Cancelando Job", id_job, id_reduce);
+	log_debug_interno("fin reduce error. job: %d, reduce: %d. Cancelando Job", id_job, id_reduce);
 	t_job* job = job_por_id(id_job);
 	finalizar_job_hijo(job);
 
