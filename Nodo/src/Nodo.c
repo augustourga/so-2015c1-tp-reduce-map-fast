@@ -393,11 +393,11 @@ void atenderConexiones(void *parametro) {
 			bloque = obtener_proximo_registro_de_archivo(codigo->stream);
 			if (bloque != NULL) {
 				mensaje2 = string_message(GET_NEXT_ROW_OK, bloque, 0);
-				log_info_consola("GET_NEXT_ROW_OK");
+				log_info_consola("GET_FILE_CONTENT_OK");
 
 			} else {
 				mensaje2 = id_message(GET_NEXT_ROW_ERROR);
-				log_info_consola("GET_NEXT_ROW_ERROR");
+				log_info_consola("GET_FILE_CONTENT_ERROR");
 			}
 			res = enviar_mensaje(sock_conexion, mensaje2);
 			if (res == -1) {
@@ -409,7 +409,7 @@ void atenderConexiones(void *parametro) {
 
 			break;
 		default:
-			log_info_consola("Mensaje incorrecto.Se esperaba GET_BLOQUE|SET_BLOQUE|GET_FILE_CONTENT| EJECUTAR_MAP| EJECUTAR_REDUCE | GET_NEXT_ROW");
+			log_info_consola("Mensaje incorrecto.Se esperaba GET_BLOQUE|SET_BLOQUE|GET_FILE_CONTENT| EJECUTAR_MAP| EJECUTAR_REDUCE");
 			break;
 		}
 
@@ -593,7 +593,7 @@ char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
 	t_msg* msg = string_message(GET_NEXT_ROW, nodo_archivo->archivo, 0);
 	res = enviar_mensaje(socket_tmp, msg);
 	if (res == -1) {
-		log_error_consola("Fallo envio mensaje GET_NEXT_ROW");
+		log_error_consola("Fallo envio mensaje GET_FILE_CONTENT");
 	}
 	msg = recibir_mensaje_sin_mutex(socket_tmp);
 	if (msg) {
@@ -601,7 +601,7 @@ char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
 			resultado = string_duplicate(msg->stream);
 		}
 		if (msg->header.id == GET_NEXT_ROW_ERROR) {
-			log_error_consola("El nodo no devolvio el proximo registro. Devolvio ERROR.");
+			log_error_consola("El nodo no devolvio el file content. Devolvio ERROR.");
 		}
 	} else {
 		log_error_consola("No se pudo establecer conexion con el otro nodo para aparear");
