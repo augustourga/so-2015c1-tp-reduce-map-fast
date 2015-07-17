@@ -101,7 +101,7 @@ void planifica_maps(t_job* job) {
 		if (map->estado == PENDIENTE || map->estado == FIN_ERROR) {
 			t_temp arch_tmp;
 
-			arch_tmp.nombre = getRandName(map->archivo.nombre, string_itoa(map->archivo.bloque));
+			arch_tmp.nombre = getRandName(map->archivo.nombre, string_itoa(map->id));
 			arch_tmp.nodo = get_nodo_menos_cargado(map->archivo.copias);
 
 			if (arch_tmp.nodo.nombre == NULL) {

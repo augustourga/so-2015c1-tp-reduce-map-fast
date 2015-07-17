@@ -104,7 +104,6 @@ void esperarTareas() {
 						params->id_job = mensaje_actual->argv[2];
 						params->bloque = mensaje_actual->argv[3];
 						levantarHiloMapper(params);
-						sleep(1);
 					} else if (mensaje_actual->header.id == GET_ARCHIVO_TMP_OK) {
 						log_info_consola("El Job finalizo con exito"); //TODO: Mejorar el log para indicar donde buscar el archivo en el mdfs
 						exit(EXIT_SUCCESS);
@@ -269,7 +268,7 @@ int hiloReduce(void* dato) {
 			shutdown(nodo_sock, 2);
 			return res;
 		}
-		log_info_consola("Envio REDUCE a Job OK. id_op:$d , nodo: %s ", args->id_operacion, args->nombre_nodo);
+		log_info_consola("Envio REDUCE a Job OK. id_op:%d , nodo: %s ", args->id_operacion, args->nombre_nodo);
 		mensaje = recibir_mensaje_sin_mutex(nodo_sock);
 
 		if (!mensaje) { //Significa que recibir_mensaje devolvio NULL o sea que hubo un error en el recv o el nodo se desconecto
@@ -397,7 +396,7 @@ void handshakeMarta() {
 
 void levantarHiloMapper(t_params_hiloMap* nodo) {
 	pthread_t thHiloMap;
-	log_info_consola("Creando hilo MAP operacion:$d , nodo:%s", nodo->id_operacion, nodo->nombre_nodo);
+	log_info_consola("Creando hilo MAP operacion:%d , nodo:%s", nodo->id_operacion, nodo->nombre_nodo);
 	int dato = pthread_create(&thHiloMap, NULL, (void *) hiloMap, (void*) nodo);
 	if (dato != 0) {
 		log_error_consola("El thread mapper no pudo ser creado.");
@@ -407,7 +406,7 @@ void levantarHiloMapper(t_params_hiloMap* nodo) {
 
 void levantarHiloReduce(t_params_hiloReduce* nodo) {
 	pthread_t thHiloReduce;
-	log_info_consola("Creando hilo REDUCE operacion:$d , nodo:%s", nodo->id_operacion, nodo->nombre_nodo);
+	log_info_consola("Creando hilo REDUCE operacion:%d , nodo:%s", nodo->id_operacion, nodo->nombre_nodo);
 	int dato = pthread_create(&thHiloReduce, NULL, (void *) hiloReduce, (void*) nodo);
 	if (dato != 0) {
 		log_error_consola("El thread reduce no pudo ser creado.");

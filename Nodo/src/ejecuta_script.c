@@ -6,7 +6,7 @@ void error(char *s) {
 }
 
 int ejecuta_map(char* data, char* path_ejecutable, char* path_salida) {
-	log_info_consola("Entrando a Ejecutar...");
+	log_info_consola("Entrando a Ejecutar MAP");
 
 	int size = strlen(data);
 	int in[2], out[2];
@@ -84,6 +84,7 @@ int ejecuta_map(char* data, char* path_ejecutable, char* path_salida) {
 	//Se cierra para generar un EOF y que el proceso hijo termine de leer de stdin
 	close(out[1]);
 	int status;
+	waitpid(pid_map, &status, 0);
 	waitpid(pid_sort, &status, 0);
 	FILE* temp_file = fopen(path_salida, "r");
 	free(data);
@@ -92,7 +93,7 @@ int ejecuta_map(char* data, char* path_ejecutable, char* path_salida) {
 }
 
 pid_t ejecuta_reduce(int in[2], char* path_ejecutable, char* path_salida) {
-	log_info_consola("Entrando a Ejecutar...");
+	log_info_consola("Entrando a Ejecutar REDUCE");
 
 	pid_t pid = fork();
 

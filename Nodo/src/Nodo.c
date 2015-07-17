@@ -1,9 +1,9 @@
 #include "Nodo.h"
 
-//pthread_mutex_t mutex_conexiones = PTHREAD_MUTEX_INITIALIZER;
+sem_t sem_maps;
 
 int main(int argc, char*argv[]) {
-
+	sem_init(&sem_maps, 0, 1);
 	log_crear("INFO", LOG_FILE, PROCESO);
 
 	if (levantarConfiguracionNodo(argv[1])) {
@@ -96,14 +96,14 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 
 						case GET_BLOQUE:
 
-							log_info_consola("Inicio getBloque(%d)", codigo->argv[0]+1);
+							log_info_consola("Inicio getBloque(%d)", codigo->argv[0] + 1);
 							bloque = getBloque(codigo->argv[0]);
 							mensaje2 = string_message(GET_BLOQUE_OK, bloque, 1, codigo->argv[1]);
 							res = enviar_mensaje(socket_fs, mensaje2);
 							if (res == -1) {
 								log_error_consola("Fallo envio mensaje GET_BLOQUE_OK");
 							}
-							log_info_consola("Fin getBloque(%d)", codigo->argv[0]+1);
+							log_info_consola("Fin getBloque(%d)", codigo->argv[0] + 1);
 							free(bloque);
 							destroy_message(mensaje2);
 							destroy_message(codigo);
@@ -112,7 +112,7 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 						case SET_BLOQUE:
 
 							if (codigo->argv[0] < CANT_BLOQUES) {
-								log_info_consola("Inicio setBloque(%d)", codigo->argv[0]+1);
+								log_info_consola("Inicio setBloque(%d)", codigo->argv[0] + 1);
 								bloque = malloc(tamanio_bloque);
 								memcpy(bloque, codigo->stream, codigo->argv[1]); //1 es el tamaño real, el stream es el bloque de 20mb(aprox)
 								memset(bloque + codigo->argv[1], '\0', tamanio_bloque - codigo->argv[1]);
@@ -127,7 +127,7 @@ void conectarFileSystem(t_conexion_nodo* reg_conexion) {
 							if (res == -1) {
 								log_error_consola("Fallo envio mensaje SET_BLOQUE");
 							}
-							log_info_consola("Fin setBloque(%d)", codigo->argv[0]+1);
+							log_info_consola("Fin setBloque(%d)", codigo->argv[0] + 1);
 							destroy_message(codigo);
 							break;
 
@@ -219,14 +219,14 @@ void atenderConexiones(void *parametro) {
 		switch (codigo->header.id) {
 
 		case GET_BLOQUE:
-			log_info_consola("Inicio getBloque(%d)", codigo->argv[0]+1);
+			log_info_consola("Inicio getBloque(%d)", codigo->argv[0] + 1);
 			bloque = getBloque(codigo->argv[0]);
 			mensaje2 = string_message(GET_BLOQUE_OK, bloque, 1, codigo->argv[1]);
 			res = enviar_mensaje(sock_conexion, mensaje2);
 			if (res == -1) {
 				log_error_consola("Fallo envio mensaje GET_BLOQUE_OK");
 			}
-			log_info_consola("Fin getBloque(%d)", codigo->argv[0]+1);
+			log_info_consola("Fin getBloque(%d)", codigo->argv[0] + 1);
 			free(bloque);
 			destroy_message(mensaje2);
 			destroy_message(codigo);
@@ -234,7 +234,7 @@ void atenderConexiones(void *parametro) {
 
 		case SET_BLOQUE:
 			if (codigo->argv[0] < CANT_BLOQUES) {
-				log_info_consola("Inicio setBloque(%d)", codigo->argv[0]+1);
+				log_info_consola("Inicio setBloque(%d)", codigo->argv[0] + 1);
 				bloque = malloc(tamanio_bloque);
 				memcpy(bloque, codigo->stream, codigo->argv[1]); //1 es el tamaño real, el stream es el bloque de 20mb(aprox)
 				memset(bloque + codigo->argv[1], '\0', tamanio_bloque - codigo->argv[1]);
@@ -249,7 +249,7 @@ void atenderConexiones(void *parametro) {
 			if (res == -1) {
 				log_error_consola("Fallo envio mensaje SET_BLOQUE");
 			}
-			log_info_consola("Fin setBloque(%d)", codigo->argv[0]+1);
+			log_info_consola("Fin setBloque(%d)", codigo->argv[0] + 1);
 			destroy_message(codigo);
 			break;
 
@@ -268,7 +268,6 @@ void atenderConexiones(void *parametro) {
 			break;
 
 		case EJECUTAR_MAP:
-
 			mensaje2 = recibir_mensaje_sin_mutex(sock_conexion);
 			if (!mensaje2) {
 				log_info_consola("error al recibir mensaje MAP. matando hilo.");
@@ -282,7 +281,9 @@ void atenderConexiones(void *parametro) {
 				int tamanio_rutina = mensaje2->argv[0];
 				char* path_rutina = guardar_rutina(mensaje2->stream, "map", tamanio_rutina, map_id, numero_bloque);
 				log_info_consola("Ejecutando MAP en bloque: %d", numero_bloque);
+				sem_wait(&sem_maps);
 				fin = ejecutar_map(path_rutina, codigo->stream, numero_bloque, map_id);
+				sem_post(&sem_maps);
 				switch (fin) {
 				case FIN_MAP_ERROR:
 					log_error_consola("Hubo errores en el map %d en el bloque %d.", map_id, numero_bloque);
@@ -369,7 +370,7 @@ void atenderConexiones(void *parametro) {
 				if (band == 0) {
 					log_info_consola("Mensaje REDUCE recibido OK. comenzando ejecucion.");
 					fin = ejecutar_reduce(path_rutina, codigo->stream, cola_nodos, codigo->argv[0]);
-					mensaje2 = argv_message(fin,1,reduce_id);
+					mensaje2 = argv_message(fin, 1, reduce_id);
 					res = enviar_mensaje(sock_conexion, mensaje2);
 					if (res == -1) {
 						log_error_consola("Fallo envio mensaje FIN_REDUCE");
@@ -481,9 +482,9 @@ void liberar_Espacio_datos(char* _data, char* path) {
 t_msg_id ejecutar_map(char*path_ejecutable, char* nombreArchivo, int numeroBloque, int mapid) {
 	log_info_consola("Inicio ejecutarMap ID:%d en el bloque %d", mapid, numeroBloque);
 	char*bloque = NULL;
-	log_info_consola("Inicio getBloque(%d)", numeroBloque+1);
+	log_info_consola("Inicio getBloque(%d)", numeroBloque + 1);
 	bloque = getBloque(numeroBloque);
-	log_info_consola("Fin getBloque(%d)", numeroBloque+1);
+	log_info_consola("Fin getBloque(%d)", numeroBloque + 1);
 	char*nombreArchivoFinal = file_combine(DIR_TEMP, nombreArchivo);
 	log_info_consola("Fin copia de ejecutable ID:%d en el bloque %d", mapid, numeroBloque);
 	if (ejecuta_map(bloque, path_ejecutable, nombreArchivoFinal)) {
