@@ -275,9 +275,9 @@ int listar_archivo(char* nombre_archivo) {
 			printf("%s ", archivo->bloques[numero_bloque].copias[numero_copia].nombre_nodo);
 			printf("%d ", archivo->bloques[numero_bloque].copias[numero_copia].bloque_nodo+1);
 			if (archivo->bloques[numero_bloque].copias[numero_copia].conectado) {
-				printf(ANSI_COLOR_GREEN"ON  |"ANSI_COLOR_RESET);
+				printf(ANSI_COLOR_GREEN"ON"ANSI_COLOR_RESET"  |");
 			} else {
-				printf(ANSI_COLOR_RED"OFF |"ANSI_COLOR_RESET);
+				printf(ANSI_COLOR_RED"OFF"ANSI_COLOR_RESET" |");
 			}
 		}
 		printf("\n");
