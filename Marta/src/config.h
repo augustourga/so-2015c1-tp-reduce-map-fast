@@ -7,6 +7,6 @@
 #include <stdint.h>
 #include <utiles/log.h>
 
-void leer_archivo_configuracion(char** ip_mdfs, uint16_t* puerto_mdfs, int* carga_map, int* carga_reduce);
+void leer_archivo_configuracion(char** ip_mdfs, uint16_t* puerto_mdfs, int* carga_map, int* carga_reduce, u_int16_t* puerto_listen);
 
 #endif /* SRC_CONFIG_H_ */

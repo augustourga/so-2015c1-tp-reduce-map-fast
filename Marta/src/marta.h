@@ -21,13 +21,13 @@
 #include "job.h"
 
 #define RUTA_LOG "log/marta.log"
-#define PUERTO_LISTEN 3331 //TODO: SAcarlo al archivo de configuración
 
 typedef struct {
 	t_nodo nodo;
 	int carga_trabajo;
 } t_nodo_global;
 
+uint16_t puerto_listen;
 char* getRandName(char* str1, char* str2);
 char* get_info_archivo(t_job* job, char* ruta_mdfs);
 t_nodo get_nodo_menos_cargado(t_nodo nodos[3]);

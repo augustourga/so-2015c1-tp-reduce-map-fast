@@ -15,6 +15,7 @@ t_list* lista_nodos;
 t_list* lista_jobs;
 int carga_map;
 int carga_reduce;
+u_int16_t puerto_listen;
 
 pthread_mutex_t mutex_jobs = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_nodos = PTHREAD_MUTEX_INITIALIZER;
@@ -29,11 +30,11 @@ int main(int argc, char* argv[]) {
 
 	log_crear(argv[1], RUTA_LOG, "MaRTA");
 
-	leer_archivo_configuracion(&ip_mdfs, &puerto_mdfs, &carga_map, &carga_reduce);
+	leer_archivo_configuracion(&ip_mdfs, &puerto_mdfs, &carga_map, &carga_reduce, &puerto_listen);
 
 	conectarse_a_mdfs(ip_mdfs, puerto_mdfs);
 
-	iniciar_server((uint16_t) PUERTO_LISTEN);
+	iniciar_server((uint16_t) puerto_listen);
 
 	return 0;
 }
