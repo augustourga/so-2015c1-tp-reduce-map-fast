@@ -491,7 +491,7 @@ t_msg_id ejecutar_reduce(char*path_ejecutable, char* nombreArchivoFinal, t_queue
 
 	char* temporales = obtener_reduces_temporales(lista_nodos);
 
-	if (ejecuta_rutina(temporales, path_ejecutable, path_final, "Reduce")) {
+	if (ejecuta_rutina_primero_sort(temporales, path_ejecutable, path_final, "Reduce")) {
 		log_error_consola("Fin ERROR ejecutar Reduce ID:%d ", id_reduce);
 		return FIN_REDUCE_ERROR;
 	}
