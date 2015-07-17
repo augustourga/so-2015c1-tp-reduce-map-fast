@@ -213,6 +213,7 @@ t_msg *recibir_mensaje_sin_mutex(int sock_fd) {
 	}
 
 	if (msg->header.id == RUTINA) {
+		msg->stream = malloc(msg->header.length);
 		if (recv(sock_fd, msg->stream, msg->header.length, MSG_WAITALL) <= 0) {
 			log_error_consola("error obteniendo stream. Socket: %d", sock_fd);
 			free(msg->stream);
@@ -220,7 +221,6 @@ t_msg *recibir_mensaje_sin_mutex(int sock_fd) {
 			free(msg);
 			return NULL;
 		}
-
 	} else {
 		/* Get message data. */
 		if (msg->header.argc > 0) {
