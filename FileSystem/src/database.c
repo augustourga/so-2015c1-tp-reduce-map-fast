@@ -17,6 +17,7 @@ int formatear_filesystem() {
 }
 
 int formatear_nodos() {
+	formatear_filesystem();
 	remove(NODOS_DB);
 	formatear_listas_nodos();
 	crear_database_nodos();

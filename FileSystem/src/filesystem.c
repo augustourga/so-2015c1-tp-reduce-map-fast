@@ -565,15 +565,8 @@ int eliminar_archivo(char* ruta_archivo) {
 	return ret;
 }
 
-void cerrar_socket(t_nodo* nodo) {
-	shutdown(nodo->socket, 2);
-	close(nodo->socket);
-}
-
 void formatear_listas_nodos() {
 	lista_nodos_aceptados = list_create();
-	list_iterate(lista_nodos_operativos, (void*) cerrar_socket);
-	list_iterate(lista_nodos_pendientes, (void*) cerrar_socket);
 	lista_nodos_pendientes = list_create();
 	lista_nodos_operativos = list_create();
 }
