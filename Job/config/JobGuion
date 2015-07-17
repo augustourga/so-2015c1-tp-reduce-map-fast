@@ -1,7 +1,0 @@
-IP_MARTA=192.168.3.35
-PUERTO_MARTA=3332
-MAPPER=/home/utnso/mr-py-twitterSentiment/basic_sentiment_analysis.py
-REDUCE=/home/utnso/mr-py-twitterSentiment/top-sent.pl
-COMBINER=NO
-ARCHIVOS=/sentiment/tweet-1.csv|/sentiment/tweet-2.csv|/sentiment/tweet-3.csv|/sentiment/tweet-4.csv|/sentiment/tweet-5.csv|/sentiment/tweet-6.csv|/sentiment/tweet-7.csv|/sentiment/tweet-8.csv|/sentiment/tweet-9.csv|/sentiment/tweet-10.csv|/sentiment/tweet-11.csv|/sentiment/tweet-12.csv|/sentiment/tweet-13.csv
-RESULTADO=/output/job5/tweets-sent.csv
