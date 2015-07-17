@@ -5,8 +5,8 @@ void error(char *s) {
 	exit(1);
 }
 
-int ejecuta_map(char* data, char* path_ejecutable, char* path_salida) {
-	log_info_consola("Entrando a Ejecutar MAP");
+int ejecuta_rutina(char* data, char* path_ejecutable, char* path_salida, char* map_o_reduce) {
+	log_info_consola("Entrando a Ejecutar %s", map_o_reduce);
 
 	int size = strlen(data);
 	int in[2], out[2];

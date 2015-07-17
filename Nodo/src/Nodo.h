@@ -84,12 +84,13 @@ t_msg_id ejecutar_reduce(char*ejecutable, char*archivo_final, t_queue* colaArchi
 
 /******************APAREO***************************/
 int apareo(t_list* lista_nodos_archivos, char* path_ejecutable, char* path_salida);
-char* obtener_proximo_registro(t_nodo_archivo* nodo_archivo);
+char* obtener_reduce_parcial(t_nodo_archivo* nodo_archivo);
 int obtener_posicion_menor_clave(char** registros, int cantidad_nodos_archivos);
 char* obtener_proximo_registro_de_archivo(char* archivo);
 char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo);
 void list_add_archivo_tmp(char* nombre_archivo);
 fpos_t* obtener_posicion_puntero_arch_tmp(char* nombre_archivo);
 void actualizar_posicion_puntero_arch_tmp(char* nombre_archivo, fpos_t* posicion_puntero);
+char* obtener_reduces_temporales(t_list* lista_nodos_archivos);
 
 #endif /* NODO_NODO_H_ */
