@@ -189,7 +189,7 @@ t_msg *recibir_mensaje_sin_mutex(int sock_fd) {
 	t_msg *msg = malloc(sizeof(t_msg));
 	msg->argv = NULL;
 	msg->stream = NULL;
-	log_debug_interno("recibiendo mensaje . Socket: %d", sock_fd);
+	log_debug_interno("recibiendo mensaje. Socket: %d", sock_fd);
 	/* Get message info. */
 	int status = recv(sock_fd, &(msg->header), sizeof(t_header), MSG_WAITALL);
 	if (status <= 0) {

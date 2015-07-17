@@ -34,5 +34,6 @@ int id_job_next();
 void ejecuta_maps(t_job* job);
 void ejecuta_reduces_parciales(t_job* job);
 void ejecuta_reduce_final(t_job* job);
+void finalizar_job(t_job* job, t_msg_id mensaje);
 
 #endif /* SRC_JOB_H_ */

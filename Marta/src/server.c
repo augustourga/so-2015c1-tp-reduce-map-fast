@@ -53,7 +53,7 @@ void iniciar_server(uint16_t puerto_listen) {
 						}
 						t_msg* mensaje = recibir_mensaje(newfd);
 						if (mensaje->header.id == CONEXION_JOB) {
-							log_info_consola("Creando nuevo hilo Job. job_id=%d", newfd);
+							log_info_consola("Creando nuevo hilo Job. para el socket=%d", newfd);
 							FD_SET(newfd, &master); // add to master set
 							crear_hilo_job(newfd, mensaje->stream, mensaje->argv[0]);
 						}
@@ -175,7 +175,7 @@ void copiar_archivo_final(t_job* job) {
 
 	switch (message->header.id) {
 	case GET_ARCHIVO_TMP_OK:
-		log_info_consola("El archivo se copio al mdfs con exito"); //TODO: Mejorar el log para indicar donde buscar el archivo en el mdfs
+		log_info_consola("El archivo se copio al MDFS con exito. >>> %s", job->archivo_final);
 		finalizar_job(job, GET_ARCHIVO_TMP_OK);
 		break;
 	case GET_ARCHIVO_TMP_ERROR:

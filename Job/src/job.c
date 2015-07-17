@@ -243,6 +243,7 @@ int hiloReduce(void* dato) {
 			return res;
 		}
 
+
 		int cant_elementos = queue_size(args->archivos_tmp);
 		for (i = 0; i < cant_elementos; i++) {
 			mensaje = queue_pop(args->archivos_tmp);
@@ -268,12 +269,14 @@ int hiloReduce(void* dato) {
 			shutdown(nodo_sock, 2);
 			return res;
 		}
-
+		log_info_consola("Envio REDUCE a Job OK. id_op:$d , nodo: %s ", args->id_operacion, args->nombre_nodo);
 		mensaje = recibir_mensaje_sin_mutex(nodo_sock);
 
 		if (!mensaje) { //Significa que recibir_mensaje devolvio NULL o sea que hubo un error en el recv o el nodo se desconecto
+			log_info_consola("Respuesta REDUCE Error. id_op: %d, nodo: %s, enviando mensaje a MaRTA",args->id_operacion, args->nombre_nodo);
 			mensaje_respuesta = argv_message(FIN_REDUCE_ERROR, 2, args->id_operacion, args->id_job);
 		} else {
+			log_info_consola("Respuesta REDUCE OK. id_op: %d, nodo: %s, enviando mensaje a MaRTA",args->id_operacion, args->nombre_nodo);
 			mensaje_respuesta = argv_message(mensaje->header.id, 2, args->id_operacion, args->id_job);
 			log_debug_interno("Se recibio mensaje de %s. Header.Id: %s - Argc: %d - Largo Stream: %d", args->nombre_nodo, id_string(mensaje->header.id),
 					mensaje->header.argc, mensaje->header.length);
@@ -290,6 +293,7 @@ int hiloReduce(void* dato) {
 		shutdown(nodo_sock, 2);
 		return res;
 	}
+	log_info_consola("Respuesta REDUCE enviada. id_op: %d, nodo: %s",args->id_operacion, args->nombre_nodo);
 	destroy_message(mensaje_respuesta);
 	destroy_message(mensaje);
 
@@ -321,6 +325,7 @@ int hiloMap(void* dato) {
 		res = enviar_mensaje(nodo_sock, mensaje);
 		if (res == -1) {
 				log_error_consola("Fallo envio mensaje EJECUTAR_MAP");
+				//TODO como funciona esto? no deberia devolver el mensaje a MaRTA MAP_ERROR????
 				shutdown(nodo_sock, 2);
 				return res;
 
@@ -333,14 +338,17 @@ int hiloMap(void* dato) {
 		res = enviar_mensaje(nodo_sock, mensaje);
 		if (res == -1) {
 				log_error_consola("Fallo envio mensaje RUTINA");
+				//TODO como funciona esto? no deberia devolver el mensaje a MaRTA MAP_ERROR????
 				shutdown(nodo_sock, 2);
 				return res;
 			}
+		log_info_consola("Se envio MAP OK. id_op: %d, nodo: %s",args->id_operacion, args->nombre_nodo);
 		mensaje = recibir_mensaje_sin_mutex(nodo_sock);
-
 		if (!mensaje) { //Significa que recibir_mensaje devolvio NULL o sea que hubo un error en el recv o el nodo se desconecto
+			log_info_consola("Respuesta Job ERROR. MAP id_op: %d, nodo: %s, enviando a MaRTA",args->id_operacion, args->nombre_nodo);
 			mensaje_respuesta = argv_message(FIN_MAP_ERROR, 2, args->id_operacion, args->id_job);
 		} else {
+			log_info_consola("Respuesta Job OK. MAP id_op: %d, nodo: %s enviando a MaRTA",args->id_operacion, args->nombre_nodo);
 			mensaje_respuesta = argv_message(mensaje->header.id, 2, args->id_operacion, args->id_job);
 			log_debug_interno("Se recibio mensaje de %s. Header.Id: %s - Argc: %d - Largo Stream: %d", args->nombre_nodo, id_string(mensaje->header.id),
 					mensaje->header.argc, mensaje->header.length);
@@ -353,10 +361,11 @@ int hiloMap(void* dato) {
 
 	res = enviar_mensaje(marta_sock, mensaje_respuesta);
 	if (res == -1) {
-		log_error_consola("Fallo envio de Mensaje");
+		log_error_consola("Fallo envio de Mensaje a MaRTA.");
 		shutdown(nodo_sock, 2);
 		return res;
 	}
+	log_info_consola("Respuesta MAP enviada a MaRTA. id_op: %d, nodo: %s",args->id_operacion, args->nombre_nodo);
 	destroy_message(mensaje_respuesta);
 
 //CERRAR CONEXIoN CON EL NODO//
@@ -388,7 +397,7 @@ void handshakeMarta() {
 
 void levantarHiloMapper(t_params_hiloMap* nodo) {
 	pthread_t thHiloMap;
-	log_info_consola("Creando Hilo Mapper");
+	log_info_consola("Creando hilo MAP operacion:$d , nodo:%s", nodo->id_operacion, nodo->nombre_nodo);
 	int dato = pthread_create(&thHiloMap, NULL, (void *) hiloMap, (void*) nodo);
 	if (dato != 0) {
 		log_error_consola("El thread mapper no pudo ser creado.");
@@ -398,6 +407,7 @@ void levantarHiloMapper(t_params_hiloMap* nodo) {
 
 void levantarHiloReduce(t_params_hiloReduce* nodo) {
 	pthread_t thHiloReduce;
+	log_info_consola("Creando hilo REDUCE operacion:$d , nodo:%s", nodo->id_operacion, nodo->nombre_nodo);
 	int dato = pthread_create(&thHiloReduce, NULL, (void *) hiloReduce, (void*) nodo);
 	if (dato != 0) {
 		log_error_consola("El thread reduce no pudo ser creado.");
