@@ -331,7 +331,7 @@ int hiloMap(void* dato) {
 			}
 		mensaje = rutina_message(RUTINA, configuracion->mapper, configuracion->tamanio_mapper);
 
-		log_debug_interno("Enviando mensaje de rutina. Header.ID: %s - Argc: %d - Largo Stream: %d Al nodo: &s", id_string(mensaje->header.id), mensaje->header.argc,
+		log_debug_interno("Enviando mensaje de rutina. Header.ID: %s - Argc: %d - Largo Stream: %d Al nodo: %s", id_string(mensaje->header.id), mensaje->header.argc,
 				mensaje->header.length, args->nombre_nodo);
 
 		res = enviar_mensaje(nodo_sock, mensaje);
