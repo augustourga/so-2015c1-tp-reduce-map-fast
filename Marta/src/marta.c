@@ -153,29 +153,31 @@ void planificar_reduces_con_combiner(t_job* job) {
 		} else {
 			list_add(reduce_actual->temporales, temp_actual);
 			list_add(job->reduces, reduce_actual);
-
+			log_debug_consola("sumando carga al nodo global");
 			agregar_carga_reduce_nodo_global(reduce_actual);
-
+			log_debug_consola("creando reduce");
 			reduce_actual = reduce_crear();
 			reduce_actual->arch_tmp.nodo = map->arch_tmp.nodo;
 			reduce_actual->arch_tmp.nombre = getRandName("rd_parcial", string_itoa(reduce_actual->id)); //TODO: Generar nombre de archivo
 			temp_actual = malloc(sizeof(t_temp));
+			//TODO preg marcos. seguir usando string_duplicate??
 			nombre_actual = string_duplicate(map->arch_tmp.nodo.nombre);
 			temp_actual->nodo = map->arch_tmp.nodo;
 			temp_actual->nombre = string_duplicate(map->arch_tmp.nombre);
 			string_append(&temp_actual->nombre, ";");
+			log_debug_consola("REDUCE creado.");
 		}
 	}
-
+	log_debug_consola("Generando REDUCE parciales. Job:%d", job->id);
 	list_iterate(job->maps, (void*) _genera_reduces);
 	list_add(reduce_actual->temporales, temp_actual);
 	list_add(job->reduces, reduce_actual);
 	agregar_carga_reduce_nodo_global(reduce_actual);
 
-	t_reduce* primer_reduce = list_get(job->reduces, 0);
-
+	//t_reduce* primer_reduce = list_get(job->reduces, 0);
+	log_debug_consola("creando REDUCE final.");
 	t_reduce* reduce_final = reduce_crear();
-	reduce_final->arch_tmp.nodo = primer_reduce->arch_tmp.nodo; //TODO: Obtener el nodo con menor carga, Nota: Obtener el de menor carga
+	//reduce_final->arch_tmp.nodo = primer_reduce->arch_tmp.nodo; //TODO: Obtener el nodo con menor carga, Nota: Obtener el de menor carga
 	//en este momento, no nos sirve ya que puede cambiar dps de los reduce parciales. o lo dejamos asi, o podriamos dividir y hacer la
 	//planificacion del final dps de que terminan los combiner si existen
 	reduce_final->arch_tmp.nombre = getRandName("rd_final", string_itoa(job->id)); //TODO: Generar nombre
@@ -187,7 +189,7 @@ void planificar_reduces_con_combiner(t_job* job) {
 	list_iterate(job->reduces, (void*) _temporales_reduce_final);
 
 	job->reduce_final = reduce_final;
-	agregar_carga_reduce_nodo_global(reduce_final);
+	log_debug_consola("REDUCEs planificados.");
 
 }
 
@@ -285,6 +287,31 @@ void planifica_reduces(t_job* job) {
 	log_debug_consola("reduces planificados. job: %d", job->id);
 }
 
+void planifica_reduce_final_con_combiner(t_job* job) {
+
+	log_info_consola("obteniendo nodos con maps. job: %d", job->id);
+	t_list* nodos_globales_reduce_parciales = list_create();
+
+	void _obtener_nodos_reduce(t_reduce* reduce_parcial) {
+
+			bool _nodo_global(t_nodo_global* nodo) {
+				return !strcmp(nodo->nodo.nombre, reduce_parcial->arch_tmp.nodo.nombre);
+			}
+
+			t_nodo_global* nodo_global_reduce = list_find(lista_nodos, (void*) _nodo_global);
+			//TODO si es nulo, se cayo nodo.. fallar!
+			list_add(nodos_globales_reduce_parciales, nodo_global_reduce);
+	}
+
+	list_iterate(job->reduces, (void*) _obtener_nodos_reduce);
+
+	log_info_consola("nodos globales obtenidos. obteniendo el de menor carga job: %d", job->id);
+	t_nodo nodo_elegido = get_nodo_menos_cargado_reduce(nodos_globales_reduce_parciales);
+	job->reduce_final->arch_tmp.nodo = nodo_elegido;
+	log_info_consola("planificacion REDUCE final finalizada. job: %d", job->id);
+
+}
+
 void procesa_job(void* argumentos) {
 
 	t_job* job = job_crear();
@@ -320,6 +347,7 @@ void procesa_job(void* argumentos) {
 
 		log_info_consola("Esperando a que finalicen los reduces parciales...");
 		sem_wait(&job->sem_reduces_fin);
+		planifica_reduce_final_con_combiner(job);
 	}
 
 	ejecuta_reduce_final(job);
@@ -376,6 +404,23 @@ t_nodo get_nodo_menos_cargado(t_nodo nodos[3]) {
 			}
 		}
 	}
+	pthread_mutex_unlock(&mutex_nodos);
+	return ret;
+}
+
+t_nodo get_nodo_menos_cargado_reduce(t_list* nodos_reduce) {
+
+	pthread_mutex_lock(&mutex_nodos);
+	t_nodo ret;
+	bool _menor_carga(t_nodo_global* nodo_global1, t_nodo_global* nodo_global2) {
+		return nodo_global1->carga_trabajo < nodo_global2->carga_trabajo;
+	}
+
+	list_sort(nodos_reduce, (void *) _menor_carga);
+	t_nodo_global* nodo_global = list_get(nodos_reduce, 0);
+	log_debug_consola("Nodo con menor carga: %s, carga: %d", nodo_global->nodo.nombre, nodo_global->carga_trabajo);
+	nodo_global->carga_trabajo += carga_reduce;
+	ret = nodo_global->nodo;
 	pthread_mutex_unlock(&mutex_nodos);
 	return ret;
 }

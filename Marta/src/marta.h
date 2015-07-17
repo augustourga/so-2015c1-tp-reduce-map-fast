@@ -46,5 +46,6 @@ void lista_jobs_add(t_job* job);
 void lista_nodos_add(t_nodo_global* nodo);
 void destroy_nodo(t_nodo_global* nodo);
 void finalizar_job_hijo(t_job* job);
+t_nodo get_nodo_menos_cargado_reduce(t_list* nodos_reduce);
 
 #endif /* MARTA_H_ */
