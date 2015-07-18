@@ -1,1 +1,23 @@
 export LD_LIBRARY_PATH=/home/utnso/workspace/tp-2015-1c-milanesa/MilanesaLibrary/Debug
+
+cd /home/utnso/workspace/tp-2015-1c-milanesa/MilanesaLibrary/Debug
+make clean
+make all
+
+cd /home/utnso/workspace/tp-2015-1c-milanesa/FileSystem/Debug
+make clean
+make all
+
+cd /home/utnso/workspace/tp-2015-1c-milanesa/Job/Debug
+make clean
+make all
+
+cd /home/utnso/workspace/tp-2015-1c-milanesa/Marta/Debug
+make clean
+make all
+
+cd /home/utnso/workspace/tp-2015-1c-milanesa/Nodo/Debug
+make clean
+make all
+
+cd /home/utnso/workspace/tp-2015-1c-milanesa
