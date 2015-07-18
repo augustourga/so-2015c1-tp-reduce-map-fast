@@ -105,7 +105,7 @@ void esperarTareas() {
 						params->bloque = mensaje_actual->argv[3];
 						levantarHiloMapper(params);
 					} else if (mensaje_actual->header.id == GET_ARCHIVO_TMP_OK) {
-						log_info_consola("El Job finalizo con exito"); //TODO: Mejorar el log para indicar donde buscar el archivo en el mdfs
+						log_info_consola("El Job finalizo con exito");
 						exit(EXIT_SUCCESS);
 					} else if (mensaje_actual->header.id == MDFS_NO_OPERATIVO) {
 						log_info_consola("ERROR - El MDFS no esta operativo. Reintente mas tarde.");
@@ -242,7 +242,6 @@ int hiloReduce(void* dato) {
 			return res;
 		}
 
-
 		int cant_elementos = queue_size(args->archivos_tmp);
 		for (i = 0; i < cant_elementos; i++) {
 			mensaje = queue_pop(args->archivos_tmp);
@@ -272,10 +271,10 @@ int hiloReduce(void* dato) {
 		mensaje = recibir_mensaje_sin_mutex(nodo_sock);
 
 		if (!mensaje) { //Significa que recibir_mensaje devolvio NULL o sea que hubo un error en el recv o el nodo se desconecto
-			log_info_consola("Respuesta REDUCE Error. id_op: %d, nodo: %s, enviando mensaje a MaRTA",args->id_operacion, args->nombre_nodo);
+			log_info_consola("Respuesta REDUCE Error. id_op: %d, nodo: %s, enviando mensaje a MaRTA", args->id_operacion, args->nombre_nodo);
 			mensaje_respuesta = argv_message(FIN_REDUCE_ERROR, 2, args->id_operacion, args->id_job);
 		} else {
-			log_info_consola("Respuesta REDUCE OK. id_op: %d, nodo: %s, enviando mensaje a MaRTA",args->id_operacion, args->nombre_nodo);
+			log_info_consola("Respuesta REDUCE OK. id_op: %d, nodo: %s, enviando mensaje a MaRTA", args->id_operacion, args->nombre_nodo);
 			mensaje_respuesta = argv_message(mensaje->header.id, 2, args->id_operacion, args->id_job);
 			log_debug_interno("Se recibio mensaje de %s. Header.Id: %s - Argc: %d - Largo Stream: %d", args->nombre_nodo, id_string(mensaje->header.id),
 					mensaje->header.argc, mensaje->header.length);
@@ -292,11 +291,9 @@ int hiloReduce(void* dato) {
 		shutdown(nodo_sock, 2);
 		return res;
 	}
-	log_info_consola("Respuesta REDUCE enviada. id_op: %d, nodo: %s",args->id_operacion, args->nombre_nodo);
+	log_info_consola("Respuesta REDUCE enviada. id_op: %d, nodo: %s", args->id_operacion, args->nombre_nodo);
 	destroy_message(mensaje_respuesta);
 
-//TODO: No habria que cerrar la conexion con el nodo como en el HiloMap?
-//Lo agregue, no entiendo por que no deberia no hacerse
 	shutdown(nodo_sock, 2);
 	//restar_hilo();
 	return res;
@@ -308,7 +305,7 @@ int hiloMap(void* dato) {
 	t_msg* mensaje_respuesta;
 	t_params_hiloMap* args = (t_params_hiloMap*) dato;
 	int nodo_sock = client_socket(args->ip, args->puerto);
-	int res=0;
+	int res = 0;
 
 	if (nodo_sock < 0) {
 		log_error_consola("No se pudo conectar al proceso %s - IP: %s - Puerto: %d", args->nombre_nodo, args->ip, args->puerto);
@@ -322,31 +319,26 @@ int hiloMap(void* dato) {
 
 		res = enviar_mensaje(nodo_sock, mensaje);
 		if (res == -1) {
-				log_error_consola("Fallo envio mensaje EJECUTAR_MAP");
-				//TODO como funciona esto? no deberia devolver el mensaje a MaRTA MAP_ERROR????
-				shutdown(nodo_sock, 2);
-				return res;
-
-			}
+			log_error_consola("Fallo envio mensaje EJECUTAR_MAP");
+			shutdown(nodo_sock, 2);
+		}
 		mensaje = rutina_message(RUTINA, configuracion->mapper, configuracion->tamanio_mapper);
 
-		log_debug_interno("Enviando mensaje de rutina. Header.ID: %s - Argc: %d - Largo Stream: %d Al nodo: %s", id_string(mensaje->header.id), mensaje->header.argc,
-				mensaje->header.length, args->nombre_nodo);
+		log_debug_interno("Enviando mensaje de rutina. Header.ID: %s - Argc: %d - Largo Stream: %d Al nodo: %s", id_string(mensaje->header.id),
+				mensaje->header.argc, mensaje->header.length, args->nombre_nodo);
 
 		res = enviar_mensaje(nodo_sock, mensaje);
 		if (res == -1) {
-				log_error_consola("Fallo envio mensaje RUTINA");
-				//TODO como funciona esto? no deberia devolver el mensaje a MaRTA MAP_ERROR????
-				shutdown(nodo_sock, 2);
-				return res;
-			}
-		log_info_consola("Se envio SOLICITUD DE MAP correctamente. id_op: %d, nodo: %s",args->id_operacion, args->nombre_nodo);
+			log_error_consola("Fallo envio mensaje RUTINA");
+			shutdown(nodo_sock, 2);
+		}
+		log_info_consola("Se envio SOLICITUD DE MAP correctamente. id_op: %d, nodo: %s", args->id_operacion, args->nombre_nodo);
 		mensaje = recibir_mensaje_sin_mutex(nodo_sock);
 		if (!mensaje) { //Significa que recibir_mensaje devolvio NULL o sea que hubo un error en el recv o el nodo se desconecto
-			log_info_consola("El MAP id_op: %d en el nodo: %s fallo, enviando a MaRTA",args->id_operacion, args->nombre_nodo);
+			log_info_consola("El MAP id_op: %d en el nodo: %s fallo, enviando a MaRTA", args->id_operacion, args->nombre_nodo);
 			mensaje_respuesta = argv_message(FIN_MAP_ERROR, 2, args->id_operacion, args->id_job);
 		} else {
-			log_info_consola("El MAP id_op: %d, en el nodo: %s finalizo bien. enviando a MaRTA",args->id_operacion, args->nombre_nodo);
+			log_info_consola("El MAP id_op: %d, en el nodo: %s finalizo bien. enviando a MaRTA", args->id_operacion, args->nombre_nodo);
 			mensaje_respuesta = argv_message(mensaje->header.id, 2, args->id_operacion, args->id_job);
 			log_debug_interno("Se recibio mensaje de %s. Header.Id: %s - Argc: %d - Largo Stream: %d", args->nombre_nodo, id_string(mensaje->header.id),
 					mensaje->header.argc, mensaje->header.length);
@@ -363,7 +355,7 @@ int hiloMap(void* dato) {
 		shutdown(nodo_sock, 2);
 		return res;
 	}
-	log_info_consola("Respuesta MAP enviada a MaRTA. id_op: %d, nodo: %s",args->id_operacion, args->nombre_nodo);
+	log_info_consola("Respuesta MAP enviada a MaRTA. id_op: %d, nodo: %s", args->id_operacion, args->nombre_nodo);
 	destroy_message(mensaje_respuesta);
 
 //CERRAR CONEXIoN CON EL NODO//

@@ -297,7 +297,7 @@ void atenderConexiones(void *parametro) {
 
 				}
 				free(path_rutina);
-				t_msg* mensaje2 = argv_message(fin,1,map_id);
+				t_msg* mensaje2 = argv_message(fin, 1, map_id);
 				log_info_consola("Enviando respuesta MAP en bloque: %d", numero_bloque);
 				res = enviar_mensaje(sock_conexion, mensaje2);
 
@@ -605,10 +605,10 @@ char* enviar_mensaje_proximo_registro(t_nodo_archivo* nodo_archivo) {
 		if (msg->header.id == GET_NEXT_ROW_ERROR) {
 			log_error_consola("El nodo no devolvio el file content. Devolvio ERROR.");
 		}
+		destroy_message(msg);
 	} else {
 		log_error_consola("No se pudo establecer conexion con el otro nodo para aparear");
 		resultado = string_duplicate("error.rmf.GrupoMilanesa.tp");
 	}
-	destroy_message(msg);
 	return resultado;
 }

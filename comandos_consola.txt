@@ -1,0 +1,36 @@
+mk_directorio / mr
+mk_directorio /mr weather
+mk_directorio /mr textos
+mk_directorio / output
+mk_directorio /output job1
+mk_directorio /output job2y3
+
+cp_local_mdfs /home/utnso/data-sets/201301hourly.txt /mr/weather
+cp_local_mdfs /home/utnso/data-sets/201302hourly.txt /mr/weather
+cp_local_mdfs /home/utnso/data-sets/201303hourly.txt /mr/weather
+cp_local_mdfs /home/utnso/data-sets/201304hourly.txt /mr/weather
+
+cp_local_mdfs /home/utnso/mr-py-WordCount/gutenberg.txt /mr/textos
+cp_local_mdfs /home/utnso/mr-py-WordCount/linux.txt /mr/textos
+
+mk_directorio / sentiment
+mk_directorio /output job4
+mk_directorio /output job5
+
+cp_local_mdfs /home/utnso/mr-py-twitterSentiment/tweets/tweet-1.csv /sentiment
+cp_local_mdfs /home/utnso/mr-py-twitterSentiment/tweets/tweet-2.csv /sentiment
+cp_local_mdfs /home/utnso/mr-py-twitterSentiment/tweets/tweet-3.csv /sentiment
+cp_local_mdfs /home/utnso/mr-py-twitterSentiment/tweets/tweet-4.csv /sentiment
+cp_local_mdfs /home/utnso/mr-py-twitterSentiment/tweets/tweet-5.csv /sentiment
+cp_local_mdfs /home/utnso/mr-py-twitterSentiment/tweets/tweet-6.csv /sentiment
+cp_local_mdfs /home/utnso/mr-py-twitterSentiment/tweets/tweet-7.csv /sentiment
+cp_local_mdfs /home/utnso/mr-py-twitterSentiment/tweets/tweet-8.csv /sentiment
+cp_local_mdfs /home/utnso/mr-py-twitterSentiment/tweets/tweet-9.csv /sentiment
+cp_local_mdfs /home/utnso/mr-py-twitterSentiment/tweets/tweet-10.csv /sentiment
+cp_local_mdfs /home/utnso/mr-py-twitterSentiment/tweets/tweet-11.csv /sentiment
+cp_local_mdfs /home/utnso/mr-py-twitterSentiment/tweets/tweet-12.csv /sentiment
+cp_local_mdfs /home/utnso/mr-py-twitterSentiment/tweets/tweet-13.csv /sentiment
+
+cp_local_mdfs /home/utnso/mr-py-WordCount/kernel.txt /mr/textos
+
+

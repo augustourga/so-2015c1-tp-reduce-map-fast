@@ -78,77 +78,6 @@ t_msg *rutina_message(t_msg_id id, char *rutina, int length) {
 	return new;
 }
 
-//TODO: Borrar si no se usa
-t_msg *modify_message(t_msg_id new_id, t_msg *old_msg, uint16_t new_count, ...) {
-	va_list arguments;
-	va_start(arguments, new_count);
-
-	uint16_t old_count = old_msg->header.argc;
-
-	int32_t *val = malloc((new_count + old_count) * sizeof(int32_t));
-
-	int i;
-	for (i = 0; i < new_count; i++) {
-		val[i] = va_arg(arguments, uint32_t);
-	}
-
-	memcpy(val + new_count, old_msg->argv, old_count * sizeof(uint32_t));
-
-	char *buffer = NULL;
-	if (old_msg->header.length > 0) {
-		buffer = malloc(old_msg->header.length);
-	}
-
-	memcpy(buffer, old_msg->stream, old_msg->header.length);
-
-	t_msg *new = malloc(sizeof(t_msg));
-	new->header.id = new_id == NO_NEW_ID ? old_msg->header.id : new_id;
-	new->header.argc = new_count + old_count;
-	new->argv = val;
-	new->header.length = old_msg->header.length;
-	new->stream = buffer;
-
-	va_end(arguments);
-
-	destroy_message(old_msg);
-
-	return new;
-}
-
-t_msg *remake_message(t_msg_id new_id, t_msg *old_msg, uint16_t new_count, ...) {
-	va_list arguments;
-	va_start(arguments, new_count);
-
-	int32_t *val = NULL;
-	if (new_count > 0) {
-		val = malloc(new_count * sizeof(int32_t));
-	}
-
-	int i;
-	for (i = 0; i < new_count; i++) {
-		val[i] = va_arg(arguments, uint32_t);
-	}
-
-	char *buffer = NULL;
-	if (old_msg->header.length > 0) {
-		buffer = malloc(old_msg->header.length);
-		memcpy(buffer, old_msg->stream, old_msg->header.length);
-	}
-
-	t_msg *new = malloc(sizeof(t_msg));
-	new->header.id = new_id == NO_NEW_ID ? old_msg->header.id : new_id;
-	new->header.argc = new_count;
-	new->argv = val;
-	new->header.length = old_msg->header.length;
-	new->stream = buffer;
-
-	va_end(arguments);
-
-	destroy_message(old_msg);
-
-	return new;
-}
-
 t_msg *recibir_mensaje(int sock_fd) {
 	pthread_mutex_lock(&mutex_recibir);
 	t_msg *msg = malloc(sizeof(t_msg));
@@ -269,7 +198,6 @@ int socket_conectado(int socket) {
 }
 
 int enviar_mensaje(int sock_fd, t_msg *msg) {
-//	pthread_mutex_lock(&mutex_enviar);
 	int total = 0;
 	int pending = msg->header.length + sizeof(t_header) + msg->header.argc * sizeof(uint32_t);
 	char *buffer = malloc(pending);
@@ -289,7 +217,6 @@ int enviar_mensaje(int sock_fd, t_msg *msg) {
 		int sent = send(sock_fd, buffer, pending, MSG_NOSIGNAL);
 		if (sent < 0) {
 			free(buffer);
-			//pthread_mutex_unlock(&mutex_enviar);
 			return -1;
 		}
 		total += sent;
@@ -297,8 +224,6 @@ int enviar_mensaje(int sock_fd, t_msg *msg) {
 	}
 	free(buffer);
 	log_debug_interno("Mensaje %s enviado con exito", id_string(msg->header.id));
-//	log_msg(msg); TODO: Descomentar si se quiere para que loguee el contenido del mensaje en su totalidad
-//	pthread_mutex_unlock(&mutex_enviar);
 	return total;
 }
 

@@ -105,16 +105,6 @@ t_msg *string_message(t_msg_id id, char *message, uint16_t count, ...);
 t_msg *rutina_message(t_msg_id id, char *rutina, int length);
 
 /*
- * Agrega nuevos argumentos a un mensaje (estilo FIFO).
- */
-t_msg *modify_message(t_msg_id new_id, t_msg *old_msg, uint16_t new_count, ...);
-
-/*
- * Elimina todos los argumentos existentes de un mensaje y agrega nuevos.
- */
-t_msg *remake_message(t_msg_id new_id, t_msg *old_msg, uint16_t new_count, ...);
-
-/*
  * Libera los contenidos de un t_msg.
  */
 void destroy_message(t_msg *mgs);

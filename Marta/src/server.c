@@ -111,7 +111,12 @@ void conectarse_a_mdfs(char* ip_mdfs, uint16_t puerto_mdfs) {
 	}
 
 	t_msg* mensaje = id_message(CONEXION_MARTA);
-	enviar_mensaje(socket_mdfs, mensaje);
+	int ret = enviar_mensaje(socket_mdfs, mensaje);
+
+	if (ret == -1) {
+		log_error_consola("Error al conectarse a MDFS");
+		exit(1);
+	}
 
 	destroy_message(mensaje);
 	log_debug_consola("Conexion con MFDS OK.");
@@ -155,7 +160,6 @@ char* get_info_archivo(t_job* job, char* ruta_mdfs) {
 		destroy_message(messageJob);
 	}
 
-	destroy_message(respuesta);
 	destroy_message(message);
 	return ret;
 }

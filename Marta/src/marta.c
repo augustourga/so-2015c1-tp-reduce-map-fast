@@ -52,7 +52,7 @@ void finalizar_job_a_si_mismo(t_job* job) {
 }
 
 void genera_maps(t_job* job, char* ruta_mdfs) {
-	log_debug_consola("Armando Maps para el archivo %s", &ruta_mdfs);
+	log_debug_consola("Armando Maps para el archivo %s", ruta_mdfs);
 	char* info_archivo = get_info_archivo(job, ruta_mdfs);
 
 	if (info_archivo == NULL) {
@@ -142,7 +142,7 @@ void planificar_reduces_con_combiner(t_job* job) {
 	temp_actual->nodo = primer_map->arch_tmp.nodo;
 	t_reduce* reduce_actual = reduce_crear();
 	reduce_actual->arch_tmp.nodo = primer_map->arch_tmp.nodo;
-	reduce_actual->arch_tmp.nombre = getRandName("rd_parcial", string_itoa(reduce_actual->id)); //TODO: Generar nombre de archivo
+	reduce_actual->arch_tmp.nombre = getRandName("rd_parcial", string_itoa(reduce_actual->id));
 	temp_actual->nombre = string_new();
 
 
@@ -158,9 +158,8 @@ void planificar_reduces_con_combiner(t_job* job) {
 			log_debug_interno("creando reduce");
 			reduce_actual = reduce_crear();
 			reduce_actual->arch_tmp.nodo = map->arch_tmp.nodo;
-			reduce_actual->arch_tmp.nombre = getRandName("rd_parcial", string_itoa(reduce_actual->id)); //TODO: Generar nombre de archivo
+			reduce_actual->arch_tmp.nombre = getRandName("rd_parcial", string_itoa(reduce_actual->id));
 			temp_actual = malloc(sizeof(t_temp));
-			//TODO preg marcos. seguir usando string_duplicate??
 			nombre_actual = string_duplicate(map->arch_tmp.nodo.nombre);
 			temp_actual->nodo = map->arch_tmp.nodo;
 			temp_actual->nombre = string_duplicate(map->arch_tmp.nombre);
@@ -177,10 +176,7 @@ void planificar_reduces_con_combiner(t_job* job) {
 	//t_reduce* primer_reduce = list_get(job->reduces, 0);
 	log_debug_consola("creando REDUCE final.");
 	t_reduce* reduce_final = reduce_crear();
-	//reduce_final->arch_tmp.nodo = primer_reduce->arch_tmp.nodo; //TODO: Obtener el nodo con menor carga, Nota: Obtener el de menor carga
-	//en este momento, no nos sirve ya que puede cambiar dps de los reduce parciales. o lo dejamos asi, o podriamos dividir y hacer la
-	//planificacion del final dps de que terminan los combiner si existen
-	reduce_final->arch_tmp.nombre = getRandName("rd_final", string_itoa(job->id)); //TODO: Generar nombre
+	reduce_final->arch_tmp.nombre = getRandName("rd_final", string_itoa(job->id));
 
 	void _temporales_reduce_final(t_reduce* reduce) {
 		list_add(reduce_final->temporales, &reduce->arch_tmp);
@@ -238,7 +234,7 @@ void planificar_reduces_sin_combiner(t_job* job) {
 	t_nodo_global* nodo_global = list_find(lista_nodos, (void*) _nodo_por_nombre);
 
 	reduce->arch_tmp.nodo = nodo_global->nodo;
-	reduce->arch_tmp.nombre = getRandName("rd_final", string_itoa(job->id)); //TODO: No se que va aca, generar un nombre para las salidas de los reduces
+	reduce->arch_tmp.nombre = getRandName("rd_final", string_itoa(job->id));
 
 	bool _ordena_por_nombre(t_map* map1, t_map* map2) {
 		return strcmp(map1->arch_tmp.nodo.nombre, map2->arch_tmp.nodo.nombre) > 0;
@@ -323,7 +319,7 @@ void procesa_job(void* argumentos) {
 	char** datos = string_split(args->stream, "|");
 
 	job->archivo_final = string_duplicate(datos[0]);
-	job->combiner = args->combiner; //TODO: Modificar en el Job
+	job->combiner = args->combiner;
 	free(args);
 
 	int i;
