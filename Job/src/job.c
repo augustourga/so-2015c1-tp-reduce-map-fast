@@ -274,6 +274,7 @@ int hiloReduce(void* dato) {
 		if (!mensaje) { //Significa que recibir_mensaje devolvio NULL o sea que hubo un error en el recv o el nodo se desconecto
 			log_info_consola("Respuesta REDUCE Error. id_op: %d, nodo: %s, enviando mensaje a MaRTA",args->id_operacion, args->nombre_nodo);
 			mensaje_respuesta = argv_message(FIN_REDUCE_ERROR, 2, args->id_operacion, args->id_job);
+			return res;
 		} else {
 			log_info_consola("Respuesta REDUCE OK. id_op: %d, nodo: %s, enviando mensaje a MaRTA",args->id_operacion, args->nombre_nodo);
 			mensaje_respuesta = argv_message(mensaje->header.id, 2, args->id_operacion, args->id_job);
@@ -294,7 +295,6 @@ int hiloReduce(void* dato) {
 	}
 	log_info_consola("Respuesta REDUCE enviada. id_op: %d, nodo: %s",args->id_operacion, args->nombre_nodo);
 	destroy_message(mensaje_respuesta);
-	destroy_message(mensaje);
 
 //TODO: No habria que cerrar la conexion con el nodo como en el HiloMap?
 //Lo agregue, no entiendo por que no deberia no hacerse
